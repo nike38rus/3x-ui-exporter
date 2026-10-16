@@ -1,0 +1,6 @@
+.cache/
+bin/
+.env
+*.secret
+coverage.out
+.DS_Store

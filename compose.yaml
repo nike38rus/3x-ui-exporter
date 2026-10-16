@@ -1,0 +1,16 @@
+services:
+  exporter:
+    build: .
+    image: 3x-ui-exporter:dev
+    environment:
+      XUI_URL: ${XUI_URL:?Set XUI_URL}
+      XUI_API_TOKEN: ${XUI_API_TOKEN:?Set XUI_API_TOKEN}
+      XRAY_API: ${XRAY_API:?Set XRAY_API}
+      XRAY_METRICS_URL: ${XRAY_METRICS_URL:-http://127.0.0.1:11111}
+      SCRAPE_TIMEOUT: 4s
+    ports:
+      - "9108:9108"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
