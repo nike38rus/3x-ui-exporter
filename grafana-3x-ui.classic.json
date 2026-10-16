@@ -174,7 +174,7 @@
               "sort": "none"
             }
           },
-          "pluginVersion": "13.2.3",
+          "pluginVersion": "13.2.4",
           "targets": [
             {
               "datasource": {
@@ -410,7 +410,7 @@
             },
             "showHeader": true
           },
-          "pluginVersion": "13.2.3",
+          "pluginVersion": "13.2.4",
           "targets": [
             {
               "datasource": {
@@ -509,6 +509,7 @@
                   "instance 2": true,
                   "instance 3": true,
                   "instance 4": true,
+                  "instance 5": true,
                   "job 1": true,
                   "job 2": true,
                   "job 3": true,
@@ -688,7 +689,7 @@
             },
             "showHeader": true
           },
-          "pluginVersion": "13.2.3",
+          "pluginVersion": "13.2.4",
           "targets": [
             {
               "datasource": {
@@ -946,7 +947,7 @@
               }
             ]
           },
-          "pluginVersion": "13.2.3",
+          "pluginVersion": "13.2.4",
           "targets": [
             {
               "datasource": {
@@ -1154,7 +1155,7 @@
               "sort": "desc"
             }
           },
-          "pluginVersion": "13.2.3",
+          "pluginVersion": "13.2.4",
           "targets": [
             {
               "datasource": {
@@ -1257,7 +1258,7 @@
               "sort": "desc"
             }
           },
-          "pluginVersion": "13.2.3",
+          "pluginVersion": "13.2.4",
           "targets": [
             {
               "datasource": {
@@ -1362,7 +1363,7 @@
               "sort": "desc"
             }
           },
-          "pluginVersion": "13.2.3",
+          "pluginVersion": "13.2.4",
           "targets": [
             {
               "datasource": {
@@ -1479,7 +1480,7 @@
               "sort": "desc"
             }
           },
-          "pluginVersion": "13.2.3",
+          "pluginVersion": "13.2.4",
           "targets": [
             {
               "datasource": {
@@ -3292,7 +3293,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "13.2.3",
+      "pluginVersion": "13.2.4",
       "targets": [
         {
           "datasource": {
@@ -3392,7 +3393,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "13.2.3",
+      "pluginVersion": "13.2.4",
       "targets": [
         {
           "datasource": {
@@ -3482,7 +3483,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "13.2.3",
+      "pluginVersion": "13.2.4",
       "targets": [
         {
           "datasource": {
@@ -3608,7 +3609,7 @@
           "sort": "desc"
         }
       },
-      "pluginVersion": "13.2.3",
+      "pluginVersion": "13.2.4",
       "targets": [
         {
           "datasource": {
@@ -3706,6 +3707,6 @@
   "timezone": "browser",
   "title": "3x-ui",
   "uid": "3x-ui-exporter",
-  "version": 10,
+  "version": 13,
   "weekStart": ""
 }

@@ -1,0 +1,4 @@
+services:
+  exporter:
+    image: 3x-ui-exporter:dev
+    build: .

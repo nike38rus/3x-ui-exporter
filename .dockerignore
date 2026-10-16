@@ -2,4 +2,7 @@
 bin
 .git
 .env
+.env.*
 *.secret
+dist
+.github

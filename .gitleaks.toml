@@ -1,0 +1,6 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Local build caches and generated binaries are not published source"
+paths = ['''(^|/)\.cache/''', '''(^|/)bin/''', '''(^|/)dist/''', '''(^|/)\.git/''']

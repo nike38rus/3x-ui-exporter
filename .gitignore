@@ -1,6 +1,9 @@
 .cache/
 bin/
 .env
+.env.*
+!.env.example
 *.secret
 coverage.out
 .DS_Store
+dist/

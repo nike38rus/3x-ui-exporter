@@ -1,0 +1,23 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - run: make test
+      - name: Scan source for secrets
+        run: docker run --rm -v "$PWD:/repo:ro" ghcr.io/gitleaks/gitleaks:latest dir /repo --redact --log-level warn --config /repo/.gitleaks.toml
+      - run: make licenses
+      - run: git diff --exit-code -- THIRD_PARTY_NOTICES.md third_party_licenses
+      - run: make build linux
+      - run: docker build --build-arg TARGETARCH=amd64 -t 3x-ui-exporter:ci .

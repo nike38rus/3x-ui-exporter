@@ -1,4 +1,4 @@
-module 3x-ui-exporter
+module github.com/nike38rus/3x-ui-exporter
 
 go 1.27.2
 

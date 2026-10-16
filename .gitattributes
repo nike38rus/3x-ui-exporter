@@ -1,0 +1,2 @@
+# Preserve upstream license and notice files verbatim, including whitespace.
+third_party_licenses/* -whitespace

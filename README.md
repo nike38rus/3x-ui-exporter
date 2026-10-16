@@ -1,13 +1,81 @@
 # 3x-ui exporter
 
+## Disclaimer and maintenance policy
+
+This project is **100% vibe-coded with AI**. It was built for my own setup and
+is shared as-is, with no promise of support, ongoing maintenance or future releases.
+I may make changes if and when I need them myself.
+
+**Issues will not be read, and pull requests are unlikely to be reviewed or merged.**
+Do not rely on this repository for fixes or feature requests. If the project does
+not meet your needs, fork it and adapt it for yourself.
+
+## Overview
+
 Synchronous Prometheus exporter for 3x-ui and its running Xray core. One HTTP
 API source discovers configuration; gRPC reads runtime outbounds and balancers.
 One HTTP expvars response supplies traffic, memory/GC and observatory results. No polling loop, exporter configuration file, or stale cache.
 
+## Dashboard preview
+
+Actual Grafana screenshots with anonymized outbound, inbound and balancer names.
+Aliases are applied to query results; measurements and charts are not retouched.
+Private addresses and browser controls are excluded.
+
+Outbound health and quality:
+
+![Outbound health and quality](docs/images/observatory.jpg)
+
+<details>
+<summary>Observatory: latency and probe history</summary>
+
+![Outbound latency and burst probes](docs/images/observatory-probes.jpg)
+
+</details>
+
+<details>
+<summary>Outbounds: throughput, traffic distribution and routing</summary>
+
+![Outbound traffic](docs/images/outbounds.jpg)
+
+</details>
+
+<details>
+<summary>Inbounds: throughput, traffic distribution and direction</summary>
+
+![Inbound traffic](docs/images/inbounds.jpg)
+
+</details>
+
+<details>
+<summary>Balancers: target selection, replacements and availability</summary>
+
+![Balancer target selection](docs/images/balancers.jpg)
+
+![Balancer availability and selected target count](docs/images/balancer-availability.jpg)
+
+</details>
+
+<details>
+<summary>Xray process: memory, allocations and garbage collection</summary>
+
+![Xray memory and object allocations](docs/images/xray-process.jpg)
+
+![Xray garbage collection](docs/images/xray-gc.jpg)
+
+</details>
+
+<details>
+<summary>Exporter: target status, collection history and duration</summary>
+
+![Exporter statistics](docs/images/exporter-stats.jpg)
+
+</details>
+
 ## Run
 
 ```sh
-export XUI_URL=http://192.168.10.16:2053
+export XUI_URL=http://panel.example:2053
 export XUI_API_TOKEN='<token>'
 export XRAY_API=127.0.0.1:62789
 export XRAY_METRICS_URL=http://127.0.0.1:11111
@@ -96,10 +164,10 @@ docker build -t 3x-ui-exporter:dev .
 The Docker image contains all dependencies and runs unprivileged. Use a read-only
 filesystem and drop capabilities (see compose.yaml). For placement alongside
 Xray, prefer its container network namespace; no LAN exposure of gRPC is needed.
-GitHub/GHCR publication and full live exporter verification are separate release steps.
+See VERIFICATION.md for tested scenarios and compatibility scope.
 
-Read-only live checks: `XUI_TEST_EXPVARS_URL=http://192.168.10.16:11111 make test`
-and `XUI_TEST_GRPC=host:port XUI_TEST_BALANCER=someTest make test`.
+Read-only live checks: `XUI_TEST_EXPVARS_URL=http://xray.example:11111 make test`
+and `XUI_TEST_GRPC=host:port XUI_TEST_BALANCER=test-balancer make test`.
 
 ## Dashboard queries
 
@@ -159,3 +227,75 @@ routing rules (preserving the internal API rule), and removes UI-only rule
 metadata. This avoids full configuration generation and traffic maintenance
 performed by getConfigJson. Runtime inventory and balancer state still come
 from gRPC. Settings are not cached and do not prove they were applied to Xray.
+
+## Docker Compose
+
+The example shares the network namespace of an existing Xray/3x-ui container
+on the same Docker host. Set XRAY_CONTAINER to its actual container name.
+The exporter listens on port 9108 in that namespace; no separate port mapping
+is needed. In a bridge deployment, publish 9108 from the Xray container;
+with macvlan, use that container IP. Container recreation may require restarting
+this exporter so it rejoins the new network namespace.
+
+```sh
+cp .env.example .env
+# Edit .env: set the token, container name and addresses.
+docker compose up -d
+```
+
+The default image tag is 0.1.0; it becomes available after the first release.
+Before that, or to build your checkout locally:
+
+```sh
+docker compose -f compose.yaml -f compose.build.yaml up -d --build
+```
+
+The example uses port 9108; override LISTEN_ADDRESS in Compose if it conflicts
+with another exporter. SCRAPE_TIMEOUT must be shorter than the Prometheus timeout.
+
+```yaml
+scrape_configs:
+  - job_name: xui-exporter
+    scrape_interval: 5s
+    scrape_timeout: 5s
+    static_configs:
+      - targets: ["xray.example:9108"]
+```
+
+The metrics endpoint has no authentication. Keep it on a trusted monitoring
+network. The panel token needs permission to POST /panel/api/xray/; an admin
+API token is supported. Do not expose the Xray gRPC control port to the internet.
+
+## Grafana dashboards
+
+Import grafana-3x-ui.classic.json for the classic dashboard JSON format, or
+use grafana-3x-ui.v2.json with Grafana resource schema v2 support. They are two
+exports of the same dashboard, not two dashboards to install simultaneously.
+Choose your Prometheus datasource on import; the supplied queries expect
+job="xui-exporter". Select an instance, then outbound/balancer filters.
+Dashboards were exported from Grafana 13.2; older versions are not guaranteed
+compatible. The classic format is the more widely supported import option.
+
+Quality scores in Grafana are dashboard heuristics, not the Xray balancer score.
+Collection duration stacks API + max(gRPC, expvars); Total is the separate
+scrape_duration_seconds measurement made by Prometheus.
+
+## Releases
+
+CI checks pull requests and main. Pushing a vMAJOR.MINOR.PATCH tag runs tests,
+builds static Linux amd64/arm64 archives with SHA-256 checksums, creates a
+GitHub release and publishes a multi-architecture GHCR image. A tag such as
+v0.1.0 produces ghcr.io/nike38rus/3x-ui-exporter:0.1.0. The first GHCR package
+may need its visibility set to public in GitHub package settings.
+
+Build locally with make release VERSION=v0.1.0. Archives include dashboards,
+README, LICENSE and third-party notices. Build version is embedded via
+-X main.version and exposed in xui_exporter_build_info. Release workflows
+only publish when a tag is pushed; local builds do not publish anything.
+
+## License
+
+Original project code is licensed under MIT; see LICENSE. Dependencies retain
+their own licenses; see THIRD_PARTY_NOTICES.md and third_party_licenses/.
+The linked, unmodified Xray components are MPL-2.0; the notices include exact
+source archive links. Container base-image components retain their own licenses.

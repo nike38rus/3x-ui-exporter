@@ -3,7 +3,7 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "3x-ui-exporter",
-    "generation": 10,
+    "generation": 13,
     "creationTimestamp": "2026-10-14T17:05:36Z",
     "labels": {},
     "annotations": {}
@@ -78,7 +78,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "state-timeline",
-            "version": "13.2.3",
+            "version": "13.2.4",
             "spec": {
               "options": {
                 "alignValue": "left",
@@ -1070,7 +1070,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "13.2.3",
+            "version": "13.2.4",
             "spec": {
               "options": {
                 "colorMode": "value",
@@ -1178,7 +1178,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "13.2.3",
+            "version": "13.2.4",
             "spec": {
               "options": {
                 "colorMode": "value",
@@ -1286,7 +1286,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.3",
+            "version": "13.2.4",
             "spec": {
               "options": {
                 "legend": {
@@ -1414,7 +1414,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "state-timeline",
-            "version": "13.2.3",
+            "version": "13.2.4",
             "spec": {
               "options": {
                 "alignValue": "left",
@@ -1579,7 +1579,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.3",
+            "version": "13.2.4",
             "spec": {
               "options": {
                 "legend": {
@@ -1989,7 +1989,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.3",
+            "version": "13.2.4",
             "spec": {
               "options": {
                 "legend": {
@@ -2113,7 +2113,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.3",
+            "version": "13.2.4",
             "spec": {
               "options": {
                 "legend": {
@@ -2384,7 +2384,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.3",
+            "version": "13.2.4",
             "spec": {
               "options": {
                 "legend": {
@@ -3272,6 +3272,7 @@
                         "instance 2": true,
                         "instance 3": true,
                         "instance 4": true,
+                        "instance 5": true,
                         "job 1": true,
                         "job 2": true,
                         "job 3": true,
@@ -3321,7 +3322,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "13.2.3",
+            "version": "13.2.4",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -3693,7 +3694,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "13.2.3",
+            "version": "13.2.4",
             "spec": {
               "options": {
                 "cellHeight": "sm",
@@ -4000,7 +4001,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "13.2.3",
+            "version": "13.2.4",
             "spec": {
               "options": {
                 "cellHeight": "sm",

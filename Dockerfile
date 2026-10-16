@@ -11,6 +11,10 @@ RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags=
 FROM alpine:3.22
 RUN apk add --no-cache ca-certificates
 COPY --from=build /exporter /usr/local/bin/3x-ui-exporter
+COPY LICENSE THIRD_PARTY_NOTICES.md /usr/share/licenses/3x-ui-exporter/
+COPY third_party_licenses /usr/share/licenses/3x-ui-exporter/third_party_licenses/
+LABEL org.opencontainers.image.source="https://github.com/nike38rus/3x-ui-exporter" \
+      org.opencontainers.image.licenses="MIT"
 USER 65532:65532
 EXPOSE 9108
 ENTRYPOINT ["/usr/local/bin/3x-ui-exporter"]
