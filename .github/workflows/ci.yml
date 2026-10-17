@@ -1,23 +1,108 @@
 name: CI
+
 on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+
 permissions:
   contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
+    name: Go checks and Linux builds
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GOPATH: ${{ github.workspace }}/.cache/gopath
+      GOMODCACHE: ${{ github.workspace }}/.cache/mod
+      GOCACHE: ${{ github.workspace }}/.cache/build
+      GOTMPDIR: ${{ github.workspace }}/.cache/tmp
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
-          cache: false
-      - run: make test
-      - name: Scan source for secrets
-        run: docker run --rm -v "$PWD:/repo:ro" ghcr.io/gitleaks/gitleaks:latest dir /repo --redact --log-level warn --config /repo/.gitleaks.toml
-      - run: make licenses
-      - run: git diff --exit-code -- THIRD_PARTY_NOTICES.md third_party_licenses
-      - run: make build linux
-      - run: docker build --build-arg TARGETARCH=amd64 -t 3x-ui-exporter:ci .
+          cache-dependency-path: go.sum
+      - run: make prepare
+      - name: Check Go formatting
+        run: |
+          unformatted=$(git ls-files -z '*.go' | xargs -0 gofmt -l)
+          if [ -n "$unformatted" ]; then
+            printf 'Run gofmt on:\n%s\n' "$unformatted"
+            exit 1
+          fi
+      - name: Check module files
+        run: go mod tidy -diff
+      - name: Run tests with race detector and go vet
+        run: make test
+      - name: Check third-party notices
+        run: |
+          make licenses
+          git diff --exit-code -- THIRD_PARTY_NOTICES.md third_party_licenses
+          test -z "$(git ls-files --others --exclude-standard -- third_party_licenses)"
+      - name: Build Linux amd64 and arm64 binaries
+        run: make linux VERSION=ci
+
+  repository:
+    name: Repository checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate workflow syntax
+        run: docker run --rm -v "$PWD:/repo:ro" -w /repo rhysd/actionlint:1.7.12 -color
+      - name: Validate dashboard JSON
+        run: |
+          python3 -m json.tool grafana-3x-ui.classic.json >/dev/null
+          python3 -m json.tool grafana-3x-ui.v2.json >/dev/null
+      - name: Scan Git history for secrets
+        run: >-
+          docker run --rm -v "$PWD:/repo:ro"
+          ghcr.io/gitleaks/gitleaks:v8.30.1 git /repo
+          --log-opts=--all --redact --log-level warn --config /repo/.gitleaks.toml
+
+  container:
+    name: Docker build and smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          load: true
+          push: false
+          tags: 3x-ui-exporter:ci
+          build-args: VERSION=ci
+          cache-from: type=gha,scope=exporter-ci
+          cache-to: type=gha,mode=max,scope=exporter-ci
+      - name: Check packaged binary and HTTP endpoints
+        run: |
+          test "$(docker run --rm 3x-ui-exporter:ci --version)" = ci
+          container="xui-ci-${GITHUB_RUN_ID}"
+          trap 'docker logs "$container" || true; docker rm -f "$container" >/dev/null 2>&1 || true' EXIT
+          docker run -d --name "$container" --read-only --cap-drop=ALL \
+            --security-opt=no-new-privileges \
+            -p 127.0.0.1::9108 \
+            -e XUI_URL=http://127.0.0.1:1 -e XUI_API_TOKEN=ci-placeholder \
+            3x-ui-exporter:ci
+          endpoint="http://$(docker port "$container" 9108/tcp)"
+          curl --fail --silent --show-error --retry 10 --retry-connrefused \
+            --retry-delay 1 --max-time 2 "$endpoint/healthz"
+          metrics=$(curl --fail --silent --show-error --max-time 5 "$endpoint/metrics")
+          printf '%s\n' "$metrics" | grep -Fx 'xui_exporter_build_info{version="ci"} 1'
+          printf '%s\n' "$metrics" | grep -Fx 'xui_exporter_scrape_success{source="api"} 0'

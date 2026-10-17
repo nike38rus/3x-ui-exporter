@@ -280,6 +280,16 @@ Quality scores in Grafana are dashboard heuristics, not the Xray balancer score.
 Collection duration stacks API + max(gRPC, expvars); Total is the separate
 scrape_duration_seconds measurement made by Prometheus.
 
+## Continuous integration
+
+GitHub Actions runs on pushes to main, pull requests and manual dispatches.
+Independent jobs check Go formatting, module files, race tests, go vet,
+third-party notices, workflow syntax, dashboard JSON and Git history for secrets.
+CI also builds Linux amd64/arm64 binaries and a Docker image, then checks the
+packaged version, health endpoint and metrics response with an unavailable panel.
+The container runs with a read-only filesystem and no Linux capabilities.
+CI does not publish binaries or images.
+
 ## Releases
 
 CI checks pull requests and main. Pushing a vMAJOR.MINOR.PATCH tag runs tests,
