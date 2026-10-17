@@ -4,6 +4,8 @@ on:
     tags: ['v*']
 permissions:
   contents: read
+env:
+  DOCKER_BUILD_RECORD_UPLOAD: 'false'
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
