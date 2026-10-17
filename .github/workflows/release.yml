@@ -93,7 +93,13 @@ jobs:
             if [[ "$RELEASE_VERSION" == *-* ]]; then
               flags+=(--prerelease --latest=false)
             fi
-            gh release create "$RELEASE_VERSION" dist/* --verify-tag --generate-notes "${flags[@]}"
+            notes="docs/releases/$RELEASE_VERSION.md"
+            if [[ -f "$notes" ]]; then
+              flags+=(--notes-file "$notes")
+            else
+              flags+=(--generate-notes)
+            fi
+            gh release create "$RELEASE_VERSION" dist/* --verify-tag "${flags[@]}"
           fi
         env:
           RELEASE_VERSION: ${{ github.ref_name }}

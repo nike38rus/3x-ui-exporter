@@ -234,8 +234,8 @@ The example shares the network namespace of an existing Xray/3x-ui container
 on the same Docker host. Set XRAY_CONTAINER to its actual container name.
 The exporter listens on port 9108 in that namespace; no separate port mapping
 is needed. In a bridge deployment, publish 9108 from the Xray container;
-with macvlan, use that container IP. Container recreation may require restarting
-this exporter so it rejoins the new network namespace.
+with macvlan, use that container IP. After recreating the Xray container, recreate this exporter too so it joins
+the current network namespace.
 
 ```sh
 cp .env.example .env
@@ -243,14 +243,47 @@ cp .env.example .env
 docker compose up -d
 ```
 
-The default image tag is 0.1.0; it becomes available after the first release.
-To use the latest successful main build before that, set `EXPORTER_VERSION=edge`
-in `.env`. The `edge` tag is updated after each successful main pipeline.
+The default image tag is 0.1.0. To use the latest successful main build, set
+`EXPORTER_VERSION=edge` in `.env`. The `edge` tag is updated after each
+successful main pipeline.
 To build your checkout locally:
 
 ```sh
 docker compose -f compose.yaml -f compose.build.yaml up -d --build
 ```
+
+When both services belong to the same Compose project, use the **service key**
+from `services:` instead of the container name. Add this exporter service to your
+existing Compose file (here the panel service key is `x-ui`):
+
+```yaml
+services:
+  # Your existing x-ui service remains here.
+  exporter:
+    image: ghcr.io/nike38rus/3x-ui-exporter:0.1.0
+    network_mode: service:x-ui
+    depends_on:
+      x-ui:
+        condition: service_started
+        restart: true
+    environment:
+      XUI_URL: http://127.0.0.1:2053
+      XUI_API_TOKEN: ${XUI_API_TOKEN:?Set XUI_API_TOKEN}
+      XRAY_API: 127.0.0.1:62789
+      XRAY_METRICS_URL: http://127.0.0.1:11111
+      LISTEN_ADDRESS: :9108
+      SCRAPE_TIMEOUT: 4s
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+```
+
+`network_mode: service:x-ui` establishes startup ordering. The explicit dependency
+also requests an exporter restart after Compose-controlled updates/restarts of
+the panel; it does not supervise automatic Docker Engine restarts. API readiness
+is not required at exporter startup: unavailable sources are retried on each
+scrape. Separate Compose projects must use the `container:` example instead.
 
 The example uses port 9108; override LISTEN_ADDRESS in Compose if it conflicts
 with another exporter. SCRAPE_TIMEOUT must be shorter than the Prometheus timeout.
