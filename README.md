@@ -244,7 +244,9 @@ docker compose up -d
 ```
 
 The default image tag is 0.1.0; it becomes available after the first release.
-Before that, or to build your checkout locally:
+To use the latest successful main build before that, set `EXPORTER_VERSION=edge`
+in `.env`. The `edge` tag is updated after each successful main pipeline.
+To build your checkout locally:
 
 ```sh
 docker compose -f compose.yaml -f compose.build.yaml up -d --build
@@ -288,7 +290,11 @@ third-party notices, workflow syntax, dashboard JSON and Git history for secrets
 CI also builds Linux amd64/arm64 binaries and a Docker image, then checks the
 packaged version, health endpoint and metrics response with an unavailable panel.
 The container runs with a read-only filesystem and no Linux capabilities.
-CI does not publish binaries or images.
+After all checks pass on main, CI uploads Linux amd64/arm64 archives and SHA-256
+checksums as an Actions artifact (retained for 14 days). It also publishes the
+multi-architecture image `ghcr.io/nike38rus/3x-ui-exporter:edge` and a
+`sha-<full-commit-SHA>` tag. Development builds report version
+`v0.0.0-dev.<short-commit-SHA>`. Pull requests never publish images or artifacts.
 
 ## Releases
 
@@ -299,9 +305,9 @@ v0.1.0 produces ghcr.io/nike38rus/3x-ui-exporter:0.1.0. The first GHCR package
 may need its visibility set to public in GitHub package settings.
 
 Build locally with make release VERSION=v0.1.0. Archives include dashboards,
-README, LICENSE and third-party notices. Build version is embedded via
+README with its screenshot assets, LICENSE and third-party notices. Build version is embedded via
 -X main.version and exposed in xui_exporter_build_info. Release workflows
-only publish when a tag is pushed; local builds do not publish anything.
+publish versioned releases when a tag is pushed; local builds do not publish anything.
 
 ## License
 

@@ -16,6 +16,7 @@ for arch in amd64 arm64; do
     -ldflags="-s -w -X main.version=$version" -o "$stage/3x-ui-exporter" .
   cp LICENSE THIRD_PARTY_NOTICES.md README.md grafana-3x-ui.*.json "$stage/"
   cp -R third_party_licenses "$stage/"
+  cp -R docs "$stage/"
   tar -czf "dist/${archive}.tar.gz" -C "$stage" .
   rm -rf "$stage"
   trap - EXIT

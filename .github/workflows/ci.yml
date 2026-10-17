@@ -106,3 +106,61 @@ jobs:
           metrics=$(curl --fail --silent --show-error --max-time 5 "$endpoint/metrics")
           printf '%s\n' "$metrics" | grep -Fx 'xui_exporter_build_info{version="ci"} 1'
           printf '%s\n' "$metrics" | grep -Fx 'xui_exporter_scrape_success{source="api"} 0'
+
+  publish:
+    name: Publish main build
+    needs: [test, repository, container]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    env:
+      GOPATH: ${{ github.workspace }}/.cache/gopath
+      GOMODCACHE: ${{ github.workspace }}/.cache/mod
+      GOCACHE: ${{ github.workspace }}/.cache/build
+      GOTMPDIR: ${{ github.workspace }}/.cache/tmp
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - name: Set development version
+        id: version
+        run: echo "version=v0.0.0-dev.${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+      - name: Build archives and checksums
+        run: make release VERSION="$BUILD_VERSION"
+        env:
+          BUILD_VERSION: ${{ steps.version.outputs.version }}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: 3x-ui-exporter-main-${{ github.sha }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish development image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/nike38rus/3x-ui-exporter:edge
+            ghcr.io/nike38rus/3x-ui-exporter:sha-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          build-args: VERSION=${{ steps.version.outputs.version }}
+          cache-from: type=gha,scope=exporter-ci
+          cache-to: type=gha,mode=max,scope=exporter-ci
