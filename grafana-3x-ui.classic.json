@@ -2561,6 +2561,241 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
+          "description": "Process state reported by the panel, not a connectivity probe. Only the active state is displayed. Missing or unknown state remains No data.",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "noValue": "No data",
+              "color": {
+                "mode": "fixed",
+                "fixedColor": "blue"
+              },
+              "mappings": []
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "running"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "green"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "stop"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "orange"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "error"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "red"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 5,
+            "w": 8,
+            "h": 4
+          },
+          "id": 35,
+          "interval": "5s",
+          "maxDataPoints": 10000,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "percentChangeColorMode": "standard",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showPercentChange": false,
+            "textMode": "name",
+            "wideLayout": true
+          },
+          "pluginVersion": "13.2.4",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "expr": "xui_xray_state{job=\"xui-exporter\",instance=\"${instance}\"} == 1",
+              "instant": true,
+              "legendFormat": "{{state}}",
+              "range": false,
+              "refId": "A"
+            }
+          ],
+          "title": "Xray process state",
+          "type": "stat",
+          "transformations": []
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "description": "Xray version reported by the panel status API. This does not independently attest the running binary.",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "noValue": "No data",
+              "color": {
+                "mode": "fixed",
+                "fixedColor": "blue"
+              },
+              "mappings": []
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "x": 8,
+            "y": 5,
+            "w": 8,
+            "h": 4
+          },
+          "id": 36,
+          "interval": "5s",
+          "maxDataPoints": 10000,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "percentChangeColorMode": "standard",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showPercentChange": false,
+            "textMode": "name",
+            "wideLayout": true
+          },
+          "pluginVersion": "13.2.4",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "expr": "xui_xray_info{job=\"xui-exporter\",instance=\"${instance}\"}",
+              "instant": true,
+              "legendFormat": "{{version}}",
+              "range": false,
+              "refId": "A"
+            }
+          ],
+          "title": "Xray version",
+          "type": "stat",
+          "transformations": []
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "description": "Version reported by the running 3x-ui panel. Omitted if unavailable in this panel version.",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "noValue": "No data",
+              "color": {
+                "mode": "fixed",
+                "fixedColor": "blue"
+              },
+              "mappings": []
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "x": 16,
+            "y": 5,
+            "w": 8,
+            "h": 4
+          },
+          "id": 37,
+          "interval": "5s",
+          "maxDataPoints": 10000,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "percentChangeColorMode": "standard",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showPercentChange": false,
+            "textMode": "name",
+            "wideLayout": true
+          },
+          "pluginVersion": "13.2.4",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "expr": "xui_panel_info{job=\"xui-exporter\",instance=\"${instance}\"}",
+              "instant": true,
+              "legendFormat": "{{version}}",
+              "range": false,
+              "refId": "A"
+            }
+          ],
+          "title": "Panel version",
+          "type": "stat",
+          "transformations": []
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
           "description": "Go runtime memory values; neither is process RSS.",
           "fieldConfig": {
             "defaults": {
@@ -2622,7 +2857,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 5
+            "y": 9
           },
           "id": 29,
           "interval": "5s",
@@ -2738,7 +2973,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 5
+            "y": 9
           },
           "id": 30,
           "interval": "5s",
@@ -2842,7 +3077,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 13
+            "y": 17
           },
           "id": 31,
           "interval": "5s",
@@ -2946,7 +3181,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 13
+            "y": 17
           },
           "id": 32,
           "interval": "5s",
@@ -3062,7 +3297,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 21
+            "y": 25
           },
           "id": 33,
           "interval": "5s",
@@ -3167,7 +3402,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 21
+            "y": 25
           },
           "id": 34,
           "interval": "5s",
@@ -3216,7 +3451,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 5
+        "y": 9
       },
       "id": 40,
       "title": "Exporter stats",
@@ -3272,7 +3507,7 @@
         "h": 4,
         "w": 4,
         "x": 0,
-        "y": 6
+        "y": 10
       },
       "id": 18,
       "interval": "5s",
@@ -3373,7 +3608,7 @@
         "h": 4,
         "w": 20,
         "x": 4,
-        "y": 6
+        "y": 10
       },
       "id": 23,
       "interval": "5s",
@@ -3462,7 +3697,7 @@
         "h": 5,
         "w": 4,
         "x": 0,
-        "y": 10
+        "y": 14
       },
       "id": 19,
       "interval": "5s",
@@ -3507,7 +3742,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS-INFRA}"
       },
-      "description": "API collection runs first, followed by gRPC and expvars in parallel. Runtime shows the maximum of their durations. The stacked API + Runtime approximates the collection time; Total is the full scrape duration measured by Prometheus, including processing and network overhead.",
+      "description": "Settings and server/status requests start in parallel. gRPC and expvars start after settings completes, without waiting for server/status. Source durations overlap and are shown without stacking. API is the elapsed span until both API requests finish, not their sum. Runtime is max(gRPC, expvars). Total is the end-to-end duration measured by Prometheus; source durations cannot be added to reconstruct it.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -3541,7 +3776,7 @@
             "spanNulls": false,
             "stacking": {
               "group": "A",
-              "mode": "normal"
+              "mode": "none"
             },
             "thresholdsStyle": {
               "mode": "off"
@@ -3589,7 +3824,7 @@
         "h": 5,
         "w": 20,
         "x": 4,
-        "y": 10
+        "y": 14
       },
       "id": 24,
       "interval": "5s",

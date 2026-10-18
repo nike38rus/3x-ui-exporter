@@ -47,6 +47,7 @@ type fakePanel struct {
 }
 
 func (f fakePanel) Configuration(context.Context) (*Config, error) { return f.cfg, f.err }
+func (f fakePanel) Status(context.Context) (*PanelStatus, error)   { return &PanelStatus{}, nil }
 func configuration(t *testing.T, s string) *Config {
 	t.Helper()
 	var c Config

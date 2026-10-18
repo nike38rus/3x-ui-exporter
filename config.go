@@ -55,8 +55,8 @@ type Panel struct {
 	Client     *http.Client
 }
 
-func (p *Panel) Configuration(ctx context.Context) (*Config, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(p.URL, "/")+"/panel/api/xray/", nil)
+func (p *Panel) object(ctx context.Context, method, path string) (json.RawMessage, error) {
+	req, err := http.NewRequestWithContext(ctx, method, strings.TrimRight(p.URL, "/")+path, nil)
 	if err != nil {
 		return nil, errors.New("invalid panel URL")
 	}
@@ -79,9 +79,18 @@ func (p *Panel) Configuration(ctx context.Context) (*Config, error) {
 		Object  json.RawMessage `json:"obj"`
 	}
 	if json.Unmarshal(body, &envelope) != nil || !envelope.Success || !configured(envelope.Object) {
-		return nil, errors.New("configuration response unsuccessful")
+		return nil, errors.New("panel response unsuccessful")
 	}
-	raw := envelope.Object
+	return envelope.Object, nil
+}
+
+func (p *Panel) Configuration(ctx context.Context) (*Config, error) {
+	object, err := p.object(ctx, http.MethodPost, "/panel/api/xray/")
+	if err != nil {
+		return nil, err
+	}
+
+	raw := object
 	if len(raw) > 0 && raw[0] == '"' {
 		var s string
 		if json.Unmarshal(raw, &s) != nil {

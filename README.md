@@ -2,8 +2,8 @@
 
 ## Overview
 
-Synchronous Prometheus exporter for 3x-ui and its running Xray core. One HTTP
-API source discovers configuration; gRPC reads runtime outbounds and balancers.
+Synchronous Prometheus exporter for 3x-ui and its running Xray core. The HTTP
+API source discovers configuration and reads panel/Xray status; gRPC reads runtime outbounds and balancers.
 One HTTP expvars response supplies traffic, memory/GC and observatory results. No polling loop, exporter configuration file, or stale cache.
 
 ## Disclaimer and maintenance policy
@@ -135,8 +135,8 @@ Dashboards were exported from Grafana 13.2; older versions are not guaranteed
 compatible. The classic format is the more widely supported import option.
 
 Quality scores in Grafana are dashboard heuristics, not the Xray balancer score.
-Collection duration stacks API + max(gRPC, expvars); Total is the separate
-scrape_duration_seconds measurement made by Prometheus.
+Collection duration shows overlapping source spans without stacking; Total is
+the separate scrape_duration_seconds measurement made by Prometheus.
 
 ## Metrics
 
@@ -319,12 +319,15 @@ cover selection roles for all four strategies, including empty results and overr
 
 ### Xray
 
-Source: Xray expvars `memstats`. These describe the Xray Go runtime, not the
-exporter process. Go-managed memory is not process RSS. Uptime and goroutine
+Sources: panel API for versions/process state; Xray expvars `memstats` for
+memory/GC. Memory metrics describe the Xray Go runtime, not the exporter process. Go-managed memory is not process RSS. Uptime and goroutine
 counts are intentionally not exported.
 
 | Metric | Labels | Values and description |
 | --- | --- | --- |
+| `xui_panel_info` | `version`: panel version | Gauge: always `1`; version reported by the running panel's status API. Omitted when missing. |
+| `xui_xray_info` | `version`: Xray version | Gauge: always `1`; Xray version reported by the panel, not independent attestation of the running binary. Omitted when missing. |
+| `xui_xray_state` | `state`: `running`, `stop` or `error` | Gauge: one series per known state; the active state is `1`, the other two are `0`. Missing/unknown state produces no state series. This is the panel's process view, not an internet health check. |
 | `xui_xray_memory_alloc_bytes` | None | Gauge: bytes occupied by allocated heap objects (`Alloc`). |
 | `xui_xray_memory_sys_bytes` | None | Gauge: bytes obtained from the OS by the Go runtime (`Sys`); includes runtime-managed regions, not just live heap objects. |
 | `xui_xray_memory_alloc_bytes_total` | None | Counter: cumulative bytes allocated for heap objects, including objects subsequently freed (`TotalAlloc`). |
@@ -333,6 +336,14 @@ counts are intentionally not exported.
 | `xui_xray_memory_live_objects` | None | Gauge: current number of allocated heap objects (`HeapObjects`). |
 | `xui_xray_gc_cycles_total` | None | Counter: completed garbage collection cycles (`NumGC`). |
 | `xui_xray_gc_pause_seconds_total` | None | Counter: cumulative GC stop-the-world pause time, converted from nanoseconds to seconds (`PauseTotalNs`). |
+
+The panel refreshes server/status in the background (nominally every two seconds);
+the exporter requests the latest snapshot on every scrape without its own cache.
+The response does not provide a serialized snapshot timestamp, so its freshness
+cannot be independently verified. Missing fields are omitted, malformed fields
+mark API collection unsuccessful while valid independent fields remain available.
+Diagnostic `errorMsg` text is not exported or logged. The screenshots below show
+the memory/GC panels, not the new version and process-state header.
 
 ![Xray memory and heap allocation metrics](docs/images/xray-process.jpg)
 
@@ -352,13 +363,16 @@ failure gauges and valid metrics from independent sources.
 | Metric | Labels | Values and description |
 | --- | --- | --- |
 | `xui_exporter_scrape_success` | `source`: `api`, `grpc` or `expvars` | Gauge: `1` = all required operations for this source succeeded, `0` = collection or decoding failed. Disabled sources have no series. |
-| `xui_exporter_scrape_duration_seconds` | `source`: `api`, `grpc` or `expvars` | Gauge: elapsed wall-clock time of this source's collection work in the current scrape, in seconds. Excludes waiting for other sources; not CPU time. |
+| `xui_exporter_scrape_duration_seconds` | `source`: `api`, `grpc` or `expvars` | Gauge: elapsed wall-clock time of this source's collection work in the current scrape, in seconds. Excludes waiting for other sources; API measures the span of its two parallel requests, not their sum. Not CPU time. |
 | `xui_exporter_build_info` | `version`: embedded build version | Gauge: always `1`; the label identifies the running build. |
 
 The dashboard also displays `up` and `scrape_duration_seconds`, which are created
-by Prometheus, not this exporter. API collection runs first; gRPC and expvars
-then run concurrently. The duration panel stacks API + max(gRPC, expvars), while
-Total is the separate end-to-end duration measured by Prometheus.
+by Prometheus, not this exporter. Settings and server/status requests start together; gRPC and expvars start as
+soon as settings completes. The duration panel shows overlapping source durations
+without stacking; Total is the end-to-end duration measured by Prometheus.
+
+The screenshot below predates parallel status collection; the updated duration
+panel uses unstacked source lines.
 
 ![Exporter collection status and duration](docs/images/exporter-stats.jpg)
 
@@ -400,25 +414,37 @@ scrape gaps limit completeness; this is not a connection-switch log.
 
 ## Collection timing
 
-API and expvars durations measure their own request/decoding work. gRPC duration
-measures only balancer/outbound collection; waiting for API and expvars is
-excluded. Prometheus scrape_duration_seconds remains the complete duration.
-Operations taking 100 ms or longer emit a warning without secrets.
+Each scrape starts the settings and server/status API requests in parallel. As
+soon as settings completes, gRPC and expvars begin concurrently, even if status
+is still running. All operations share the scrape deadline.
+
+API duration spans from the start of the API phase until both requests complete;
+it is not their summed duration and does not include waiting for runtime sources.
+gRPC and expvars durations measure their own work. These intervals overlap, so
+the dashboard does not stack them. Runtime shows max(gRPC, expvars); Total is
+Prometheus scrape_duration_seconds, including processing and network overhead.
+Source durations alone cannot reconstruct Total. Operations taking 100 ms or
+longer emit a warning without secrets.
 
 ## Request budget and failures
 
-With N>0 configured balancers: one API request, one HTTP expvars request when
-enabled, one ListOutbounds and N GetBalancerInfo calls: N+3 total. For two
-balancers with expvars enabled, this is always five calls, including when
-expvars fails. No balancers means no gRPC calls. GetSysStats and QueryStats
-are never called.
+With N>0 configured balancers: two API requests, one HTTP expvars request when
+enabled, one ListOutbounds and N GetBalancerInfo calls: N+4 total. For two
+balancers with expvars enabled, this is six calls. No balancers means no gRPC
+calls. GetSysStats and QueryStats are never called.
 
-Every metric has exactly one source: API for configuration discovery, gRPC
-for runtime outbound inventory and balancers, expvars for traffic, memory/GC
-and observation. No caching, source switching or alternate-source fallback collection.
-Missing data remains absent. Valid groups survive malformed siblings; decoding
-errors set expvars success to zero. Empty or missing optional groups produce
-no measurements. Explicitly disabled sources have no status/duration series.
+The existing `source="api"` covers both panel requests; its success is one only
+when both requests and their decoding succeed. Valid status fields survive a
+settings failure, and valid configuration-driven metrics survive a status failure.
+No new collector/source label is introduced. Failed status collection does not
+reuse an old snapshot or synthesize a stopped state.
+
+Every metric has exactly one source: API for configuration discovery and panel/core
+versions/process state, gRPC for runtime outbound inventory and balancers, expvars
+for traffic, memory/GC and observation. No caching, source switching or alternate-source
+fallback collection. Missing data remains absent. Valid groups survive malformed
+siblings; decoding errors mark the responsible source unsuccessful. Empty or missing
+optional groups produce no measurements. Disabled sources have no status/duration series.
 
 ## Panel settings discovery
 

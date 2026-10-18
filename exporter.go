@@ -95,15 +95,16 @@ func reportSlow(start time.Time, source, operation string) {
 	}
 }
 
-type ConfigSource interface {
+type PanelSource interface {
 	Configuration(context.Context) (*Config, error)
+	Status(context.Context) (*PanelStatus, error)
 }
 type ExpvarsSource interface {
 	Snapshot(context.Context) (*ExpvarsSnapshot, error)
 }
 type Exporter struct {
 	Expvars ExpvarsSource
-	Panel   ConfigSource
+	Panel   PanelSource
 	Core    Core
 	Timeout time.Duration
 	Version string
@@ -160,8 +161,23 @@ func (e *Exporter) Handler() http.Handler {
 }
 func (e *Exporter) scrape(ctx context.Context) samples {
 	apiStart := time.Now()
+	var status *PanelStatus
+	var statusErr error
+	var statusElapsed time.Duration
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		start := time.Now()
+		defer reportSlow(start, "api", "server/status")
+		status, statusErr = e.Panel.Status(ctx)
+		if statusErr == nil && status == nil {
+			statusErr = errors.New("missing panel status")
+		}
+		statusElapsed = time.Since(apiStart)
+	}()
 	cfg, cfgErr := e.Panel.Configuration(ctx)
-	apiDuration := time.Since(apiStart).Seconds()
+	configElapsed := time.Since(apiStart)
 	reportSlow(apiStart, "api", "getXraySetting")
 	expvarsEnabled := cfg == nil || cfg.metricsEnabled()
 	grpcEnabled := cfg != nil && len(cfg.Routing.Balancers) > 0
@@ -169,7 +185,6 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 	var expErr, balancerErr, trafficErr error
 	var expDuration, grpcDuration time.Duration
 	var balancer, traffic samples
-	var wg sync.WaitGroup
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
@@ -201,11 +216,13 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 		balancer, balancerErr = e.balancerMetrics(ctx, cfg)
 	}()
 	wg.Wait()
+	apiDuration := max(configElapsed, statusElapsed).Seconds()
 	if data != nil {
 		traffic, trafficErr = trafficMetrics(data.Traffic)
 		expErr = errors.Join(expErr, trafficErr)
 	}
 	result := append(traffic, balancer...)
+	result = append(result, panelStatusMetrics(status)...)
 	if data != nil {
 		result = append(result, data.Memory...)
 		result = append(result, data.Observation...)
@@ -213,12 +230,12 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 	for _, item := range []struct {
 		name string
 		err  error
-	}{{"api", cfgErr}, {"expvars", expErr}, {"traffic", trafficErr}, {"balancer", balancerErr}} {
+	}{{"api_settings", cfgErr}, {"api_status", statusErr}, {"expvars", expErr}, {"traffic", trafficErr}, {"balancer", balancerErr}} {
 		if item.err != nil {
 			slog.Warn("collection failed", "operation", item.name, "error_type", fmt.Sprintf("%T", item.err))
 		}
 	}
-	gauge(&result, "xui_exporter_scrape_success", "Whether all required operations for this source succeeded.", number(cfgErr == nil), []string{"source"}, "api")
+	gauge(&result, "xui_exporter_scrape_success", "Whether all required operations for this source succeeded.", number(cfgErr == nil && statusErr == nil), []string{"source"}, "api")
 	gauge(&result, "xui_exporter_scrape_duration_seconds", "Elapsed source collection time in seconds.", apiDuration, []string{"source"}, "api")
 	if expvarsEnabled {
 		gauge(&result, "xui_exporter_scrape_success", "Whether all required operations for this source succeeded.", number(expErr == nil), []string{"source"}, "expvars")

@@ -40,3 +40,16 @@ not observable per-connection choices: primary and fallback selection metrics
 are omitted without an active override. Tests cover both nonempty and empty
 candidate lists and explicit override activity for these strategies. Structural
 availability remains available and must not be read as actual selection or health.
+
+## Panel status and parallel API collection
+
+Automated tests cover authenticated status GET requests, partial/missing fields,
+all three process states, malformed/unknown state, response size limits, independent
+settings/status failures, and the N+4 request budget. Deterministic timing tests
+verify that status overlaps configuration and runtime requests, API duration spans
+both API calls without summing them, and gRPC/expvars do not wait for status.
+
+Read-only verification of the installed panel confirmed the existing Bearer token
+can call server/status and receive panelVersion 3.10.2, Xray version 26.10.10,
+and state running. No service restart or routing mutation was used for this check.
+The new exporter binary has not yet been deployed for an end-to-end live test.
