@@ -692,8 +692,8 @@
         "kind": "Panel",
         "spec": {
           "id": 15,
-          "title": "Target replacements",
-          "description": "Observed target replacements in a centered 60-second window. Division by two assumes a constant selected-set size and stable inventory; additions/removals can produce half values. The latest centered bucket is incomplete.",
+          "title": "Selection state changes",
+          "description": "Number of observed 0/1 transitions across primary, fallback and override series in each minute. One target replacement can cause multiple transitions. Missing data and minute boundaries limit completeness; this is not a connection log. The window is centered on each minute; the latest bucket is incomplete.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -708,7 +708,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum by (instance, balancer) (\n  changes(\n    xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\"}[1m] offset -30s\n  )\n) / 2",
+                        "expr": "sum by (instance, balancer) (\n  changes(\n    xui_balancer_outbound_selected{role=~\"primary|fallback|override\",job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\"}[1m] offset -30s\n  )\n)",
                         "interval": "1m",
                         "legendFormat": "{{balancer}}",
                         "range": true
@@ -832,9 +832,9 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "sort_desc (\n  100 * avg_over_time(\n    xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\"}[$__range]\n  )\n)",
+                        "expr": "sort_desc (\n  100 * avg_over_time(\n    xui_balancer_outbound_selected{role=~\"primary|fallback|override\",job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\"}[$__range]\n  )\n)",
                         "instant": true,
-                        "legendFormat": "{{balancer}} | {{outbound}}",
+                        "legendFormat": "{{balancer}} | {{role}} | {{outbound}}",
                         "range": false
                       },
                       "labels": {
@@ -914,7 +914,7 @@
         "spec": {
           "id": 17,
           "title": "Selected outbounds",
-          "description": "",
+          "description": "Primary target membership plus fallback and override activity. Fallback uses its configured outbound tag; override has no outbound tag. Gray means confirmed inactive; gaps mean unavailable or unknown data.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -930,10 +930,10 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\"}",
+                        "expr": "xui_balancer_outbound_selected{role=~\"primary|fallback|override\",job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\"}",
                         "instant": false,
                         "interval": "5s",
-                        "legendFormat": "{{balancer}} | {{outbound}}",
+                        "legendFormat": "{{balancer}} | {{role}} | {{outbound}}",
                         "range": true
                       },
                       "labels": {
@@ -1802,7 +1802,7 @@
         "spec": {
           "id": 26,
           "title": "Selected target count",
-          "description": "Number of selected targets. No selection series means no value; it is not synthesized as zero.",
+          "description": "Number of selected primary targets only. A successfully observed empty selection is zero; missing or unsupported selection data is absent. Fallback and override are excluded.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -1817,7 +1817,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum by(instance,balancer) (xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\"})",
+                        "expr": "sum by(instance,balancer) (xui_balancer_outbound_selected{role=\"primary\",job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\"})",
                         "instant": false,
                         "legendFormat": "{{balancer}}",
                         "range": true

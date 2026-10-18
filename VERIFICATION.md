@@ -4,7 +4,9 @@
 
 make test runs the race detector and go vet. Tests cover panel authentication,
 settings response decoding, disabled routing rules, subscription outbounds,
-selector membership, overrides, absent balancers, loopback fallback and cycles,
+selector membership, primary/fallback/override roles for leastLoad and leastPing,
+unknown selection for random/roundRobin, overrides for all four strategies,
+absent balancers, collection failures, loopback fallback and cycles,
 ordinary and burst observation, partial/missing data, counter validation,
 timeouts, concurrent scrapes, request budgets and independent source timing.
 The gRPC binding test uses an in-memory server; no live services are required.
@@ -28,3 +30,13 @@ or modify routing; do not expose the control API publicly to run them.
 
 Source duration is wall-clock time, not CPU usage. Host power management,
 scheduling and networking can affect it.
+
+## Balancer strategy coverage
+
+leastLoad is the production-verified selection strategy. leastPing selection is
+supported by the pinned Xray API and automated tests, but has not been verified
+in the production deployment. random and roundRobin provide candidate lists,
+not observable per-connection choices: primary and fallback selection metrics
+are omitted without an active override. Tests cover both nonempty and empty
+candidate lists and explicit override activity for these strategies. Structural
+availability remains available and must not be read as actual selection or health.

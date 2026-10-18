@@ -109,10 +109,17 @@ is discovery data, not proof that runtime has the same configuration.
 
 ## Metrics
 
-* `xui_balancer_outbound_selected{balancer,outbound}`: current leastLoad or
-  leastPing target membership; override takes priority. Zeros only for matching
-  runtime selector candidates. Selected targets outside selector are retained.
-  An empty choice or absent runtime balancer produces no selection series.
+* `xui_balancer_outbound_selected{balancer,outbound,role}`: selection state.
+  `role="primary"` identifies each runtime selector candidate (and any returned
+  primary target outside the selector); `outbound` is its real tag. Confirmed
+  empty selection emits zero for known candidates. `role="fallback"` uses the
+  configured fallbackTag and is present only when fallback is configured and
+  its selection state is known. `role="override"` has an empty outbound label
+  and is always present for a successfully read runtime balancer. Its value
+  reports override activity, not the override target tag. Override suppresses
+  primary and fallback selection. An absent runtime balancer or failed collection
+  produces no selection series. Empty labels are equivalent to absent labels
+  in Prometheus. These states describe selection, not observed traffic.
 * `xui_balancer_outbound_available{balancer}`: a selected target or fallback
   resolves to an existing runtime outbound, not proof of internet access.
   Unconditional loopback chains are resolved with cycle detection. Conditional
@@ -141,14 +148,31 @@ No missing measurements are filled with zeros. Confirmed zero values and boolean
 false states are published. Every scrape constructs fresh metrics. Histograms,
 quality scores, and exporter-maintained switch counters are intentionally absent.
 
-### Strategy limitations
+### Balancer strategy support
 
-Xray GetBalancerInfo exposes candidate lists, not actual targets, for random and
-roundRobin. Their `outbound_selected` is omitted unless an override is active.
-They still expose structural outbound availability. This is not a health guarantee.
+Selection support is strategy-dependent. **leastLoad is the production-verified
+strategy**; do not assume all Xray balancers expose equivalent monitoring data.
+
+| Strategy | Primary selection | Configured fallback activity | Override activity |
+| --- | --- | --- | --- |
+| leastLoad | Supported | Supported | Supported |
+| leastPing | Supported by Xray API and automated tests; not live-verified | Supported | Supported |
+| random | Unknown without override; omitted | Unknown without override; omitted | Supported |
+| roundRobin | Unknown without override; omitted | Unknown without override; omitted | Supported |
+
+Xray GetBalancerInfo exposes candidate lists, not actual selected targets, for
+random and roundRobin. We do not interpret those candidates as active selection
+or infer fallback from them. With override active, known primary candidates and
+configured fallback report zero, and override reports one. Override activity is
+reported even when normal selection cannot be observed.
+
+All four strategies expose structural outbound availability; for random and
+roundRobin it describes resolvable candidates/fallback, not proof of their actual
+choice or health. Availability is never an internet connectivity guarantee.
 For leastLoad/leastPing, principle targets represent current strategy preference,
-not a log of routed connections. Runtime routing reads use
-public Xray gRPC services and protobuf packages pinned to the v26.9.30 commit.
+not a log of routed connections. Runtime routing reads use public Xray gRPC
+services and protobuf packages pinned to the v26.9.30 commit. Automated tests
+cover selection roles for all four strategies, including empty results and overrides.
 One expvars request is shared by all HTTP metric groups. Valid groups survive
 malformed siblings; the source success gauge is zero for incomplete decoding.
 
@@ -171,6 +195,12 @@ and `XUI_TEST_GRPC=host:port XUI_TEST_BALANCER=test-balancer make test`.
 
 ## Dashboard queries
 
+The role-aware dashboards require an exporter build that includes the `role`
+label (newer than v0.1.0). Upgrade the exporter and dashboards together. Selection
+queries explicitly exclude pre-upgrade series without a role, so historical data
+from the old schema does not double-count targets. Older samples are not migrated.
+
+
 Selected time (%), instant query:
 
 ```promql
@@ -183,19 +213,22 @@ Timeline (range query, actual step aligned to scrape interval):
 xui_balancer_outbound_selected{balancer=~"$balancer"}
 ```
 
+Use role and outbound in the legend; fallback and override appear alongside
+primary targets. Selected target count filters `role="primary"`.
+
 State timeline: fixed color mode, value mappings 0=gray/Not selected and
 1=green/Selected, mergeValues=true. Time percentages require regular complete
 scrapes. Multiple selected targets may sum above 100%.
 
-Changes in the preceding minute (minute query step, bars aligned before):
+Selection state changes in the preceding minute (minute query step, bars aligned before):
 
 ```promql
-sum by (instance,balancer) (changes(xui_balancer_outbound_selected[1m])) / 2
+sum by (instance,balancer) (changes(xui_balancer_outbound_selected[1m]))
 ```
 
-Division by two assumes constant selected-set size and stable series inventory.
-Minute boundaries and scrape gaps limit accuracy; this is observed membership
-change, not a connection-switch log.
+Each 0/1 transition is counted separately across primary, fallback and override.
+A target replacement may cause multiple transitions. Minute boundaries and
+scrape gaps limit completeness; this is not a connection-switch log.
 
 ## Collection timing
 

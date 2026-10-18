@@ -255,12 +255,19 @@ func (e *Exporter) balancerMetrics(ctx context.Context, cfg *Config) (samples, e
 		}
 		gauge(&result, "xui_balancer_outbound_available", "Whether a selected target or fallback resolves to an existing runtime outbound; not a health guarantee.", number(available), []string{"balancer"}, b.Tag)
 		state := states[b.Tag]
-		if state == nil || len(state.Targets) == 0 {
+		if state == nil {
 			continue
 		}
-		// For other strategies GetPrincipleTarget can return candidates rather than actual selection.
+		labels := []string{"balancer", "outbound", "role"}
+		const help = "Current primary target membership, configured fallback selection, or override activity."
+		gauge(&result, "xui_balancer_outbound_selected", help, number(state.Override), labels, b.Tag, "", "override")
+		// Other strategies expose candidates, so their primary/fallback choice is unknown.
 		strategy := strings.ToLower(b.Strategy.Type)
-		if !state.Override && strategy != "leastload" && strategy != "leastping" {
+		knownSelection := strategy == "leastload" || strategy == "leastping"
+		if b.Fallback != "" && (knownSelection || state.Override) {
+			gauge(&result, "xui_balancer_outbound_selected", help, number(!state.Override && len(state.Targets) == 0), labels, b.Tag, b.Fallback, "fallback")
+		}
+		if !knownSelection && !state.Override {
 			continue
 		}
 		tags := map[string]bool{}
@@ -271,8 +278,10 @@ func (e *Exporter) balancerMetrics(ctx context.Context, cfg *Config) (samples, e
 				}
 			}
 		}
-		for t := range state.Targets {
-			tags[t] = true
+		if !state.Override {
+			for t := range state.Targets {
+				tags[t] = true
+			}
 		}
 		ordered := make([]string, 0, len(tags))
 		for t := range tags {
@@ -280,7 +289,7 @@ func (e *Exporter) balancerMetrics(ctx context.Context, cfg *Config) (samples, e
 		}
 		sort.Strings(ordered)
 		for _, t := range ordered {
-			gauge(&result, "xui_balancer_outbound_selected", "Override or current leastLoad/leastPing principle target membership.", number(state.Targets[t]), []string{"balancer", "outbound"}, b.Tag, t)
+			gauge(&result, "xui_balancer_outbound_selected", help, number(!state.Override && state.Targets[t]), labels, b.Tag, t, "primary")
 		}
 	}
 	return result, nil

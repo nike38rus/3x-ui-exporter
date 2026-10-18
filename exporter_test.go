@@ -91,7 +91,7 @@ func TestSelectorsAndOverride(t *testing.T) {
 		t.Fatal(err)
 	}
 	vals := sampleValues(t, m, "xui_balancer_outbound_selected")
-	if len(vals) != 2 || vals["balancer=lb;outbound=AB;"] != 1 {
+	if len(vals) != 3 || vals["balancer=lb;outbound=AB;role=primary;"] != 1 {
 		t.Fatal(vals)
 	}
 	f.states["lb"] = &BalancerState{Targets: map[string]bool{"direct": true}, Override: true}
@@ -99,7 +99,7 @@ func TestSelectorsAndOverride(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if v := sampleValues(t, m, "xui_balancer_outbound_selected"); len(v) != 3 || v["balancer=lb;outbound=direct;"] != 1 {
+	if v := sampleValues(t, m, "xui_balancer_outbound_selected"); len(v) != 3 || v["balancer=lb;outbound=;role=override;"] != 1 || v["balancer=lb;outbound=AB;role=primary;"] != 0 {
 		t.Fatal(v)
 	}
 }
@@ -275,5 +275,65 @@ func TestHandlerRoutes(t *testing.T) {
 		if w.Code != expected {
 			t.Fatal(w.Code)
 		}
+	}
+}
+
+func TestSelectionRoles(t *testing.T) {
+	for _, tc := range []struct {
+		name, strategy              string
+		state                       *BalancerState
+		primary, fallback, override float64
+		known                       bool
+	}{
+		{"primary", "leastLoad", &BalancerState{Targets: map[string]bool{"A": true}}, 1, 0, 0, true},
+		{"fallback", "leastLoad", &BalancerState{Targets: map[string]bool{}}, 0, 1, 0, true},
+		{"override", "leastLoad", &BalancerState{Targets: map[string]bool{"A": true}, Override: true}, 0, 0, 1, true},
+		{"leastping primary", "leastPing", &BalancerState{Targets: map[string]bool{"A": true}}, 1, 0, 0, true},
+		{"leastping override", "leastPing", &BalancerState{Targets: map[string]bool{"outside-selector": true}, Override: true}, 0, 0, 1, true},
+		{"random override", "random", &BalancerState{Targets: map[string]bool{"outside-selector": true}, Override: true}, 0, 0, 1, true},
+		{"roundrobin candidates", "roundRobin", &BalancerState{Targets: map[string]bool{"A": true}}, 0, 0, 0, false},
+		{"roundrobin empty", "roundRobin", &BalancerState{Targets: map[string]bool{}}, 0, 0, 0, false},
+		{"roundrobin override", "roundRobin", &BalancerState{Targets: map[string]bool{"outside-selector": true}, Override: true}, 0, 0, 1, true},
+		{"random empty", "random", &BalancerState{Targets: map[string]bool{}}, 0, 0, 0, false},
+		{"leastping empty", "leastPing", &BalancerState{Targets: map[string]bool{}}, 0, 1, 0, true},
+		{"random unknown", "random", &BalancerState{Targets: map[string]bool{"A": true}}, 0, 0, 0, false},
+		{"absent", "leastLoad", nil, 0, 0, 0, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := configuration(t, `{"routing":{"balancers":[{"tag":"lb","selector":["A"],"fallbackTag":"A","strategy":{"type":"`+tc.strategy+`"}}]}}`)
+			e := &Exporter{Core: &fakeCore{tags: map[string]bool{"A": true}, states: map[string]*BalancerState{"lb": tc.state}}}
+			m, err := e.balancerMetrics(context.Background(), cfg)
+			if err != nil {
+				t.Fatal(err)
+			}
+			v := sampleValues(t, m, "xui_balancer_outbound_selected")
+			if tc.state == nil {
+				if len(v) != 0 {
+					t.Fatal(v)
+				}
+				return
+			}
+			if got, exists := v["balancer=lb;outbound=;role=override;"]; !exists || got != tc.override {
+				t.Fatal(v)
+			}
+			if !tc.known {
+				if len(v) != 1 {
+					t.Fatal(v)
+				}
+				return
+			}
+			if len(v) != 3 || v["balancer=lb;outbound=A;role=primary;"] != tc.primary || v["balancer=lb;outbound=A;role=fallback;"] != tc.fallback {
+				t.Fatal(v)
+			}
+		})
+	}
+}
+
+func TestSelectionRolesCollectionFailure(t *testing.T) {
+	cfg := configuration(t, `{"routing":{"balancers":[{"tag":"lb","selector":["A"],"fallbackTag":"reserve","strategy":{"type":"leastLoad"}}]}}`)
+	e := &Exporter{Core: &fakeCore{fail: true}}
+	m, err := e.balancerMetrics(context.Background(), cfg)
+	if err == nil || len(m) != 0 {
+		t.Fatalf("failed collection must not synthesize selection states: %v %v", m, err)
 	}
 }
