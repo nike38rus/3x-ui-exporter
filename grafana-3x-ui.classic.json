@@ -157,7 +157,7 @@
           },
           "id": 1,
           "interval": "5s",
-          "maxDataPoints": 10000,
+          "maxDataPoints": 5000,
           "options": {
             "alignValue": "left",
             "legend": {
@@ -182,7 +182,7 @@
                 "uid": "${DS_PROMETHEUS-INFRA}"
               },
               "editorMode": "code",
-              "expr": "(xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"} * on(instance,outbound) (1 + (xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"} == bool 0)))\nor on(instance,outbound) (xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"} * 2)",
+              "expr": "(xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"} == bool 0)))\nor (xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"} * 2)",
               "interval": "5s",
               "legendFormat": "{{outbound}}",
               "range": true,
@@ -419,7 +419,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "(xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"} * on(instance,outbound) (1 + (xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"} == bool 0)))\nor on(instance,outbound) (xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"} * 2)",
+              "expr": "(xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"} == bool 0)))\nor (xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"} * 2)",
               "format": "table",
               "instant": true,
               "legendFormat": "Health",
@@ -433,7 +433,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"} or on(instance,outbound) xui_observatory_outbound_delay_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}",
+              "expr": "xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"} or xui_observatory_outbound_delay_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}",
               "format": "table",
               "instant": true,
               "legendFormat": "RTT",
@@ -998,7 +998,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "(\n  exp(\n    -10 *\n    (\n      sum_over_time(\n        xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range]\n      )\n      /\n      sum_over_time(\n        xui_observatory_outbound_probe_samples{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range]\n      )\n    )\n  )\n) ^ 0.50\n\n*\n\n(\n  exp(\n    -2 *\n    (\n      quantile_over_time(\n        0.95,\n        xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range]\n      )\n      -\n      quantile_over_time(\n        0.50,\n        xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range]\n      )\n    )\n  )\n) ^ 0.30\n\n*\n\n(\n  clamp(\n    130 -\n    100 *\n    quantile_over_time(\n      0.50,\n      xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range]\n    ),\n    0,\n    100\n  ) / 100\n) ^ 0.20\n\n* 100",
+              "expr": "100 * exp(\n  -5 * (sum_over_time(xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range]) / sum_over_time(xui_observatory_outbound_probe_samples{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range]))\n  - 0.6 * (quantile_over_time(0.95, xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range]) - quantile_over_time(0.50, xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range]))\n) * (clamp(130 - 100 * quantile_over_time(0.50, xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range]), 0, 100) / 100) ^ 0.20",
               "format": "table",
               "instant": true,
               "legendFormat": "__auto",
@@ -1135,7 +1135,7 @@
           },
           "id": 2,
           "interval": "5s",
-          "maxDataPoints": 10000,
+          "maxDataPoints": 5000,
           "options": {
             "legend": {
               "calcs": [
@@ -1163,7 +1163,7 @@
                 "uid": "${DS_PROMETHEUS-INFRA}"
               },
               "editorMode": "code",
-              "expr": "xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"} or on(instance,outbound) xui_observatory_outbound_delay_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}",
+              "expr": "xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"} or xui_observatory_outbound_delay_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}",
               "interval": "5s",
               "legendFormat": "{{outbound}}",
               "range": true,
@@ -1238,7 +1238,7 @@
           },
           "id": 3,
           "interval": "5s",
-          "maxDataPoints": 10000,
+          "maxDataPoints": 5000,
           "options": {
             "legend": {
               "calcs": [
@@ -1266,7 +1266,7 @@
                 "uid": "${DS_PROMETHEUS-INFRA}"
               },
               "editorMode": "code",
-              "expr": "avg_over_time(xui_observatory_outbound_rtt_deviation_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__interval])",
+              "expr": "xui_observatory_outbound_rtt_deviation_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}",
               "interval": "5s",
               "legendFormat": "{{outbound}}",
               "range": true,
@@ -1346,7 +1346,7 @@
           },
           "id": 27,
           "interval": "5s",
-          "maxDataPoints": 10000,
+          "maxDataPoints": 5000,
           "options": {
             "legend": {
               "calcs": [
@@ -1463,7 +1463,7 @@
           },
           "id": 28,
           "interval": "5s",
-          "maxDataPoints": 10000,
+          "maxDataPoints": 5000,
           "options": {
             "legend": {
               "calcs": [
@@ -1488,7 +1488,7 @@
                 "uid": "${DS_PROMETHEUS-INFRA}"
               },
               "editorMode": "code",
-              "expr": "xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"} / on(instance,outbound) xui_observatory_outbound_probe_samples{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}",
+              "expr": "xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"} / xui_observatory_outbound_probe_samples{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}",
               "instant": false,
               "legendFormat": "{{outbound}}",
               "range": true,
@@ -2126,7 +2126,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "sort_desc (\n  100 * avg_over_time(\n    xui_balancer_outbound_selected{role=~\"primary|fallback|override\",job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\"}[$__range]\n  )\n)",
+              "expr": "sort_desc (\n  100 * avg_over_time(\n    xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\"}[$__range]\n  )\n)",
               "instant": true,
               "legendFormat": "{{balancer}} | {{role}} | {{outbound}}",
               "range": false,
@@ -2205,7 +2205,7 @@
           },
           "id": 15,
           "interval": "1m",
-          "maxDataPoints": 10000,
+          "maxDataPoints": 5000,
           "options": {
             "legend": {
               "calcs": [
@@ -2230,7 +2230,7 @@
                 "uid": "${DS_PROMETHEUS-INFRA}"
               },
               "editorMode": "code",
-              "expr": "sum by (instance, balancer) (\n  changes(\n    xui_balancer_outbound_selected{role=~\"primary|fallback|override\",job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\"}[1m] offset -30s\n  )\n)",
+              "expr": "sum by (instance, balancer) (\n  changes(\n    xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\"}[1m] offset -30s\n  )\n)",
               "interval": "1m",
               "legendFormat": "{{balancer}}",
               "range": true,
@@ -2299,7 +2299,7 @@
           },
           "id": 17,
           "interval": "5s",
-          "maxDataPoints": 10000,
+          "maxDataPoints": 5000,
           "options": {
             "alignValue": "left",
             "legend": {
@@ -2325,7 +2325,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "xui_balancer_outbound_selected{role=~\"primary|fallback|override\",job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\"}",
+              "expr": "xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\"}",
               "instant": false,
               "interval": "5s",
               "legendFormat": "{{balancer}} | {{role}} | {{outbound}}",
@@ -2402,7 +2402,7 @@
           },
           "id": 25,
           "interval": "5s",
-          "maxDataPoints": 10000,
+          "maxDataPoints": 5000,
           "options": {
             "alignValue": "left",
             "legend": {
@@ -2507,7 +2507,7 @@
           },
           "id": 26,
           "interval": "5s",
-          "maxDataPoints": 10000,
+          "maxDataPoints": 5000,
           "options": {
             "legend": {
               "calcs": [
@@ -2628,7 +2628,7 @@
           },
           "id": 35,
           "interval": "5s",
-          "maxDataPoints": 10000,
+          "maxDataPoints": 5000,
           "options": {
             "colorMode": "value",
             "graphMode": "none",
@@ -2691,7 +2691,7 @@
           },
           "id": 36,
           "interval": "5s",
-          "maxDataPoints": 10000,
+          "maxDataPoints": 5000,
           "options": {
             "colorMode": "value",
             "graphMode": "none",
@@ -2754,7 +2754,7 @@
           },
           "id": 37,
           "interval": "5s",
-          "maxDataPoints": 10000,
+          "maxDataPoints": 5000,
           "options": {
             "colorMode": "value",
             "graphMode": "none",
@@ -2861,7 +2861,7 @@
           },
           "id": 29,
           "interval": "5s",
-          "maxDataPoints": 10000,
+          "maxDataPoints": 5000,
           "options": {
             "legend": {
               "calcs": [
@@ -2977,7 +2977,7 @@
           },
           "id": 30,
           "interval": "5s",
-          "maxDataPoints": 10000,
+          "maxDataPoints": 5000,
           "options": {
             "legend": {
               "calcs": [
@@ -3081,7 +3081,7 @@
           },
           "id": 31,
           "interval": "5s",
-          "maxDataPoints": 10000,
+          "maxDataPoints": 5000,
           "options": {
             "legend": {
               "calcs": [
@@ -3185,7 +3185,7 @@
           },
           "id": 32,
           "interval": "5s",
-          "maxDataPoints": 10000,
+          "maxDataPoints": 5000,
           "options": {
             "legend": {
               "calcs": [
@@ -3301,7 +3301,7 @@
           },
           "id": 33,
           "interval": "5s",
-          "maxDataPoints": 10000,
+          "maxDataPoints": 5000,
           "options": {
             "legend": {
               "calcs": [
@@ -3406,7 +3406,7 @@
           },
           "id": 34,
           "interval": "5s",
-          "maxDataPoints": 10000,
+          "maxDataPoints": 5000,
           "options": {
             "legend": {
               "calcs": [
@@ -3442,7 +3442,7 @@
           "type": "timeseries"
         }
       ],
-      "title": "Xray process",
+      "title": "Panel state",
       "type": "row"
     },
     {
@@ -3511,7 +3511,7 @@
       },
       "id": 18,
       "interval": "5s",
-      "maxDataPoints": 10000,
+      "maxDataPoints": 5000,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -3612,7 +3612,7 @@
       },
       "id": 23,
       "interval": "5s",
-      "maxDataPoints": 10000,
+      "maxDataPoints": 5000,
       "options": {
         "alignValue": "left",
         "legend": {
@@ -3701,7 +3701,7 @@
       },
       "id": 19,
       "interval": "5s",
-      "maxDataPoints": 10000,
+      "maxDataPoints": 5000,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -3828,7 +3828,7 @@
       },
       "id": 24,
       "interval": "5s",
-      "maxDataPoints": 10000,
+      "maxDataPoints": 5000,
       "options": {
         "legend": {
           "calcs": [
@@ -3853,7 +3853,7 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "scrape_duration_seconds{job=\"xui-exporter\",instance=\"$instance\"}",
+          "expr": "scrape_duration_seconds{job=\"xui-exporter\",instance=\"${instance}\"}",
           "instant": false,
           "legendFormat": "Total",
           "range": true,
@@ -3877,7 +3877,7 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "max by (instance, job) (\n  xui_exporter_scrape_duration_seconds{\n    job=\"xui-exporter\",\n    instance=\"$instance\",\n    source=~\"grpc|expvars\"\n  }\n)",
+          "expr": "max by (instance, job) (\n  xui_exporter_scrape_duration_seconds{\n    job=\"xui-exporter\",\n    instance=\"${instance}\",\n    source=~\"grpc|expvars\"\n  }\n)",
           "instant": false,
           "legendFormat": "Runtime",
           "range": true,

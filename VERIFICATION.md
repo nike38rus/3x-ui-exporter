@@ -12,7 +12,7 @@ timeouts, concurrent scrapes, request budgets and independent source timing.
 The gRPC binding test uses an in-memory server; no live services are required.
 
 make build linux builds the native binary and static Linux amd64/arm64 binaries.
-make release VERSION=v0.1.0 packages the Linux binaries with dashboards,
+make release VERSION=v0.3.0 packages the Linux binaries with dashboards,
 documentation and license notices, and produces SHA-256 checksums.
 
 ## Deployment verification
@@ -52,4 +52,19 @@ both API calls without summing them, and gRPC/expvars do not wait for status.
 Read-only verification of the installed panel confirmed the existing Bearer token
 can call server/status and receive panelVersion 3.10.2, Xray version 26.10.10,
 and state running. No service restart or routing mutation was used for this check.
-The new exporter binary has not yet been deployed for an end-to-end live test.
+The user subsequently installed the edge image and updated the dashboard.
+
+## Dashboard query audit
+
+Both dashboard formats contain the same 49 PromQL expressions. All were accepted
+by the deployment Prometheus during the query audit. Over a two-day range, health,
+latency and failed-probe ratios retained identical values after removing redundant
+vector matching. The simplified quality expression matched the original values
+within floating-point tolerance. Removing the selection role filter recovered
+older label-less history as separate series. Deviation now shows its raw gauge
+rather than an interval average.
+
+A two-day query at a 15-second step reproduced the 11,000-point resolution error;
+a 30-second step succeeded. Both formats now use a 5,000-point target while
+preserving minimum intervals. This verification covers the checked queries and
+deployment, not every Grafana version or arbitrary date range.

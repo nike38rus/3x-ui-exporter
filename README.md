@@ -66,7 +66,7 @@ cp .env.example .env
 docker compose up -d
 ```
 
-The default image tag is 0.2.0. To use the latest successful main build, set
+The default image tag is 0.3.0. To use the latest successful main build, set
 `EXPORTER_VERSION=edge` in `.env`. The `edge` tag is updated after each
 successful main pipeline.
 To build your checkout locally:
@@ -83,7 +83,7 @@ existing Compose file (here the panel service key is `x-ui`):
 services:
   # Your existing x-ui service remains here.
   exporter:
-    image: ghcr.io/nike38rus/3x-ui-exporter:0.2.0
+    image: ghcr.io/nike38rus/3x-ui-exporter:0.3.0
     network_mode: service:x-ui
     depends_on:
       x-ui:
@@ -133,6 +133,10 @@ Choose your Prometheus datasource on import; the supplied queries expect
 job="xui-exporter". Select an instance, then outbound/balancer filters.
 Dashboards were exported from Grafana 13.2; older versions are not guaranteed
 compatible. The classic format is the more widely supported import option.
+
+Queries use the current metric schema without compatibility rewrites. Historical
+series keep their original labels; schema changes can appear as separate series
+or gaps. Ordinary observatory and burstObservatory remain supported.
 
 Quality scores in Grafana are dashboard heuristics, not the Xray balancer score.
 Collection duration shows overlapping source spans without stacking; Total is
@@ -317,7 +321,7 @@ cover selection roles for all four strategies, including empty results and overr
 
 </details>
 
-### Xray
+### Panel state
 
 Sources: panel API for versions/process state; Xray expvars `memstats` for
 memory/GC. Memory metrics describe the Xray Go runtime, not the exporter process. Go-managed memory is not process RSS. Uptime and goroutine
@@ -343,9 +347,9 @@ The response does not provide a serialized snapshot timestamp, so its freshness
 cannot be independently verified. Missing fields are omitted, malformed fields
 mark API collection unsuccessful while valid independent fields remain available.
 Diagnostic `errorMsg` text is not exported or logged. The screenshots below show
-the memory/GC panels, not the new version and process-state header.
+the panel/core versions, process state and Xray memory/GC panels.
 
-![Xray memory and heap allocation metrics](docs/images/xray-process.jpg)
+![Panel and Xray versions, process state and memory metrics](docs/images/panel-state.jpg)
 
 <details>
 <summary>Garbage collection</summary>
@@ -371,46 +375,54 @@ by Prometheus, not this exporter. Settings and server/status requests start toge
 soon as settings completes. The duration panel shows overlapping source durations
 without stacking; Total is the end-to-end duration measured by Prometheus.
 
-The screenshot below predates parallel status collection; the updated duration
-panel uses unstacked source lines.
+The duration panel shows API and Runtime spans alongside the independent
+Prometheus Total, without stacking overlapping intervals.
 
 ![Exporter collection status and duration](docs/images/exporter-stats.jpg)
 
 ## Dashboard queries
 
-The role-aware dashboards require an exporter build that includes the `role`
-label (v0.2.0 and later). Upgrade the exporter and dashboards together. Selection
-queries explicitly exclude pre-upgrade series without a role, so historical data
-from the old schema does not double-count targets. Older samples are not migrated.
+Use exporter v0.2.0 or later for primary/fallback/override selection roles.
+Selection queries retain historical series without `role`; old and new label sets
+remain separate series rather than being migrated or merged. On a range spanning
+an upgrade, selected-time percentages are calculated over the available samples
+of each series, not over the entire range with missing samples counted as zero.
 
 Selected time (%), instant query:
 
 ```promql
-100 * avg_over_time(xui_balancer_outbound_selected{balancer=~"$balancer",role=~"primary|fallback|override"}[$__range])
+100 * avg_over_time(xui_balancer_outbound_selected{balancer=~"$balancer"}[$__range])
 ```
 
-Timeline (range query, actual step aligned to scrape interval):
+Timeline (range query):
 
 ```promql
-xui_balancer_outbound_selected{balancer=~"$balancer",role=~"primary|fallback|override"}
+xui_balancer_outbound_selected{balancer=~"$balancer"}
 ```
 
 Use role and outbound in the legend; fallback and override appear alongside
-primary targets. Selected target count filters `role="primary"`.
+primary targets. Selected target count filters `role="primary"`; it has no data
+for history predating that label. No primary role is inferred for older samples.
+
+Range panels use a 5-second minimum interval and a 5,000-point target. Grafana
+increases the step for longer ranges to stay below the Prometheus 11,000-point
+limit. Short states can disappear at coarser resolution; zoom in to inspect them.
 
 State timeline: fixed color mode, value mappings 0=gray/Not selected and
 1=green/Selected, mergeValues=true. Time percentages require regular complete
 scrapes. Multiple selected targets may sum above 100%.
 
-Selection state changes in the preceding minute (minute query step, bars aligned before):
+Selection state changes in a centered minute (minimum query step of one minute, centered bars):
 
 ```promql
-sum by (instance,balancer) (changes(xui_balancer_outbound_selected{role=~"primary|fallback|override"}[1m]))
+sum by (instance,balancer) (changes(xui_balancer_outbound_selected[1m] offset -30s))
 ```
 
 Each 0/1 transition is counted separately across primary, fallback and override.
 A target replacement may cause multiple transitions. Minute boundaries and
-scrape gaps limit completeness; this is not a connection-switch log.
+scrape gaps limit completeness; this is not a connection-switch log. The latest
+centered bucket is incomplete. At query steps above one minute, the panel samples
+one-minute windows rather than counting all transitions over the intervening time.
 
 ## Collection timing
 
@@ -491,10 +503,10 @@ multi-architecture image `ghcr.io/nike38rus/3x-ui-exporter:edge` and a
 CI checks pull requests and main. Pushing a vMAJOR.MINOR.PATCH tag runs tests,
 builds static Linux amd64/arm64 archives with SHA-256 checksums, creates a
 GitHub release and publishes a multi-architecture GHCR image. A tag such as
-v0.2.0 produces ghcr.io/nike38rus/3x-ui-exporter:0.2.0. The first GHCR package
+v0.3.0 produces ghcr.io/nike38rus/3x-ui-exporter:0.3.0. The first GHCR package
 may need its visibility set to public in GitHub package settings.
 
-Build locally with make release VERSION=v0.2.0. Archives include dashboards,
+Build locally with make release VERSION=v0.3.0. Archives include dashboards,
 README with its screenshot assets, LICENSE and third-party notices. Build version is embedded via
 -X main.version and exposed in xui_exporter_build_info. Release workflows
 publish versioned releases when a tag is pushed; local builds do not publish anything.
