@@ -506,6 +506,12 @@ GitHub release and publishes a multi-architecture GHCR image. A tag such as
 v0.3.0 produces ghcr.io/nike38rus/3x-ui-exporter:0.3.0. The first GHCR package
 may need its visibility set to public in GitHub package settings.
 
+Each release also publishes architecture-specific tags, for example
+`0.3.0-amd64` and `0.3.0-arm64`. They point directly to the existing platform
+manifests without rebuilding the image. The common `0.3.0` tag selects the
+platform automatically and retains build provenance. The Architecture tags
+workflow can add these aliases to an already published release.
+
 Build locally with make release VERSION=v0.3.0. Archives include dashboards,
 README with its screenshot assets, LICENSE and third-party notices. Build version is embedded via
 -X main.version and exposed in xui_exporter_build_info. Release workflows

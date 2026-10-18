@@ -72,8 +72,16 @@ jobs:
           build-args: VERSION=${{ github.ref_name }}
           cache-from: type=gha,scope=exporter-ci
           cache-to: type=gha,mode=max,scope=exporter-ci
+  architecture-tags:
+    needs: image
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/image-tags.yml
+    with:
+      version: ${{ github.ref_name }}
   publish:
-    needs: [binaries, image]
+    needs: [binaries, image, architecture-tags]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
