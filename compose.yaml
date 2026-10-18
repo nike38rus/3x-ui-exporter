@@ -1,6 +1,6 @@
 services:
   exporter:
-    image: ghcr.io/nike38rus/3x-ui-exporter:${EXPORTER_VERSION:-0.1.0}
+    image: ghcr.io/nike38rus/3x-ui-exporter:${EXPORTER_VERSION:-0.2.0}
     network_mode: container:${XRAY_CONTAINER:-3xui_app}
     environment:
       XUI_URL: ${XUI_URL:-http://127.0.0.1:2053}

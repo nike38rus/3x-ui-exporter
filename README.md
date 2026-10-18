@@ -276,7 +276,7 @@ cp .env.example .env
 docker compose up -d
 ```
 
-The default image tag is 0.1.0. To use the latest successful main build, set
+The default image tag is 0.2.0. To use the latest successful main build, set
 `EXPORTER_VERSION=edge` in `.env`. The `edge` tag is updated after each
 successful main pipeline.
 To build your checkout locally:
@@ -293,7 +293,7 @@ existing Compose file (here the panel service key is `x-ui`):
 services:
   # Your existing x-ui service remains here.
   exporter:
-    image: ghcr.io/nike38rus/3x-ui-exporter:0.1.0
+    image: ghcr.io/nike38rus/3x-ui-exporter:0.2.0
     network_mode: service:x-ui
     depends_on:
       x-ui:
