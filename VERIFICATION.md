@@ -69,14 +69,14 @@ a 30-second step succeeded. Both formats now use a 5,000-point target while
 preserving minimum intervals. This verification covers the checked queries and
 deployment, not every Grafana version or arbitrary date range.
 
-## Pending release: source contracts and discovery
+## Source contracts and discovery
 
 Tests cover fixed three-source diagnostics, gRPC probing without balancers or
 configuration, explicit expvars access despite API/configuration failures, valid
 empty observation/traffic groups, and contract failures. Discovery tests cover
 IPv4/IPv6 wildcard normalization, concrete addresses, invalid listeners, override
 precedence, concurrent endpoints, and removal of configuration without reuse of
-old addresses or samples. These changes have not been deployed to the live NAS.
+old addresses or samples. The edge build was verified alongside v0.3.0 on the live NAS.
 
 ## v0.4.0 release preparation
 
@@ -85,4 +85,10 @@ license generation and release archive packaging passed locally. All 64 current
 dashboard expressions were accepted by the deployment Prometheus. The two formats
 have identical query multisets. Overview, runtime memory and collection screenshots
 were refreshed from Grafana with private addresses excluded by cropping.
-Live verification of the new binary and endpoint discovery is still pending.
+The edge image for commit 4cabf26 was run in an isolated temporary container
+sharing the existing Xray network namespace, with XRAY_METRICS_URL empty and
+its test listener bound only to loopback. All three source statuses were 1.
+Baseline v0.3.0 and the new build each exposed 123 samples; excluding build-info
+and duration series, their series/label sets matched exactly. Repeated scrapes
+also succeeded. The temporary container and private environment file were removed;
+the production exporter and Xray were not restarted.
