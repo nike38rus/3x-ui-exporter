@@ -150,7 +150,7 @@ func TestPanelRequestsIndependentAndBudget(t *testing.T) {
 			if failed == "settings" {
 				want = 0
 			}
-			if core.lists != want || core.balancers != want {
+			if core.lists != 1 || core.balancers != want {
 				t.Fatal("unexpected RPC budget", core)
 			}
 		})

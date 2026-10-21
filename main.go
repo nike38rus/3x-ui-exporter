@@ -36,7 +36,7 @@ func run() error {
 	panelURL := fs.String("xui-url", env("XUI_URL", ""), "3x-ui base URL, including optional base path")
 	token := fs.String("xui-api-token", env("XUI_API_TOKEN", ""), "3x-ui bearer token (prefer environment variable)")
 	target := fs.String("xray-api", env("XRAY_API", "127.0.0.1:62789"), "Xray gRPC host:port")
-	metricsURL := fs.String("xray-metrics-url", env("XRAY_METRICS_URL", "http://127.0.0.1:11111"), "Xray HTTP metrics base URL (expvars at /debug/vars)")
+	metricsURL := fs.String("xray-metrics-url", env("XRAY_METRICS_URL", ""), "Xray HTTP metrics base URL; empty discovers metrics.listen through panel API")
 	listen := fs.String("listen-address", env("LISTEN_ADDRESS", ":9108"), "metrics host:port")
 	timeoutText := fs.String("scrape-timeout", env("SCRAPE_TIMEOUT", "4s"), "total collection deadline")
 	showVersion := fs.Bool("version", false, "print exporter version")
@@ -50,7 +50,7 @@ func run() error {
 	if !validPanelURL(*panelURL) {
 		return fmt.Errorf("XUI_URL must be an HTTP(S) URL without credentials, query or fragment")
 	}
-	if !validPanelURL(*metricsURL) {
+	if *metricsURL != "" && !validPanelURL(*metricsURL) {
 		return fmt.Errorf("XRAY_METRICS_URL must be an HTTP(S) base URL without credentials, query or fragment")
 	}
 	if *token == "" || strings.ContainsAny(*token, "\r\n") {

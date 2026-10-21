@@ -11,7 +11,7 @@ import (
 
 type staticExpvars struct{}
 
-func (staticExpvars) Snapshot(context.Context) (*ExpvarsSnapshot, error) {
+func (staticExpvars) Snapshot(context.Context, *Config) (*ExpvarsSnapshot, error) {
 	return &ExpvarsSnapshot{TrafficPresent: true, Traffic: []*TrafficCounter{{Name: "outbound>>>A>>>traffic>>>uplink", Value: 0}}}, nil
 }
 
@@ -41,7 +41,7 @@ func TestOneSnapshotWithoutSourceFallback(t *testing.T) {
 		{"missing counters", `{"memstats":{"Alloc":123}}`, 200, false, 0, 1},
 		{"invalid counters", `{"stats":{"outbound":{"A":{"uplink":-1}}},"memstats":{"Alloc":123}}`, 200, false, 0, 0},
 		{"unreachable", ``, 503, false, 0, 0},
-		{"disabled", ``, 200, true, 0, -1},
+		{"disabled but explicit endpoint", `{}`, 200, true, 0, 1},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			var calls atomic.Int64
@@ -65,20 +65,14 @@ func TestOneSnapshotWithoutSourceFallback(t *testing.T) {
 				t.Fatalf("traffic count=%d, want %d", got, tc.trafficCount)
 			}
 			wantHTTP := int64(1)
-			if tc.disabled {
-				wantHTTP = 0
-			}
 			if calls.Load() != wantHTTP {
 				t.Fatalf("HTTP calls=%d", calls.Load())
 			}
 			status := sampleValues(t, m, "xui_exporter_scrape_success")
-			if tc.sourceOK < 0 {
-				if _, ok := status["source=expvars;"]; ok {
-					t.Error("disabled status present")
-				}
-			} else if status["source=expvars;"] != float64(tc.sourceOK) {
+			if len(status) != 3 || status["source=expvars;"] != float64(tc.sourceOK) {
 				t.Fatal(status)
 			}
+
 			for _, name := range []string{"xui_xray_uptime_seconds", "xui_xray_goroutines"} {
 				if len(sampleValues(t, m, name)) != 0 {
 					t.Fatal("removed metric present", name)

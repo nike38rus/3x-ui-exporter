@@ -53,8 +53,8 @@ func (c *GRPCCore) Outbounds(ctx context.Context) (map[string]bool, error) {
 	}
 	tags := map[string]bool{}
 	for _, o := range r.Outbounds {
-		if o.GetTag() == "" {
-			return nil, errors.New("empty outbound tag")
+		if o.GetTag() == "" || tags[o.GetTag()] {
+			return nil, errors.New("empty or duplicate outbound tag")
 		}
 		tags[o.GetTag()] = true
 	}
@@ -80,7 +80,7 @@ func (c *GRPCCore) Balancer(ctx context.Context, tag string) (*BalancerState, er
 	} else {
 		for _, t := range r.Balancer.GetPrincipleTarget().GetTag() {
 			if t == "" {
-				continue
+				return nil, errors.New("empty balancer target tag")
 			}
 			tags[t] = true
 		}
@@ -100,7 +100,7 @@ type PanelSource interface {
 	Status(context.Context) (*PanelStatus, error)
 }
 type ExpvarsSource interface {
-	Snapshot(context.Context) (*ExpvarsSnapshot, error)
+	Snapshot(context.Context, *Config) (*ExpvarsSnapshot, error)
 }
 type Exporter struct {
 	Expvars ExpvarsSource
@@ -179,18 +179,19 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 	cfg, cfgErr := e.Panel.Configuration(ctx)
 	configElapsed := time.Since(apiStart)
 	reportSlow(apiStart, "api", "getXraySetting")
-	expvarsEnabled := cfg == nil || cfg.metricsEnabled()
-	grpcEnabled := cfg != nil && len(cfg.Routing.Balancers) > 0
+	if cfgErr == nil && cfg == nil {
+		cfgErr = errors.New("missing panel configuration")
+	}
+	if cfgErr != nil {
+		cfg = nil
+	}
 	var data *ExpvarsSnapshot
-	var expErr, balancerErr, trafficErr error
+	var expErr, grpcErr, balancerErr, trafficErr error
 	var expDuration, grpcDuration time.Duration
 	var balancer, traffic samples
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		if !expvarsEnabled {
-			return
-		}
 		start := time.Now()
 		defer reportSlow(start, "expvars", "debug/vars")
 		defer func() { expDuration = time.Since(start) }()
@@ -198,7 +199,7 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 			expErr = errors.New("missing expvars source")
 			return
 		}
-		data, expErr = e.Expvars.Snapshot(ctx)
+		data, expErr = e.Expvars.Snapshot(ctx, cfg)
 		if expErr == nil && data == nil {
 			expErr = errors.New("missing expvars snapshot")
 		}
@@ -208,12 +209,13 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 	}()
 	go func() {
 		defer wg.Done()
-		if !grpcEnabled {
-			return
-		}
 		start := time.Now()
 		defer func() { grpcDuration = time.Since(start) }()
-		balancer, balancerErr = e.balancerMetrics(ctx, cfg)
+		outbounds, states, err := e.readGRPC(ctx, cfg)
+		grpcErr = err
+		if err == nil && cfg != nil {
+			balancer, balancerErr = buildBalancerMetrics(cfg, outbounds, states)
+		}
 	}()
 	wg.Wait()
 	apiDuration := max(configElapsed, statusElapsed).Seconds()
@@ -230,41 +232,53 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 	for _, item := range []struct {
 		name string
 		err  error
-	}{{"api_settings", cfgErr}, {"api_status", statusErr}, {"expvars", expErr}, {"traffic", trafficErr}, {"balancer", balancerErr}} {
+	}{{"api_settings", cfgErr}, {"api_status", statusErr}, {"expvars", expErr}, {"traffic", trafficErr}, {"grpc", grpcErr}, {"balancer_metrics", balancerErr}} {
 		if item.err != nil {
 			slog.Warn("collection failed", "operation", item.name, "error_type", fmt.Sprintf("%T", item.err))
 		}
 	}
-	gauge(&result, "xui_exporter_scrape_success", "Whether all required operations for this source succeeded.", number(cfgErr == nil && statusErr == nil), []string{"source"}, "api")
+	gauge(&result, "xui_exporter_scrape_success", "Whether source requests succeeded and their responses satisfied the exporter contract.", number(cfgErr == nil && statusErr == nil), []string{"source"}, "api")
 	gauge(&result, "xui_exporter_scrape_duration_seconds", "Elapsed source collection time in seconds.", apiDuration, []string{"source"}, "api")
-	if expvarsEnabled {
-		gauge(&result, "xui_exporter_scrape_success", "Whether all required operations for this source succeeded.", number(expErr == nil), []string{"source"}, "expvars")
-		gauge(&result, "xui_exporter_scrape_duration_seconds", "Elapsed source collection time in seconds.", expDuration.Seconds(), []string{"source"}, "expvars")
-	}
-	if grpcEnabled {
-		gauge(&result, "xui_exporter_scrape_success", "Whether all required operations for this source succeeded.", number(balancerErr == nil), []string{"source"}, "grpc")
-		gauge(&result, "xui_exporter_scrape_duration_seconds", "Elapsed source collection time in seconds.", grpcDuration.Seconds(), []string{"source"}, "grpc")
-	}
+	gauge(&result, "xui_exporter_scrape_success", "Whether source requests succeeded and their responses satisfied the exporter contract.", number(expErr == nil), []string{"source"}, "expvars")
+	gauge(&result, "xui_exporter_scrape_duration_seconds", "Elapsed source collection time in seconds.", expDuration.Seconds(), []string{"source"}, "expvars")
+	gauge(&result, "xui_exporter_scrape_success", "Whether source requests succeeded and their responses satisfied the exporter contract.", number(grpcErr == nil), []string{"source"}, "grpc")
+	gauge(&result, "xui_exporter_scrape_duration_seconds", "Elapsed source collection time in seconds.", grpcDuration.Seconds(), []string{"source"}, "grpc")
 	gauge(&result, "xui_exporter_build_info", "Exporter build version.", 1, []string{"version"}, e.Version)
 	return result
 }
-func (e *Exporter) balancerMetrics(ctx context.Context, cfg *Config) (samples, error) {
-	var result samples
-	if len(cfg.Routing.Balancers) == 0 {
-		return result, nil
+
+// readGRPC probes runtime access even when panel settings are unavailable.
+func (e *Exporter) readGRPC(ctx context.Context, cfg *Config) (map[string]bool, map[string]*BalancerState, error) {
+	if e.Core == nil {
+		return nil, nil, errors.New("missing gRPC source")
 	}
 	outbounds, err := e.Core.Outbounds(ctx)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	states := map[string]*BalancerState{}
-	for _, b := range cfg.Routing.Balancers {
-		s, err := e.Core.Balancer(ctx, b.Tag)
-		if err != nil {
-			return nil, err
+	if cfg != nil {
+		for _, b := range cfg.Routing.Balancers {
+			state, err := e.Core.Balancer(ctx, b.Tag)
+			if err != nil {
+				return nil, nil, err
+			}
+			states[b.Tag] = state
 		}
-		states[b.Tag] = s
 	}
+	return outbounds, states, nil
+}
+
+func (e *Exporter) balancerMetrics(ctx context.Context, cfg *Config) (samples, error) {
+	outbounds, states, err := e.readGRPC(ctx, cfg)
+	if err != nil || cfg == nil {
+		return nil, err
+	}
+	return buildBalancerMetrics(cfg, outbounds, states)
+}
+
+func buildBalancerMetrics(cfg *Config, outbounds map[string]bool, states map[string]*BalancerState) (samples, error) {
+	var result samples
 	for _, b := range cfg.Routing.Balancers {
 		available, err := resolveAvailable(b.Tag, cfg, states, outbounds, map[string]bool{})
 		if err != nil {

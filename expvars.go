@@ -8,8 +8,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	obs "github.com/xtls/xray-core/app/observatory"
 	"io"
+	"net"
 	"net/http"
+	"net/url"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -25,8 +28,12 @@ type Expvars struct {
 	Client *http.Client
 }
 
-func (e *Expvars) Snapshot(ctx context.Context) (*ExpvarsSnapshot, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(e.URL, "/")+"/debug/vars", nil)
+func (e *Expvars) Snapshot(ctx context.Context, cfg *Config) (*ExpvarsSnapshot, error) {
+	baseURL, err := metricsEndpoint(e.URL, cfg)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(baseURL, "/")+"/debug/vars", nil)
 	if err != nil {
 		return nil, errors.New("invalid expvars URL")
 	}
@@ -158,4 +165,43 @@ func expvarsMemory(raw json.RawMessage) (samples, error) {
 		result.add("xui_xray_"+item.name, "Xray Go runtime memory/GC from expvars; memory is not process RSS.", typ, float64(value)*item.scale, nil)
 	}
 	return result, nil
+}
+
+// Explicit URLs take precedence. Discovery uses only this scrape's panel settings;
+// wildcard listeners are reached through loopback in Xray's network namespace.
+func metricsEndpoint(explicit string, cfg *Config) (string, error) {
+	if explicit != "" {
+		if !validPanelURL(explicit) {
+			return "", errors.New("invalid explicit metrics URL")
+		}
+		return explicit, nil
+	}
+	if cfg == nil {
+		return "", errors.New("metrics discovery requires panel configuration")
+	}
+	address := strings.TrimSpace(cfg.Metrics.Listen)
+	if address == "" {
+		return "", errors.New("metrics endpoint not configured")
+	}
+	host, port, err := net.SplitHostPort(address)
+	n, portErr := strconv.Atoi(port)
+	if err != nil || portErr != nil || n < 1 || n > 65535 {
+		return "", errors.New("invalid metrics listen address")
+	}
+	if host == "" {
+		host = "127.0.0.1"
+	}
+	if ip := net.ParseIP(host); ip != nil && ip.IsUnspecified() {
+		if ip.To4() != nil {
+			host = "127.0.0.1"
+		} else {
+			host = "::1"
+		}
+	}
+	baseURL := "http://" + net.JoinHostPort(host, port)
+	parsed, parseErr := url.Parse(baseURL)
+	if parseErr != nil || parsed.Path != "" || parsed.Hostname() != host || !validPanelURL(baseURL) {
+		return "", errors.New("invalid discovered metrics URL")
+	}
+	return baseURL, nil
 }

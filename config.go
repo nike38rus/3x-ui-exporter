@@ -45,9 +45,6 @@ type Config struct {
 func (c *Config) observed() bool {
 	return configured(c.Observatory) || configured(c.BurstObservatory)
 }
-func (c *Config) metricsEnabled() bool {
-	return strings.TrimSpace(c.Metrics.Listen) != ""
-}
 func configured(v json.RawMessage) bool { return len(v) > 0 && string(v) != "null" }
 
 type Panel struct {

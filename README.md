@@ -22,7 +22,6 @@ not meet your needs, fork it and adapt it for yourself.
 export XUI_URL=http://panel.example:2053
 export XUI_API_TOKEN='<token>'
 export XRAY_API=127.0.0.1:62789
-export XRAY_METRICS_URL=http://127.0.0.1:11111
 export LISTEN_ADDRESS=127.0.0.1:9108
 export SCRAPE_TIMEOUT=4s
 ./bin/3x-ui-exporter
@@ -39,19 +38,35 @@ The collector shares a total deadline per HTTP request. Failed source collection
 still returns HTTP 200 with source status and independent successful metrics.
 Source startup failures do not terminate the exporter.
 
-Xray gRPC must provide HandlerService and RoutingService. StatsService is not used.
-ObservatoryService and GetSysStats are not used. Traffic, memory/GC and observatory results come from
-`XRAY_METRICS_URL/debug/vars` (default base URL `http://127.0.0.1:11111`).
-Enable Xray metrics in the panel and use a reachable base URL when the exporter
-does not share Xray's network namespace. The panel token is never sent to expvars.
-If API discovery shows an empty/missing metrics.listen, expvars
-collection is disabled: its source gauges and observations are absent.
-A successful empty or missing observatory object produces no observations;
-HTTP/JSON errors set only expvars source success to zero. Xray traffic policies determine
-which counters exist; missing counters are never synthesized. API configuration
-is discovery data, not proof that runtime has the same configuration.
+Xray gRPC must provide HandlerService; RoutingService is needed when balancers
+are configured. StatsService, ObservatoryService and GetSysStats are not used.
+Traffic, memory/GC and observatory results come from HTTP `/debug/vars`.
+
+By default the exporter discovers the HTTP metrics address from `metrics.listen`
+in the panel settings received during the current scrape. No extra API request
+is needed. Set `XRAY_METRICS_URL` (or `--xray-metrics-url`) to override discovery,
+for example `http://xray.example:11111` when using a remote or port-mapped endpoint.
+An explicit URL is used even if panel configuration is unavailable or its metrics
+listener is disabled. The panel token is never sent to expvars.
+
+Discovery treats `0.0.0.0:PORT` and `:PORT` as `http://127.0.0.1:PORT`, and
+`[::]:PORT` as `http://[::1]:PORT`. Concrete addresses are retained. These loopback
+addresses require the exporter to share Xray's network namespace or host; wildcard
+listeners do not reveal a remotely reachable host. Discovery uses HTTP; HTTPS and
+base paths require an explicit URL. Missing/invalid listener settings produce
+`source="expvars"` success `0`, without guessing a port or reusing an old address.
+If panel configuration cannot be read, automatic expvars discovery cannot proceed;
+an explicit URL removes that dependency. The API configuration describes saved
+settings, not proof that they have been applied to the running Xray.
+
+A valid empty response or absent optional observatory/traffic groups is successful
+collection and produces no corresponding measurements. Xray traffic policies
+determine which counters exist; missing counters are never synthesized.
 
 ## Docker Compose
+
+The examples use v0.4.0 and discover the metrics endpoint by default. Set
+`XRAY_METRICS_URL` in `.env` only when an explicit address is required.
 
 The example shares the network namespace of an existing Xray/3x-ui container
 on the same Docker host. Set XRAY_CONTAINER to its actual container name.
@@ -66,7 +81,7 @@ cp .env.example .env
 docker compose up -d
 ```
 
-The default image tag is 0.3.0. To use the latest successful main build, set
+The default image tag is 0.4.0. To use the latest successful main build, set
 `EXPORTER_VERSION=edge` in `.env`. The `edge` tag is updated after each
 successful main pipeline.
 To build your checkout locally:
@@ -83,7 +98,7 @@ existing Compose file (here the panel service key is `x-ui`):
 services:
   # Your existing x-ui service remains here.
   exporter:
-    image: ghcr.io/nike38rus/3x-ui-exporter:0.3.0
+    image: ghcr.io/nike38rus/3x-ui-exporter:0.4.0
     network_mode: service:x-ui
     depends_on:
       x-ui:
@@ -142,6 +157,20 @@ Quality scores in Grafana are dashboard heuristics, not the Xray balancer score.
 Collection duration shows overlapping source spans without stacking; Total is
 the separate scrape_duration_seconds measurement made by Prometheus.
 
+## Dashboard overview
+
+The dashboard opens on Overview: Xray state and version, panel version,
+Prometheus target, successful/present metric sources, balancer availability
+and operating modes, observed outbound health, and aggregate traffic.
+![Dashboard overview](docs/images/overview.jpg)
+
+Detailed sections retain entity-level health, selection, traffic and runtime data.
+Links preserve the selected instance and time range.
+
+Inbound throughput is drawn above zero and outbound throughput below zero;
+each sums uplink and downlink across all tags. These are endpoint counters,
+not incoming versus outgoing network bytes. Their difference is not packet loss.
+
 ## Metrics
 
 Metrics are grouped by the entity they describe. The tables list labels emitted
@@ -158,6 +187,30 @@ The screenshots below are actual Grafana captures with anonymized entity names.
 Private addresses and browser controls are excluded; measurements are unchanged.
 The Balancers screenshots show the v0.2.0 role-aware panels. Quality scores and
 other derived values are calculated in Grafana, not exported metrics.
+
+### Metric sources at a glance
+
+The source label on exporter diagnostics identifies an upstream interface, not
+an entity: balancers use gRPC, but outbound traffic and observatory use expvars.
+Panel-reported Xray versions/state come from HTTP API, not gRPC.
+
+| Source | Request / response fields | Exported metrics / purpose |
+| --- | --- | --- |
+| Panel HTTP API (`api`) | `POST /panel/api/xray/`: `xraySetting`, `subscriptionOutbounds` | Configuration discovery for balancer tags, strategies, selectors, fallback chains and configured outbound definitions. No standalone configuration metric is emitted. |
+| Panel HTTP API (`api`) | `GET /panel/api/server/status`: `panelVersion`, `xray.version`, `xray.state` | `xui_panel_info`, `xui_xray_info`, `xui_xray_state`. These describe the panel's view of the running components. |
+| Xray gRPC (`grpc`) | `HandlerService.ListOutbounds`, `RoutingService.GetBalancerInfo` | `xui_balancer_outbound_selected`, `xui_balancer_outbound_available`, using panel configuration to identify and interpret the balancers. The runtime outbound inventory is an input, not a separate exported metric. |
+| Xray HTTP expvars (`expvars`) | `GET /debug/vars`: `stats.inbound`, `stats.outbound` | `xui_inbound_traffic_bytes_total`, `xui_outbound_traffic_bytes_total`. |
+| Xray HTTP expvars (`expvars`) | The same response: `observatory` | All `xui_observatory_outbound_*` metrics, for ordinary observatory and burstObservatory. No ObservatoryService RPC is used. |
+| Xray HTTP expvars (`expvars`) | The same response: `memstats` | All `xui_xray_memory_*` and `xui_xray_gc_*` metrics. No GetSysStats RPC is used. |
+| Exporter itself | Results and timing of its upstream requests; embedded build version | `xui_exporter_scrape_success`, `xui_exporter_scrape_duration_seconds`, `xui_exporter_build_info`. |
+| Prometheus itself | Scraping the exporter's `/metrics` endpoint | `up`, `scrape_duration_seconds`. These are not emitted by this exporter. |
+| Grafana / PromQL | Queries over the metrics above | Quality scores, selected-time percentages, selection-state changes, throughput and traffic totals. These are not additional exporter metrics. |
+
+The three expvars rows share one HTTP request per collection. Balancer metrics
+have two inputs: panel configuration supplies the intended structure; gRPC
+supplies runtime state. Neither source substitutes for the other. Collection
+conditions and failure behavior for the current implementation are documented
+under [Request budget and failures](#request-budget-and-failures).
 
 ### Observatory
 
@@ -349,7 +402,7 @@ mark API collection unsuccessful while valid independent fields remain available
 Diagnostic `errorMsg` text is not exported or logged. The screenshots below show
 the panel/core versions, process state and Xray memory/GC panels.
 
-![Panel and Xray versions, process state and memory metrics](docs/images/panel-state.jpg)
+![Xray memory and allocation throughput](docs/images/panel-state.jpg)
 
 <details>
 <summary>Garbage collection</summary>
@@ -366,7 +419,7 @@ failure gauges and valid metrics from independent sources.
 
 | Metric | Labels | Values and description |
 | --- | --- | --- |
-| `xui_exporter_scrape_success` | `source`: `api`, `grpc` or `expvars` | Gauge: `1` = all required operations for this source succeeded, `0` = collection or decoding failed. Disabled sources have no series. |
+| `xui_exporter_scrape_success` | `source`: `api`, `grpc` or `expvars` | Gauge: `1` = source requests succeeded and their responses satisfy the exporter contract; `0` = a request/contract failure, or no endpoint could be resolved. All three source series are emitted on every exporter response, including zero values. This is collection success, not component health or presence of every optional metric. |
 | `xui_exporter_scrape_duration_seconds` | `source`: `api`, `grpc` or `expvars` | Gauge: elapsed wall-clock time of this source's collection work in the current scrape, in seconds. Excludes waiting for other sources; API measures the span of its two parallel requests, not their sum. Not CPU time. |
 | `xui_exporter_build_info` | `version`: embedded build version | Gauge: always `1`; the label identifies the running build. |
 
@@ -440,10 +493,13 @@ longer emit a warning without secrets.
 
 ## Request budget and failures
 
-With N>0 configured balancers: two API requests, one HTTP expvars request when
-enabled, one ListOutbounds and N GetBalancerInfo calls: N+4 total. For two
-balancers with expvars enabled, this is six calls. No balancers means no gRPC
-calls. GetSysStats and QueryStats are never called.
+With N configured balancers: two panel API requests, one HTTP expvars request,
+one ListOutbounds and N GetBalancerInfo calls: N+4 total. With no balancers,
+ListOutbounds still runs and the normal budget is four calls. When panel settings
+fail, no balancer-specific RPCs run; ListOutbounds still independently checks gRPC.
+If no expvars address can be discovered and no override is supplied, no HTTP
+request is possible and expvars success is zero. GetSysStats and QueryStats are
+never called.
 
 The existing `source="api"` covers both panel requests; its success is one only
 when both requests and their decoding succeed. Valid status fields survive a
@@ -451,12 +507,26 @@ settings failure, and valid configuration-driven metrics survive a status failur
 No new collector/source label is introduced. Failed status collection does not
 reuse an old snapshot or synthesize a stopped state.
 
-Every metric has exactly one source: API for configuration discovery and panel/core
-versions/process state, gRPC for runtime outbound inventory and balancers, expvars
-for traffic, memory/GC and observation. No caching, source switching or alternate-source
+The API provides configuration discovery and panel/core versions/process state;
+gRPC provides runtime outbound inventory and balancer state; expvars provides
+traffic, memory/GC and observation. Balancer metrics combine configuration and
+runtime inputs as described in the source map above. No caching, source switching or alternate-source
 fallback collection. Missing data remains absent. Valid groups survive malformed
 siblings; decoding errors mark the responsible source unsuccessful. Empty or missing
-optional groups produce no measurements. Disabled sources have no status/duration series.
+optional groups produce no measurements and do not constitute contract failures.
+All three success and duration series are always present. An API failure does not
+mark gRPC unsuccessful: ListOutbounds is still performed, and only the unknown
+balancer-specific requests/metrics are omitted. A failure deriving balancer metrics
+from configuration does not change the result of successful gRPC requests.
+
+For expvars, the response must be a JSON object; optional supported groups may be
+absent, null or empty as allowed by their decoders. Present groups must have valid
+types and values. For gRPC, an empty outbound list or empty target list is valid;
+empty/duplicate outbound tags, empty target tags and malformed responses are not.
+The known "cannot find tag" response is treated as runtime absence rather than a
+transport failure. Source duration excludes waiting for panel discovery and
+measures the source work, including endpoint resolution. A discovery failure
+therefore still emits a duration even though no HTTP request could be made.
 
 ## Panel settings discovery
 
@@ -503,7 +573,7 @@ multi-architecture image `ghcr.io/nike38rus/3x-ui-exporter:edge` and a
 CI checks pull requests and main. Pushing a vMAJOR.MINOR.PATCH tag runs tests,
 builds static Linux amd64/arm64 archives with SHA-256 checksums, creates a
 GitHub release and publishes a multi-architecture GHCR image. A tag such as
-v0.3.0 produces ghcr.io/nike38rus/3x-ui-exporter:0.3.0. The first GHCR package
+v0.3.0 produces ghcr.io/nike38rus/3x-ui-exporter:0.4.0. The first GHCR package
 may need its visibility set to public in GitHub package settings.
 
 Each release also publishes architecture-specific tags, for example

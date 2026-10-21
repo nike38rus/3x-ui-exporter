@@ -1,12 +1,12 @@
 services:
   exporter:
-    image: ghcr.io/nike38rus/3x-ui-exporter:${EXPORTER_VERSION:-0.3.0}
+    image: ghcr.io/nike38rus/3x-ui-exporter:${EXPORTER_VERSION:-0.4.0}
     network_mode: container:${XRAY_CONTAINER:-3xui_app}
     environment:
       XUI_URL: ${XUI_URL:-http://127.0.0.1:2053}
       XUI_API_TOKEN: ${XUI_API_TOKEN:?Set XUI_API_TOKEN}
       XRAY_API: ${XRAY_API:-127.0.0.1:62789}
-      XRAY_METRICS_URL: ${XRAY_METRICS_URL:-http://127.0.0.1:11111}
+      XRAY_METRICS_URL: ${XRAY_METRICS_URL:-}
       SCRAPE_TIMEOUT: 4s
       LISTEN_ADDRESS: :9108
     read_only: true

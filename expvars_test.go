@@ -36,7 +36,7 @@ func TestExpvarsResponses(t *testing.T) {
 				_, _ = w.Write([]byte(tc.body))
 			}))
 			defer server.Close()
-			v, err := (&Expvars{URL: server.URL, Client: server.Client()}).Snapshot(context.Background())
+			v, err := (&Expvars{URL: server.URL, Client: server.Client()}).Snapshot(context.Background(), nil)
 			var m samples
 			if err == nil {
 				m, err = v.Observation, v.Err
@@ -70,8 +70,8 @@ func TestExpvarsSourceIsolation(t *testing.T) {
 	cfg.Metrics.Listen = ""
 	w = httptest.NewRecorder()
 	e.Handler().ServeHTTP(w, httptest.NewRequest("GET", "/metrics", nil))
-	if strings.Contains(w.Body.String(), `source="expvars"`) {
-		t.Error("disabled source emitted status")
+	if !strings.Contains(w.Body.String(), `xui_exporter_scrape_success{source="expvars"} 0`) {
+		t.Error("explicit endpoint failure must remain visible")
 	}
 }
 
@@ -80,7 +80,7 @@ func TestExpvarsDeadline(t *testing.T) {
 	defer server.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
 	defer cancel()
-	if _, err := (&Expvars{URL: server.URL, Client: server.Client()}).Snapshot(ctx); err == nil {
+	if _, err := (&Expvars{URL: server.URL, Client: server.Client()}).Snapshot(ctx, nil); err == nil {
 		t.Fatal("deadline ignored")
 	}
 }
@@ -93,7 +93,7 @@ func TestLiveExpvars(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	client := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
-	v, err := (&Expvars{URL: address, Client: client}).Snapshot(ctx)
+	v, err := (&Expvars{URL: address, Client: client}).Snapshot(ctx, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

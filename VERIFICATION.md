@@ -12,7 +12,7 @@ timeouts, concurrent scrapes, request budgets and independent source timing.
 The gRPC binding test uses an in-memory server; no live services are required.
 
 make build linux builds the native binary and static Linux amd64/arm64 binaries.
-make release VERSION=v0.3.0 packages the Linux binaries with dashboards,
+make release VERSION=v0.4.0 packages the Linux binaries with dashboards,
 documentation and license notices, and produces SHA-256 checksums.
 
 ## Deployment verification
@@ -56,7 +56,7 @@ The user subsequently installed the edge image and updated the dashboard.
 
 ## Dashboard query audit
 
-Both dashboard formats contain the same 49 PromQL expressions. All were accepted
+Both dashboard formats contain the same 64 PromQL expressions. All were accepted
 by the deployment Prometheus during the query audit. Over a two-day range, health,
 latency and failed-probe ratios retained identical values after removing redundant
 vector matching. The simplified quality expression matched the original values
@@ -68,3 +68,21 @@ A two-day query at a 15-second step reproduced the 11,000-point resolution error
 a 30-second step succeeded. Both formats now use a 5,000-point target while
 preserving minimum intervals. This verification covers the checked queries and
 deployment, not every Grafana version or arbitrary date range.
+
+## Pending release: source contracts and discovery
+
+Tests cover fixed three-source diagnostics, gRPC probing without balancers or
+configuration, explicit expvars access despite API/configuration failures, valid
+empty observation/traffic groups, and contract failures. Discovery tests cover
+IPv4/IPv6 wildcard normalization, concrete addresses, invalid listeners, override
+precedence, concurrent endpoints, and removal of configuration without reuse of
+old addresses or samples. These changes have not been deployed to the live NAS.
+
+## v0.4.0 release preparation
+
+Race-detector tests, go vet, native macOS and static Linux amd64/arm64 builds,
+license generation and release archive packaging passed locally. All 64 current
+dashboard expressions were accepted by the deployment Prometheus. The two formats
+have identical query multisets. Overview, runtime memory and collection screenshots
+were refreshed from Grafana with private addresses excluded by cropping.
+Live verification of the new binary and endpoint discovery is still pending.

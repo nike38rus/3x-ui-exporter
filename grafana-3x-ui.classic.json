@@ -64,10 +64,6 @@
     "list": [
       {
         "builtIn": 1,
-        "datasource": {
-          "type": "grafana",
-          "uid": "-- Grafana --"
-        },
         "enable": true,
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
@@ -83,14 +79,1664 @@
   "liveNow": false,
   "panels": [
     {
-      "collapsed": true,
+      "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
         "y": 0
       },
-      "id": 35,
+      "id": 51,
+      "title": "Overview",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS-INFRA}"
+      },
+      "description": "Process state reported by the panel, not a connectivity probe. Only the active state is displayed. Missing or unknown state remains No data.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "blue",
+            "mode": "fixed"
+          },
+          "noValue": "No data",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "running"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "stop"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "error"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 5,
+        "x": 0,
+        "y": 1
+      },
+      "id": 38,
+      "interval": "5s",
+      "maxDataPoints": 5000,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 28,
+          "valueSize": 36
+        },
+        "textMode": "name",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.2.4",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "expr": "xui_xray_state{job=\"xui-exporter\",instance=\"${instance}\"} == 1 and on(instance,job) (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"api\"} == 1) and on(instance,job) (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+          "instant": true,
+          "legendFormat": "{{state}}",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "Xray state",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS-INFRA}"
+      },
+      "description": "Whether Prometheus can scrape the exporter; independent of upstream collection success.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "red",
+                  "index": 0,
+                  "text": "DOWN"
+                },
+                "1": {
+                  "color": "green",
+                  "index": 1,
+                  "text": "UP"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "min": 0,
+          "noValue": "No data",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 5,
+        "x": 5,
+        "y": 1
+      },
+      "id": 39,
+      "interval": "5s",
+      "maxDataPoints": 5000,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 28,
+          "valueSize": 36
+        },
+        "textMode": "value",
+        "wideLayout": false
+      },
+      "pluginVersion": "13.2.4",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "expr": "up{job=\"xui-exporter\",instance=\"${instance}\"}",
+          "instant": true,
+          "legendFormat": "Target",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "Prometheus target",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS-INFRA}"
+      },
+      "description": "Successful / present sources. Numeric value is the success fraction, used for color. With the upcoming exporter all three source rows are always present. Older exporters may expose fewer sources. No data when the target is down. API: settings/status; gRPC: runtime outbounds/balancers; expvars: traffic, memory/GC and observation.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "max": 1,
+          "min": 0,
+          "noValue": "No data",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 10,
+        "y": 1
+      },
+      "id": 40,
+      "interval": "5s",
+      "links": [
+        {
+          "targetBlank": false,
+          "title": "Collection history",
+          "url": "/d/${__dashboard.uid}/?viewPanel=panel-23&from=${__from}&to=${__to}&${__all_variables}"
+        }
+      ],
+      "maxDataPoints": 5000,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 32,
+          "valueSize": 42
+        },
+        "textMode": "name",
+        "wideLayout": false
+      },
+      "pluginVersion": "13.2.4",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "expr": "(sum(xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\"}) / count(xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\"}))\n* on() group_left(summary)\nlabel_join(\n  count_values(\"healthy\", sum(xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\"}))\n  * on() group_left(total)\n  count_values(\"total\", count(xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\"})),\n  \"summary\", \"/\", \"healthy\", \"total\"\n)\nand on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+          "instant": true,
+          "legendFormat": "{{summary}}",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "Metrics sources",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS-INFRA}"
+      },
+      "description": "Xray version reported by the panel status API. This does not independently attest the running binary.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "blue",
+            "mode": "fixed"
+          },
+          "noValue": "No data",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 5,
+        "x": 14,
+        "y": 1
+      },
+      "id": 36,
+      "interval": "5s",
+      "maxDataPoints": 5000,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 28,
+          "valueSize": 36
+        },
+        "textMode": "name",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.2.4",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "expr": "xui_xray_info{job=\"xui-exporter\",instance=\"${instance}\"}",
+          "instant": true,
+          "legendFormat": "{{version}}",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "Xray version",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS-INFRA}"
+      },
+      "description": "Version reported by the running 3x-ui panel. Omitted if unavailable in this panel version.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "blue",
+            "mode": "fixed"
+          },
+          "noValue": "No data",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 5,
+        "x": 19,
+        "y": 1
+      },
+      "id": 37,
+      "interval": "5s",
+      "maxDataPoints": 5000,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 28,
+          "valueSize": 36
+        },
+        "textMode": "name",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.2.4",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "expr": "xui_panel_info{job=\"xui-exporter\",instance=\"${instance}\"}",
+          "instant": true,
+          "legendFormat": "{{version}}",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "Panel version",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS-INFRA}"
+      },
+      "description": "Available: Balancers with a usable selected target or configured fallback according to the exporter. This is structural availability, not an end-to-end Internet probe. Includes balancers currently using fallback. Open availability history for detail.\n\nUnavailable: Balancers without an available selected target or usable fallback. A nonzero value calls for investigation. Open availability history.\n\nFallback: Balancers currently using their fallback. This can preserve service while primary selection is empty. A warning about operating mode, not necessarily an outage. Absent fallback metrics remain No data.\n\nOverride: Balancers currently using a manually overridden target. This is an operating mode, not automatically a failure. Open selected outbounds to identify the affected balancer.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "green",
+            "mode": "fixed"
+          },
+          "decimals": 0,
+          "min": 0,
+          "noValue": "No data",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Available"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "targetBlank": false,
+                    "title": "Open details",
+                    "url": "/d/${__dashboard.uid}/?viewPanel=panel-25&from=${__from}&to=${__to}&${__all_variables}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Unavailable"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "targetBlank": false,
+                    "title": "Open details",
+                    "url": "/d/${__dashboard.uid}/?viewPanel=panel-25&from=${__from}&to=${__to}&${__all_variables}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Fallback"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 1
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "targetBlank": false,
+                    "title": "Open details",
+                    "url": "/d/${__dashboard.uid}/?viewPanel=panel-17&from=${__from}&to=${__to}&${__all_variables}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Override"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "targetBlank": false,
+                    "title": "Open details",
+                    "url": "/d/${__dashboard.uid}/?viewPanel=panel-17&from=${__from}&to=${__to}&${__all_variables}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 0,
+        "y": 4
+      },
+      "id": 41,
+      "interval": "5s",
+      "links": [
+        {
+          "targetBlank": false,
+          "title": "Availability history",
+          "url": "/d/${__dashboard.uid}/?viewPanel=panel-25&from=${__from}&to=${__to}&${__all_variables}"
+        },
+        {
+          "targetBlank": false,
+          "title": "Selected outbounds",
+          "url": "/d/${__dashboard.uid}/?viewPanel=panel-17&from=${__from}&to=${__to}&${__all_variables}"
+        }
+      ],
+      "maxDataPoints": 5000,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "vertical",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 14,
+          "valueSize": 48
+        },
+        "textMode": "value_and_name",
+        "wideLayout": false
+      },
+      "pluginVersion": "13.2.4",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "expr": "sum(xui_balancer_outbound_available{job=\"xui-exporter\",instance=\"${instance}\"} == bool 1) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+          "instant": true,
+          "legendFormat": "Available",
+          "range": false,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "expr": "sum(xui_balancer_outbound_available{job=\"xui-exporter\",instance=\"${instance}\"} == bool 0) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+          "instant": true,
+          "legendFormat": "Unavailable",
+          "range": false,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "expr": "sum(xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",role=\"fallback\"}) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+          "instant": true,
+          "legendFormat": "Fallback",
+          "range": false,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "expr": "sum(xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",role=\"override\"}) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+          "instant": true,
+          "legendFormat": "Override",
+          "range": false,
+          "refId": "D"
+        }
+      ],
+      "title": "Balancers",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS-INFRA}"
+      },
+      "description": "UP: Observed outbounds that are alive and, when burst probe samples exist, have no failed samples. This is the observation population, not all configured outbounds.\n\nDEGRADED: Alive observed outbounds with failed samples in the current burst observation window. They can still carry traffic. Ordinary observatory does not provide this degradation detail.\n\nDOWN: Observed outbounds reported not alive. Open outbound health for tags and timing. An observation result does not by itself prove which traffic was affected.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "green",
+            "mode": "fixed"
+          },
+          "decimals": 0,
+          "min": 0,
+          "noValue": "No data",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "UP"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "targetBlank": false,
+                    "title": "Open details",
+                    "url": "/d/${__dashboard.uid}/?viewPanel=panel-1&from=${__from}&to=${__to}&${__all_variables}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "DEGRADED"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 1
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "targetBlank": false,
+                    "title": "Open details",
+                    "url": "/d/${__dashboard.uid}/?viewPanel=panel-1&from=${__from}&to=${__to}&${__all_variables}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "DOWN"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "targetBlank": false,
+                    "title": "Open details",
+                    "url": "/d/${__dashboard.uid}/?viewPanel=panel-1&from=${__from}&to=${__to}&${__all_variables}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 12,
+        "y": 4
+      },
+      "id": 47,
+      "interval": "5s",
+      "links": [
+        {
+          "targetBlank": false,
+          "title": "Open details",
+          "url": "/d/${__dashboard.uid}/?viewPanel=panel-1&from=${__from}&to=${__to}&${__all_variables}"
+        }
+      ],
+      "maxDataPoints": 5000,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "vertical",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 14,
+          "valueSize": 48
+        },
+        "textMode": "value_and_name",
+        "wideLayout": false
+      },
+      "pluginVersion": "13.2.4",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "expr": "sum(((xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * 2)) == bool 2) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+          "instant": true,
+          "legendFormat": "UP",
+          "range": false,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "expr": "sum(((xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * 2)) == bool 1) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+          "instant": true,
+          "legendFormat": "DEGRADED",
+          "range": false,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "expr": "sum(((xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * 2)) == bool 0) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+          "instant": true,
+          "legendFormat": "DOWN",
+          "range": false,
+          "refId": "C"
+        }
+      ],
+      "title": "Observed outbounds",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS-INFRA}"
+      },
+      "description": "Above zero: available balancers, including those served by fallback. Below zero: unavailable balancers and active fallback, stacked as independent attention indicators. These are not a partition: an available balancer can also use fallback, so do not subtract the lower stack from the upper one. Override is shown separately in the summary. Counts describe sampled states, not replacement events or outage duration. Missing source data produces gaps. Open selected outbounds to identify the affected balancer.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": true,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 65,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "stepAfter",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "Healthy",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 0,
+          "noValue": "No data",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "custom.transform",
+                "value": "negative-Y"
+              },
+              {
+                "id": "custom.stacking",
+                "value": {
+                  "group": "Attention",
+                  "mode": "normal"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "custom.transform",
+                "value": "negative-Y"
+              },
+              {
+                "id": "custom.stacking",
+                "value": {
+                  "group": "Attention",
+                  "mode": "normal"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Available"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Unavailable"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Fallback active"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "yellow",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "id": 43,
+      "interval": "5s",
+      "links": [
+        {
+          "targetBlank": false,
+          "title": "Identify balancer and selected role",
+          "url": "/d/${__dashboard.uid}/?viewPanel=panel-17&from=${__from}&to=${__to}&${__all_variables}"
+        }
+      ],
+      "maxDataPoints": 5000,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "13.2.4",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "expr": "sum(xui_balancer_outbound_available{job=\"xui-exporter\",instance=\"${instance}\"} == bool 1) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+          "instant": false,
+          "legendFormat": "Available",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "expr": "sum(xui_balancer_outbound_available{job=\"xui-exporter\",instance=\"${instance}\"} == bool 0) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+          "instant": false,
+          "legendFormat": "Unavailable",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "expr": "sum(xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",role=\"fallback\"}) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+          "instant": false,
+          "legendFormat": "Fallback active",
+          "range": true,
+          "refId": "C"
+        }
+      ],
+      "title": "Balancers · Availability and attention",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS-INFRA}"
+      },
+      "description": "Above zero: UP outbounds. Below zero: DEGRADED and DOWN, stacked. These three states partition the observed population at each sample; their absolute counts sum to the number of observed outbounds. DEGRADED requires burst probe samples. Missing observations or failed collection produce gaps, never healthy zeroes. Open outbound health to see tags, latency and quality.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": true,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 65,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "stepAfter",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "Healthy",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 0,
+          "noValue": "No data",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "custom.transform",
+                "value": "negative-Y"
+              },
+              {
+                "id": "custom.stacking",
+                "value": {
+                  "group": "Attention",
+                  "mode": "normal"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "custom.transform",
+                "value": "negative-Y"
+              },
+              {
+                "id": "custom.stacking",
+                "value": {
+                  "group": "Attention",
+                  "mode": "normal"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "UP"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "DEGRADED"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "yellow",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "DOWN"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "id": 50,
+      "interval": "5s",
+      "links": [
+        {
+          "targetBlank": false,
+          "title": "Identify outbound and inspect health",
+          "url": "/d/${__dashboard.uid}/?viewPanel=panel-1&from=${__from}&to=${__to}&${__all_variables}"
+        }
+      ],
+      "maxDataPoints": 5000,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "13.2.4",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "expr": "sum(((xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * 2)) == bool 2) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+          "instant": false,
+          "legendFormat": "UP",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "expr": "sum(((xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * 2)) == bool 1) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+          "instant": false,
+          "legendFormat": "DEGRADED",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "expr": "sum(((xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * 2)) == bool 0) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+          "instant": false,
+          "legendFormat": "DOWN",
+          "range": true,
+          "refId": "C"
+        }
+      ],
+      "title": "Observed outbounds · Health history",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS-INFRA}"
+      },
+      "description": "Above zero: total throughput across all inbounds. Below zero: total throughput across all outbounds. Each side sums uplink + downlink, in bits per second. These are traffic rates measured at two sets of Xray endpoints, not total incoming versus outgoing network traffic: the same routed bytes may appear on both sides. Internal tags and multiple routing hops may also contribute, so a difference does not measure loss. Missing or disabled counters remain absent. Open the matching detail view to identify individual channels.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": true,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 45,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "noValue": "No data",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "bps"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "custom.transform",
+                "value": "negative-Y"
+              },
+              {
+                "id": "custom.stacking",
+                "value": {
+                  "group": "B",
+                  "mode": "none"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "targetBlank": false,
+                    "title": "Inbound throughput details",
+                    "url": "/d/${__dashboard.uid}/?viewPanel=panel-12&from=${__from}&to=${__to}&${__all_variables}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "targetBlank": false,
+                    "title": "Outbound throughput details",
+                    "url": "/d/${__dashboard.uid}/?viewPanel=panel-9&from=${__from}&to=${__to}&${__all_variables}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
+      "id": 44,
+      "interval": "5s",
+      "links": [
+        {
+          "targetBlank": false,
+          "title": "Inbound traffic details",
+          "url": "/d/${__dashboard.uid}/?viewPanel=panel-12&from=${__from}&to=${__to}&${__all_variables}"
+        },
+        {
+          "targetBlank": false,
+          "title": "Outbound traffic details",
+          "url": "/d/${__dashboard.uid}/?viewPanel=panel-9&from=${__from}&to=${__to}&${__all_variables}"
+        }
+      ],
+      "maxDataPoints": 5000,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "13.2.4",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "expr": "8 * sum (rate(xui_inbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\"}[$__rate_interval])) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+          "instant": false,
+          "legendFormat": "Inbounds · uplink + downlink",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "expr": "8 * sum (rate(xui_outbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\"}[$__rate_interval])) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+          "instant": false,
+          "legendFormat": "Outbounds · uplink + downlink",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Total traffic · Inbounds ↑ / Outbounds ↓",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 20
+      },
+      "id": 52,
       "panels": [
         {
           "datasource": {
@@ -153,7 +1799,7 @@
             "h": 10,
             "w": 12,
             "x": 0,
-            "y": 1
+            "y": 21
           },
           "id": 1,
           "interval": "5s",
@@ -399,7 +2045,7 @@
             "h": 10,
             "w": 12,
             "x": 12,
-            "y": 1
+            "y": 21
           },
           "id": 4,
           "options": {
@@ -678,7 +2324,7 @@
             "h": 10,
             "w": 12,
             "x": 0,
-            "y": 11
+            "y": 31
           },
           "id": 5,
           "options": {
@@ -931,7 +2577,7 @@
             "h": 10,
             "w": 12,
             "x": 12,
-            "y": 11
+            "y": 31
           },
           "id": 6,
           "options": {
@@ -1131,7 +2777,7 @@
             "h": 9,
             "w": 12,
             "x": 0,
-            "y": 21
+            "y": 41
           },
           "id": 2,
           "interval": "5s",
@@ -1234,7 +2880,7 @@
             "h": 9,
             "w": 12,
             "x": 12,
-            "y": 21
+            "y": 41
           },
           "id": 3,
           "interval": "5s",
@@ -1342,7 +2988,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 30
+            "y": 50
           },
           "id": 27,
           "interval": "5s",
@@ -1459,7 +3105,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 30
+            "y": 50
           },
           "id": 28,
           "interval": "5s",
@@ -1508,9 +3154,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 1
+        "y": 21
       },
-      "id": 36,
+      "id": 53,
       "panels": [
         {
           "datasource": {
@@ -1573,7 +3219,7 @@
             "h": 8,
             "w": 24,
             "x": 0,
-            "y": 2
+            "y": 22
           },
           "id": 9,
           "options": {
@@ -1637,7 +3283,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 10
+            "y": 30
           },
           "id": 10,
           "options": {
@@ -1709,7 +3355,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 10
+            "y": 30
           },
           "id": 11,
           "options": {
@@ -1779,9 +3425,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 2
+        "y": 22
       },
-      "id": 37,
+      "id": 54,
       "panels": [
         {
           "datasource": {
@@ -1848,7 +3494,7 @@
             "h": 8,
             "w": 24,
             "x": 0,
-            "y": 3
+            "y": 23
           },
           "id": 12,
           "options": {
@@ -1912,7 +3558,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 11
+            "y": 31
           },
           "id": 13,
           "options": {
@@ -1983,7 +3629,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 11
+            "y": 31
           },
           "id": 14,
           "options": {
@@ -2053,9 +3699,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 3
+        "y": 23
       },
-      "id": 38,
+      "id": 55,
       "panels": [
         {
           "datasource": {
@@ -2086,7 +3732,7 @@
             "h": 8,
             "w": 11,
             "x": 0,
-            "y": 4
+            "y": 24
           },
           "id": 16,
           "interval": "10s",
@@ -2201,7 +3847,7 @@
             "h": 8,
             "w": 13,
             "x": 11,
-            "y": 4
+            "y": 24
           },
           "id": 15,
           "interval": "1m",
@@ -2245,6 +3891,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
+          "description": "Primary target membership plus fallback and override activity. Fallback uses its configured outbound tag; override has no outbound tag. Gray means confirmed inactive; gaps mean unavailable or unknown data.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -2295,7 +3942,7 @@
             "h": 7,
             "w": 24,
             "x": 0,
-            "y": 12
+            "y": 32
           },
           "id": 17,
           "interval": "5s",
@@ -2334,8 +3981,7 @@
             }
           ],
           "title": "Selected outbounds",
-          "type": "state-timeline",
-          "description": "Primary target membership plus fallback and override activity. Fallback uses its configured outbound tag; override has no outbound tag. Gray means confirmed inactive; gaps mean unavailable or unknown data."
+          "type": "state-timeline"
         },
         {
           "datasource": {
@@ -2398,7 +4044,7 @@
             "h": 6,
             "w": 12,
             "x": 0,
-            "y": 19
+            "y": 39
           },
           "id": 25,
           "interval": "5s",
@@ -2503,7 +4149,7 @@
             "h": 6,
             "w": 12,
             "x": 12,
-            "y": 19
+            "y": 39
           },
           "id": 26,
           "interval": "5s",
@@ -2552,245 +4198,10 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 4
+        "y": 24
       },
-      "id": 39,
+      "id": 56,
       "panels": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS-INFRA}"
-          },
-          "description": "Process state reported by the panel, not a connectivity probe. Only the active state is displayed. Missing or unknown state remains No data.",
-          "fieldConfig": {
-            "defaults": {
-              "unit": "short",
-              "noValue": "No data",
-              "color": {
-                "mode": "fixed",
-                "fixedColor": "blue"
-              },
-              "mappings": []
-            },
-            "overrides": [
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "running"
-                },
-                "properties": [
-                  {
-                    "id": "color",
-                    "value": {
-                      "mode": "fixed",
-                      "fixedColor": "green"
-                    }
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "stop"
-                },
-                "properties": [
-                  {
-                    "id": "color",
-                    "value": {
-                      "mode": "fixed",
-                      "fixedColor": "orange"
-                    }
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "error"
-                },
-                "properties": [
-                  {
-                    "id": "color",
-                    "value": {
-                      "mode": "fixed",
-                      "fixedColor": "red"
-                    }
-                  }
-                ]
-              }
-            ]
-          },
-          "gridPos": {
-            "x": 0,
-            "y": 5,
-            "w": 8,
-            "h": 4
-          },
-          "id": 35,
-          "interval": "5s",
-          "maxDataPoints": 5000,
-          "options": {
-            "colorMode": "value",
-            "graphMode": "none",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "percentChangeColorMode": "standard",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "showPercentChange": false,
-            "textMode": "name",
-            "wideLayout": true
-          },
-          "pluginVersion": "13.2.4",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
-              },
-              "editorMode": "code",
-              "expr": "xui_xray_state{job=\"xui-exporter\",instance=\"${instance}\"} == 1",
-              "instant": true,
-              "legendFormat": "{{state}}",
-              "range": false,
-              "refId": "A"
-            }
-          ],
-          "title": "Xray process state",
-          "type": "stat",
-          "transformations": []
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS-INFRA}"
-          },
-          "description": "Xray version reported by the panel status API. This does not independently attest the running binary.",
-          "fieldConfig": {
-            "defaults": {
-              "unit": "short",
-              "noValue": "No data",
-              "color": {
-                "mode": "fixed",
-                "fixedColor": "blue"
-              },
-              "mappings": []
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "x": 8,
-            "y": 5,
-            "w": 8,
-            "h": 4
-          },
-          "id": 36,
-          "interval": "5s",
-          "maxDataPoints": 5000,
-          "options": {
-            "colorMode": "value",
-            "graphMode": "none",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "percentChangeColorMode": "standard",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "showPercentChange": false,
-            "textMode": "name",
-            "wideLayout": true
-          },
-          "pluginVersion": "13.2.4",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
-              },
-              "editorMode": "code",
-              "expr": "xui_xray_info{job=\"xui-exporter\",instance=\"${instance}\"}",
-              "instant": true,
-              "legendFormat": "{{version}}",
-              "range": false,
-              "refId": "A"
-            }
-          ],
-          "title": "Xray version",
-          "type": "stat",
-          "transformations": []
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS-INFRA}"
-          },
-          "description": "Version reported by the running 3x-ui panel. Omitted if unavailable in this panel version.",
-          "fieldConfig": {
-            "defaults": {
-              "unit": "short",
-              "noValue": "No data",
-              "color": {
-                "mode": "fixed",
-                "fixedColor": "blue"
-              },
-              "mappings": []
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "x": 16,
-            "y": 5,
-            "w": 8,
-            "h": 4
-          },
-          "id": 37,
-          "interval": "5s",
-          "maxDataPoints": 5000,
-          "options": {
-            "colorMode": "value",
-            "graphMode": "none",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "percentChangeColorMode": "standard",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "showPercentChange": false,
-            "textMode": "name",
-            "wideLayout": true
-          },
-          "pluginVersion": "13.2.4",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
-              },
-              "editorMode": "code",
-              "expr": "xui_panel_info{job=\"xui-exporter\",instance=\"${instance}\"}",
-              "instant": true,
-              "legendFormat": "{{version}}",
-              "range": false,
-              "refId": "A"
-            }
-          ],
-          "title": "Panel version",
-          "type": "stat",
-          "transformations": []
-        },
         {
           "datasource": {
             "type": "prometheus",
@@ -2857,7 +4268,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 9
+            "y": 25
           },
           "id": 29,
           "interval": "5s",
@@ -2973,7 +4384,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 9
+            "y": 25
           },
           "id": 30,
           "interval": "5s",
@@ -3077,7 +4488,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 17
+            "y": 33
           },
           "id": 31,
           "interval": "5s",
@@ -3181,7 +4592,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 17
+            "y": 33
           },
           "id": 32,
           "interval": "5s",
@@ -3297,7 +4708,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 25
+            "y": 41
           },
           "id": 33,
           "interval": "5s",
@@ -3402,7 +4813,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 25
+            "y": 41
           },
           "id": 34,
           "interval": "5s",
@@ -3442,450 +4853,271 @@
           "type": "timeseries"
         }
       ],
-      "title": "Panel state",
+      "title": "Xray runtime",
       "type": "row"
     },
     {
-      "collapsed": false,
+      "collapsed": true,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 9
+        "y": 25
       },
-      "id": 40,
-      "title": "Exporter stats",
-      "type": "row"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS-INFRA}"
-      },
-      "description": "Prometheus can scrape the exporter. Source statuses separately report collection success.",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "mappings": [
-            {
-              "options": {
-                "0": {
-                  "color": "red",
-                  "index": 0,
-                  "text": "DOWN"
-                },
-                "1": {
-                  "color": "green",
-                  "index": 1,
-                  "text": "UP"
-                }
-              },
-              "type": "value"
-            }
-          ],
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 0,
-        "y": 10
-      },
-      "id": 18,
-      "interval": "5s",
-      "maxDataPoints": 5000,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "13.2.4",
-      "targets": [
+      "id": 57,
+      "panels": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
-          "editorMode": "code",
-          "expr": "up{job=\"xui-exporter\",instance=\"${instance}\"}",
-          "instant": true,
-          "legendFormat": "{{instance}}",
-          "range": false,
-          "refId": "A"
-        }
-      ],
-      "title": "Prometheus target",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS-INFRA}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "fixed"
-          },
-          "custom": {
-            "axisPlacement": "auto",
-            "fillOpacity": 100,
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineWidth": 0,
-            "spanNulls": false
-          },
-          "mappings": [
-            {
-              "options": {
-                "0": {
-                  "color": "red",
-                  "index": 0,
-                  "text": "FAILED"
-                },
-                "1": {
-                  "color": "green",
-                  "index": 1,
-                  "text": "OK"
-                }
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "fixed"
               },
-              "type": "value"
+              "custom": {
+                "axisPlacement": "auto",
+                "fillOpacity": 100,
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineWidth": 0,
+                "spanNulls": false
+              },
+              "mappings": [
+                {
+                  "options": {
+                    "0": {
+                      "color": "red",
+                      "index": 0,
+                      "text": "FAILED"
+                    },
+                    "1": {
+                      "color": "green",
+                      "index": 1,
+                      "text": "OK"
+                    }
+                  },
+                  "type": "value"
+                }
+              ],
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "short"
+            }
+          },
+          "gridPos": {
+            "h": 4,
+            "w": 24,
+            "x": 0,
+            "y": 26
+          },
+          "id": 23,
+          "interval": "5s",
+          "maxDataPoints": 5000,
+          "options": {
+            "alignValue": "left",
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": false
+            },
+            "mergeValues": true,
+            "rowHeight": 0.9,
+            "showValue": "never",
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "13.2.4",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "expr": "xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\"}",
+              "instant": false,
+              "legendFormat": "{{source}}",
+              "range": true,
+              "refId": "A"
             }
           ],
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "short"
+          "title": "Collection history",
+          "type": "state-timeline"
         },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 20,
-        "x": 4,
-        "y": 10
-      },
-      "id": 23,
-      "interval": "5s",
-      "maxDataPoints": 5000,
-      "options": {
-        "alignValue": "left",
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": false
-        },
-        "mergeValues": true,
-        "rowHeight": 0.9,
-        "showValue": "never",
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "13.2.4",
-      "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
-          "editorMode": "code",
-          "expr": "xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\"}",
-          "instant": false,
-          "legendFormat": "{{source}}",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "Collection history",
-      "type": "state-timeline"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS-INFRA}"
-      },
-      "description": "API: configuration discovery. gRPC: runtime routing, traffic and process. Expvars: observatory. Disabled sources are absent, not zero.",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "mappings": [
-            {
-              "options": {
-                "0": {
-                  "color": "red",
-                  "index": 0,
-                  "text": "FAILED"
+          "description": "Settings and server/status requests start in parallel. gRPC and expvars start after settings completes, without waiting for server/status. Source durations overlap and are shown without stacking. API is the elapsed span until both API requests finish, not their sum. Runtime is max(gRPC, expvars). Total is the end-to-end duration measured by Prometheus; source durations cannot be added to reconstruct it.",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
                 },
-                "1": {
-                  "color": "green",
-                  "index": 1,
-                  "text": "OK"
-                }
-              },
-              "type": "value"
-            }
-          ],
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 5,
-        "w": 4,
-        "x": 0,
-        "y": 14
-      },
-      "id": 19,
-      "interval": "5s",
-      "maxDataPoints": 5000,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "13.2.4",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS-INFRA}"
-          },
-          "editorMode": "code",
-          "expr": "xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\"}",
-          "instant": true,
-          "legendFormat": "{{source}}",
-          "range": false,
-          "refId": "A"
-        }
-      ],
-      "title": "Metrics sources",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS-INFRA}"
-      },
-      "description": "Settings and server/status requests start in parallel. gRPC and expvars start after settings completes, without waiting for server/status. Source durations overlap and are shown without stacking. API is the elapsed span until both API requests finish, not their sum. Runtime is max(gRPC, expvars). Total is the end-to-end duration measured by Prometheus; source durations cannot be added to reconstruct it.",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 10,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "showValues": false,
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "s"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byFrameRefID",
-              "options": "A"
-            },
-            "properties": [
-              {
-                "id": "custom.fillOpacity",
-                "value": 0
-              },
-              {
-                "id": "custom.stacking",
-                "value": {
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "showValues": false,
+                "spanNulls": false,
+                "stacking": {
                   "group": "A",
                   "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
                 }
+              },
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byFrameRefID",
+                  "options": "A"
+                },
+                "properties": [
+                  {
+                    "id": "custom.fillOpacity",
+                    "value": 0
+                  },
+                  {
+                    "id": "custom.stacking",
+                    "value": {
+                      "group": "A",
+                      "mode": "none"
+                    }
+                  }
+                ]
               }
             ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 5,
-        "w": 20,
-        "x": 4,
-        "y": 14
-      },
-      "id": 24,
-      "interval": "5s",
-      "maxDataPoints": 5000,
-      "options": {
-        "legend": {
-          "calcs": [
-            "lastNotNull",
-            "max"
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 24,
+            "x": 0,
+            "y": 30
+          },
+          "id": 24,
+          "interval": "5s",
+          "maxDataPoints": 5000,
+          "options": {
+            "legend": {
+              "calcs": [
+                "lastNotNull",
+                "max"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "pluginVersion": "13.2.4",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "expr": "scrape_duration_seconds{job=\"xui-exporter\",instance=\"${instance}\"}",
+              "instant": false,
+              "legendFormat": "Total",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "expr": "xui_exporter_scrape_duration_seconds{job=\"xui-exporter\",instance=\"${instance}\",source=\"api\"}",
+              "instant": false,
+              "legendFormat": "API",
+              "range": true,
+              "refId": "B"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "expr": "max by (instance, job) (\n  xui_exporter_scrape_duration_seconds{\n    job=\"xui-exporter\",\n    instance=\"${instance}\",\n    source=~\"grpc|expvars\"\n  }\n)",
+              "instant": false,
+              "legendFormat": "Runtime",
+              "range": true,
+              "refId": "C"
+            }
           ],
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "pluginVersion": "13.2.4",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS-INFRA}"
-          },
-          "editorMode": "code",
-          "expr": "scrape_duration_seconds{job=\"xui-exporter\",instance=\"${instance}\"}",
-          "instant": false,
-          "legendFormat": "Total",
-          "range": true,
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS-INFRA}"
-          },
-          "editorMode": "code",
-          "expr": "xui_exporter_scrape_duration_seconds{job=\"xui-exporter\",instance=\"${instance}\",source=\"api\"}",
-          "instant": false,
-          "legendFormat": "API",
-          "range": true,
-          "refId": "B"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS-INFRA}"
-          },
-          "editorMode": "code",
-          "expr": "max by (instance, job) (\n  xui_exporter_scrape_duration_seconds{\n    job=\"xui-exporter\",\n    instance=\"${instance}\",\n    source=~\"grpc|expvars\"\n  }\n)",
-          "instant": false,
-          "legendFormat": "Runtime",
-          "range": true,
-          "refId": "C"
+          "title": "Collection duration",
+          "type": "timeseries"
         }
       ],
-      "title": "Collection duration",
-      "type": "timeseries"
+      "title": "Exporter stats",
+      "type": "row"
     }
   ],
   "preload": false,
@@ -3943,6 +5175,6 @@
   "timezone": "browser",
   "title": "3x-ui",
   "uid": "3x-ui-exporter",
-  "version": 13,
+  "version": 8,
   "weekStart": ""
 }

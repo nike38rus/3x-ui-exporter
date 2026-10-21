@@ -25,7 +25,7 @@ func (p delayedPanel) Status(context.Context) (*PanelStatus, error) {
 
 type delayedObserver struct{ delay time.Duration }
 
-func (o delayedObserver) Snapshot(context.Context) (*ExpvarsSnapshot, error) {
+func (o delayedObserver) Snapshot(context.Context, *Config) (*ExpvarsSnapshot, error) {
 	time.Sleep(o.delay)
 	return &ExpvarsSnapshot{TrafficPresent: true}, nil
 }
