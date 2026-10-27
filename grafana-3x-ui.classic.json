@@ -1708,6 +1708,7 @@
           "editorMode": "code",
           "expr": "8 * sum (rate(xui_inbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\"}[$__rate_interval])) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
           "instant": false,
+          "interval": "5s",
           "legendFormat": "Inbounds · uplink + downlink",
           "range": true,
           "refId": "A"
@@ -1720,6 +1721,7 @@
           "editorMode": "code",
           "expr": "8 * sum (rate(xui_outbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\"}[$__rate_interval])) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
           "instant": false,
+          "interval": "5s",
           "legendFormat": "Outbounds · uplink + downlink",
           "range": true,
           "refId": "B"
@@ -3240,7 +3242,7 @@
               "sort": "desc"
             }
           },
-          "pluginVersion": "13.2.3",
+          "pluginVersion": "13.2.4",
           "targets": [
             {
               "datasource": {
@@ -3249,6 +3251,7 @@
               },
               "editorMode": "code",
               "expr": "8 * sum by (instance,outbound) (rate(xui_outbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__rate_interval]))",
+              "interval": "5s",
               "legendFormat": "{{outbound}}",
               "range": true,
               "refId": "A"
@@ -3311,7 +3314,7 @@
             "text": {},
             "valueMode": "color"
           },
-          "pluginVersion": "13.2.3",
+          "pluginVersion": "13.2.4",
           "targets": [
             {
               "datasource": {
@@ -3383,7 +3386,7 @@
               "sort": "none"
             }
           },
-          "pluginVersion": "13.2.3",
+          "pluginVersion": "13.2.4",
           "targets": [
             {
               "datasource": {
@@ -3515,7 +3518,7 @@
               "sort": "desc"
             }
           },
-          "pluginVersion": "13.2.3",
+          "pluginVersion": "13.2.4",
           "targets": [
             {
               "datasource": {
@@ -3524,6 +3527,7 @@
               },
               "editorMode": "code",
               "expr": "8 * sum by (instance,inbound) (rate(xui_inbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",inbound!~\"api|node_egress_.*\"}[$__rate_interval]))",
+              "interval": "5s",
               "legendFormat": "{{inbound}}",
               "range": true,
               "refId": "A"
@@ -3585,7 +3589,7 @@
             "sizing": "manual",
             "valueMode": "color"
           },
-          "pluginVersion": "13.2.3",
+          "pluginVersion": "13.2.4",
           "targets": [
             {
               "datasource": {
@@ -3657,7 +3661,7 @@
               "sort": "none"
             }
           },
-          "pluginVersion": "13.2.3",
+          "pluginVersion": "13.2.4",
           "targets": [
             {
               "datasource": {
@@ -3763,7 +3767,7 @@
             },
             "valueMode": "color"
           },
-          "pluginVersion": "13.2.3",
+          "pluginVersion": "13.2.4",
           "targets": [
             {
               "datasource": {
@@ -3868,7 +3872,7 @@
               "sort": "none"
             }
           },
-          "pluginVersion": "13.2.3",
+          "pluginVersion": "13.2.4",
           "targets": [
             {
               "datasource": {
@@ -3963,7 +3967,7 @@
               "sort": "none"
             }
           },
-          "pluginVersion": "13.2.3",
+          "pluginVersion": "13.2.4",
           "targets": [
             {
               "datasource": {
@@ -4061,11 +4065,11 @@
             "showValue": "never",
             "tooltip": {
               "hideZeros": false,
-              "mode": "multi",
+              "mode": "single",
               "sort": "none"
             }
           },
-          "pluginVersion": "13.2.3",
+          "pluginVersion": "13.2.4",
           "targets": [
             {
               "datasource": {
@@ -4170,7 +4174,7 @@
               "sort": "desc"
             }
           },
-          "pluginVersion": "13.2.3",
+          "pluginVersion": "13.2.4",
           "targets": [
             {
               "datasource": {
@@ -4289,7 +4293,7 @@
               "sort": "desc"
             }
           },
-          "pluginVersion": "13.2.3",
+          "pluginVersion": "13.2.4",
           "targets": [
             {
               "datasource": {
@@ -4405,7 +4409,7 @@
               "sort": "desc"
             }
           },
-          "pluginVersion": "13.2.3",
+          "pluginVersion": "13.2.4",
           "targets": [
             {
               "datasource": {
@@ -4415,6 +4419,7 @@
               "editorMode": "code",
               "expr": "rate(xui_xray_memory_alloc_bytes_total{job=\"xui-exporter\",instance=\"${instance}\"}[$__rate_interval])",
               "instant": false,
+              "interval": "5s",
               "legendFormat": "Allocated bytes/s",
               "range": true,
               "refId": "A"
@@ -4509,7 +4514,7 @@
               "sort": "desc"
             }
           },
-          "pluginVersion": "13.2.3",
+          "pluginVersion": "13.2.4",
           "targets": [
             {
               "datasource": {
@@ -4613,7 +4618,7 @@
               "sort": "desc"
             }
           },
-          "pluginVersion": "13.2.3",
+          "pluginVersion": "13.2.4",
           "targets": [
             {
               "datasource": {
@@ -4623,6 +4628,7 @@
               "editorMode": "code",
               "expr": "rate(xui_xray_memory_mallocs_total{job=\"xui-exporter\",instance=\"${instance}\"}[$__rate_interval])",
               "instant": false,
+              "interval": "5s",
               "legendFormat": "Allocations/s",
               "range": true,
               "refId": "A"
@@ -4635,6 +4641,7 @@
               "editorMode": "code",
               "expr": "rate(xui_xray_memory_frees_total{job=\"xui-exporter\",instance=\"${instance}\"}[$__rate_interval])",
               "instant": false,
+              "interval": "5s",
               "legendFormat": "Frees/s",
               "range": true,
               "refId": "B"
@@ -4729,7 +4736,7 @@
               "sort": "desc"
             }
           },
-          "pluginVersion": "13.2.3",
+          "pluginVersion": "13.2.4",
           "targets": [
             {
               "datasource": {
@@ -4739,6 +4746,7 @@
               "editorMode": "code",
               "expr": "rate(xui_xray_gc_cycles_total{job=\"xui-exporter\",instance=\"${instance}\"}[$__rate_interval])",
               "instant": false,
+              "interval": "5s",
               "legendFormat": "Cycles/s",
               "range": true,
               "refId": "A"
@@ -4834,7 +4842,7 @@
               "sort": "desc"
             }
           },
-          "pluginVersion": "13.2.3",
+          "pluginVersion": "13.2.4",
           "targets": [
             {
               "datasource": {
@@ -4844,6 +4852,7 @@
               "editorMode": "code",
               "expr": "rate(xui_xray_gc_pause_seconds_total{job=\"xui-exporter\",instance=\"${instance}\"}[$__rate_interval])",
               "instant": false,
+              "interval": "5s",
               "legendFormat": "Pause fraction",
               "range": true,
               "refId": "A"
@@ -5175,6 +5184,6 @@
   "timezone": "browser",
   "title": "3x-ui",
   "uid": "3x-ui-exporter",
-  "version": 8,
+  "version": 24,
   "weekStart": ""
 }
