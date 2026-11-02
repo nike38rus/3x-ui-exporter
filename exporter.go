@@ -174,7 +174,7 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 	apiStart := time.Now()
 	var status *PanelStatus
 	var statusErr error
-	var statusElapsed time.Duration
+	var statusElapsed, onlinesElapsed time.Duration
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
@@ -187,6 +187,22 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 		}
 		statusElapsed = time.Since(apiStart)
 	}()
+	var onlines int
+	var onlinesErr error
+	var hasOnlines bool
+	if onlinesSrc, ok := e.Panel.(OnlineSource); ok {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			start := time.Now()
+			defer reportSlow(start, "api", "inbounds/onlines")
+			onlines, onlinesErr = onlinesSrc.Onlines(ctx)
+			if onlinesErr == nil {
+				hasOnlines = true
+			}
+			onlinesElapsed = time.Since(apiStart)
+		}()
+	}
 	var data *ExpvarsSnapshot
 	var expErr, grpcErr, balancerErr, trafficErr error
 	var expDuration, grpcDuration time.Duration
@@ -258,13 +274,16 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 		}
 	}()
 	wg.Wait()
-	apiDuration := max(configElapsed, statusElapsed).Seconds()
+	apiDuration := max(configElapsed, statusElapsed, onlinesElapsed).Seconds()
 	if data != nil {
 		traffic, trafficErr = trafficMetrics(data.Traffic)
 		expErr = errors.Join(expErr, trafficErr)
 	}
 	result := append(traffic, balancer...)
 	result = append(result, panelStatusMetrics(status)...)
+	if hasOnlines {
+		gauge(&result, "xui_online_clients", "Current active clients online reported by panel.", float64(onlines), nil)
+	}
 	if data != nil {
 		result = append(result, data.Memory...)
 		result = append(result, data.Observation...)

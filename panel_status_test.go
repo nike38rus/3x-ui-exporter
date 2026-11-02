@@ -16,16 +16,17 @@ func TestPanelStatusFields(t *testing.T) {
 		name, body         string
 		wantErr            bool
 		panel, core, state string
+		tcp, udp           *float64
 	}{
-		{"running", `{"panelVersion":"3.10.2","xray":{"version":"26.10.10","state":"running","errorMsg":"private diagnostic"}}`, false, "3.10.2", "26.10.10", "running"},
-		{"stopped", `{"xray":{"state":"stop"}}`, false, "", "", "stop"},
-		{"error", `{"xray":{"state":"error"}}`, false, "", "", "error"},
-		{"missing", `{}`, false, "", "", ""},
-		{"null fields", `{"panelVersion":null,"xray":null}`, false, "", "", ""},
-		{"unknown state", `{"panelVersion":"p","xray":{"version":"x","state":"future"}}`, true, "p", "x", ""},
-		{"bad version keeps state", `{"panelVersion":12,"xray":{"state":"running"}}`, true, "", "", "running"},
-		{"bad Xray keeps panel", `{"panelVersion":"p","xray":[]}`, true, "p", "", ""},
-		{"invalid object", `[]`, true, "", "", ""},
+		{"running", `{"panelVersion":"3.10.2","xray":{"version":"26.10.10","state":"running","errorMsg":"private diagnostic"},"tcpCount":42,"udpCount":18}`, false, "3.10.2", "26.10.10", "running", ptr(42), ptr(18)},
+		{"stopped", `{"xray":{"state":"stop"}}`, false, "", "", "stop", nil, nil},
+		{"error", `{"xray":{"state":"error"}}`, false, "", "", "error", nil, nil},
+		{"missing", `{}`, false, "", "", "", nil, nil},
+		{"null fields", `{"panelVersion":null,"xray":null,"tcpCount":null,"udpCount":null}`, false, "", "", "", nil, nil},
+		{"unknown state", `{"panelVersion":"p","xray":{"version":"x","state":"future"}}`, true, "p", "x", "", nil, nil},
+		{"bad version keeps state", `{"panelVersion":12,"xray":{"state":"running"}}`, true, "", "", "running", nil, nil},
+		{"bad Xray keeps panel", `{"panelVersion":"p","xray":[]}`, true, "p", "", "", nil, nil},
+		{"invalid object", `[]`, true, "", "", "", nil, nil},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			s, err := decodePanelStatus(json.RawMessage(tc.body))
@@ -57,6 +58,58 @@ func TestPanelStatusFields(t *testing.T) {
 						t.Fatal(states)
 					}
 				}
+			}
+			tcps := sampleValues(t, m, "xui_panel_tcp_connections")
+			if tc.tcp == nil {
+				if len(tcps) != 0 {
+					t.Fatal("unexpected tcp connections", tcps)
+				}
+			} else if len(tcps) != 1 || tcps[""] != *tc.tcp {
+				t.Fatal("incorrect tcp count", tcps)
+			}
+			udps := sampleValues(t, m, "xui_panel_udp_connections")
+			if tc.udp == nil {
+				if len(udps) != 0 {
+					t.Fatal("unexpected udp connections", udps)
+				}
+			} else if len(udps) != 1 || udps[""] != *tc.udp {
+				t.Fatal("incorrect udp count", udps)
+			}
+		})
+	}
+}
+
+func ptr(v float64) *float64 { return &v }
+
+func TestPanelOnlines(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		body string
+		code int
+		want int
+		fail bool
+	}{
+		{"active users", `{"success":true,"obj":["user1@test.com","user2@test.com"]}`, 200, 2, false},
+		{"empty list", `{"success":true,"obj":[]}`, 200, 0, false},
+		{"invalid json", `{"success":true,"obj":"not an array"}`, 200, 0, true},
+		{"server error", `server down`, 500, 0, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != http.MethodPost || r.URL.Path != "/panel/api/inbounds/onlines" {
+					t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
+				}
+				w.WriteHeader(tc.code)
+				_, _ = w.Write([]byte(tc.body))
+			}))
+			defer srv.Close()
+			p := &Panel{URL: srv.URL, Token: "token", Client: srv.Client()}
+			got, err := p.Onlines(context.Background())
+			if (err != nil) != tc.fail {
+				t.Fatalf("err=%v, fail=%v", err, tc.fail)
+			}
+			if got != tc.want {
+				t.Fatalf("got=%d, want=%d", got, tc.want)
 			}
 		})
 	}
@@ -115,6 +168,8 @@ func TestPanelRequestsIndependentAndBudget(t *testing.T) {
 						return
 					}
 					_, _ = w.Write([]byte(`{"success":true,"obj":{"panelVersion":"p","xray":{"version":"x","state":"running"}}}`))
+				case "/panel/api/inbounds/onlines":
+					_, _ = w.Write([]byte(`{"success":true,"obj":["u@test.com"]}`))
 				case "/debug/vars":
 					_, _ = w.Write([]byte(`{"stats":{"outbound":{"A":{"uplink":1}}}}`))
 				default:
@@ -143,7 +198,7 @@ func TestPanelRequestsIndependentAndBudget(t *testing.T) {
 			}
 			mu.Lock()
 			defer mu.Unlock()
-			if counts["/panel/api/xray/"] != 1 || counts["/panel/api/server/status"] != 1 || counts["/debug/vars"] != 1 {
+			if counts["/panel/api/xray/"] != 1 || counts["/panel/api/server/status"] != 1 || counts["/panel/api/inbounds/onlines"] != 1 || counts["/debug/vars"] != 1 {
 				t.Fatal(counts)
 			}
 			want := 1
@@ -167,6 +222,8 @@ func TestStatusUsesSharedDeadlineAndDoesNotRetainOldData(t *testing.T) {
 		switch r.URL.Path {
 		case "/panel/api/xray/":
 			_, _ = w.Write([]byte(`{"success":true,"obj":{"xraySetting":{}}}`))
+		case "/panel/api/inbounds/onlines":
+			_, _ = w.Write([]byte(`{"success":true,"obj":[]}`))
 		case "/panel/api/server/status":
 			switch current {
 			case "healthy":

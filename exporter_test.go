@@ -352,3 +352,29 @@ func TestExporterProcessAndGoMetrics(t *testing.T) {
 		t.Fatal("missing process metrics")
 	}
 }
+
+type fakePanelWithOnlines struct {
+	fakePanel
+	onlines    int
+	onlinesErr error
+}
+
+func (f fakePanelWithOnlines) Onlines(context.Context) (int, error) {
+	return f.onlines, f.onlinesErr
+}
+
+func TestOnlineClientsMetric(t *testing.T) {
+	eWith := &Exporter{Panel: fakePanelWithOnlines{fakePanel: fakePanel{cfg: &Config{}}, onlines: 5}, Timeout: time.Second}
+	mWith := eWith.scrape(context.Background())
+	valsWith := sampleValues(t, mWith, "xui_online_clients")
+	if len(valsWith) != 1 || valsWith[""] != 5 {
+		t.Fatalf("expected 5 online clients, got %v", valsWith)
+	}
+
+	eErr := &Exporter{Panel: fakePanelWithOnlines{fakePanel: fakePanel{cfg: &Config{}}, onlinesErr: errors.New("fail")}, Timeout: time.Second}
+	mErr := eErr.scrape(context.Background())
+	valsErr := sampleValues(t, mErr, "xui_online_clients")
+	if len(valsErr) != 0 {
+		t.Fatalf("expected no online clients on error, got %v", valsErr)
+	}
+}

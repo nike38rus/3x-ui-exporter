@@ -14,6 +14,12 @@ type PanelStatus struct {
 	PanelVersion string
 	XrayVersion  string
 	XrayState    string
+	TCPCount     *int64
+	UDPCount     *int64
+}
+
+type OnlineSource interface {
+	Onlines(context.Context) (int, error)
 }
 
 func (p *Panel) Status(ctx context.Context) (*PanelStatus, error) {
@@ -22,6 +28,22 @@ func (p *Panel) Status(ctx context.Context) (*PanelStatus, error) {
 		return nil, err
 	}
 	return decodePanelStatus(raw)
+}
+
+func (p *Panel) Onlines(ctx context.Context) (int, error) {
+	raw, err := p.object(ctx, http.MethodPost, "/panel/api/inbounds/onlines")
+	if err != nil {
+		return 0, err
+	}
+	return decodeOnlines(raw)
+}
+
+func decodeOnlines(raw json.RawMessage) (int, error) {
+	var onlines []string
+	if json.Unmarshal(raw, &onlines) != nil {
+		return 0, errors.New("invalid onlines array")
+	}
+	return len(onlines), nil
 }
 
 func decodePanelStatus(raw json.RawMessage) (*PanelStatus, error) {
@@ -42,7 +64,20 @@ func decodePanelStatus(raw json.RawMessage) (*PanelStatus, error) {
 		}
 		*dest = strings.TrimSpace(value)
 	}
+	readInt := func(v json.RawMessage, dest **int64) {
+		if !configured(v) {
+			return
+		}
+		var n int64
+		if json.Unmarshal(v, &n) != nil {
+			decodeErr = errors.Join(decodeErr, errors.New("invalid int status field"))
+			return
+		}
+		*dest = &n
+	}
 	readString(fields["panelVersion"], &s.PanelVersion)
+	readInt(fields["tcpCount"], &s.TCPCount)
+	readInt(fields["udpCount"], &s.UDPCount)
 	if configured(fields["xray"]) {
 		var core map[string]json.RawMessage
 		if json.Unmarshal(fields["xray"], &core) != nil || core == nil {
@@ -76,6 +111,12 @@ func panelStatusMetrics(s *PanelStatus) samples {
 		for _, state := range []string{"running", "stop", "error"} {
 			gauge(&result, "xui_xray_state", "Xray process state reported by the panel; not an internet health probe.", number(s.XrayState == state), []string{"state"}, state)
 		}
+	}
+	if s.TCPCount != nil {
+		gauge(&result, "xui_panel_tcp_connections", "Current open TCP connections reported by panel.", float64(*s.TCPCount), nil)
+	}
+	if s.UDPCount != nil {
+		gauge(&result, "xui_panel_udp_connections", "Current open UDP connections reported by panel.", float64(*s.UDPCount), nil)
 	}
 	return result
 }
