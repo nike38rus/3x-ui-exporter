@@ -7,9 +7,11 @@ ARG TARGETOS=linux
 ARG TARGETARCH
 ARG VERSION=dev
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w -X main.version=$VERSION" -o /exporter .
+RUN echo "nonroot:x:65532:65532:nonroot:/:/sbin/nologin" > /etc/passwd.minimal
 
-FROM alpine:3.22
+FROM scratch
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=build /etc/passwd.minimal /etc/passwd
 COPY --from=build /exporter /usr/local/bin/3x-ui-exporter
 COPY LICENSE THIRD_PARTY_NOTICES.md /usr/share/licenses/3x-ui-exporter/
 COPY third_party_licenses /usr/share/licenses/3x-ui-exporter/third_party_licenses/

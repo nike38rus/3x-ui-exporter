@@ -6,9 +6,11 @@ export GOTMPDIR := $(CURDIR)/.cache/tmp
 VERSION ?= dev
 LDFLAGS := -s -w -X main.version=$(VERSION)
 
-.PHONY: test build linux prepare licenses release
+.PHONY: test build linux prepare download licenses release
 prepare:
-	mkdir -p .cache/tmp bin
+	mkdir -p .cache/tmp .cache/build .cache/mod .cache/gopath bin
+download: prepare
+	go mod download
 test: prepare
 	go test -race ./...
 	go vet ./...
