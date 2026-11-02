@@ -88,10 +88,13 @@ func (c *GRPCCore) Balancer(ctx context.Context, tag string) (*BalancerState, er
 	return &BalancerState{Targets: tags, Override: override}, nil
 }
 
-// Log only unusually slow operations, without tokens, configuration or targets.
+// Log only unusually slow operations at warn level, or all operations at debug level.
 func reportSlow(start time.Time, source, operation string) {
-	if elapsed := time.Since(start); elapsed >= 100*time.Millisecond {
+	elapsed := time.Since(start)
+	if elapsed >= 100*time.Millisecond {
 		slog.Warn("slow source operation", "source", source, "operation", operation, "duration_seconds", elapsed.Seconds())
+	} else {
+		slog.Debug("source operation completed", "source", source, "operation", operation, "duration_seconds", elapsed.Seconds())
 	}
 }
 
@@ -234,7 +237,9 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 		err  error
 	}{{"api_settings", cfgErr}, {"api_status", statusErr}, {"expvars", expErr}, {"traffic", trafficErr}, {"grpc", grpcErr}, {"balancer_metrics", balancerErr}} {
 		if item.err != nil {
-			slog.Warn("collection failed", "operation", item.name, "error_type", fmt.Sprintf("%T", item.err))
+			slog.Warn("collection failed", "operation", item.name, "error", item.err.Error(), "error_type", fmt.Sprintf("%T", item.err))
+		} else {
+			slog.Debug("collection succeeded", "operation", item.name)
 		}
 	}
 	gauge(&result, "xui_exporter_scrape_success", "Whether source requests succeeded and their responses satisfied the exporter contract.", number(cfgErr == nil && statusErr == nil), []string{"source"}, "api")

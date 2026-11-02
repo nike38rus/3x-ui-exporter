@@ -39,6 +39,8 @@ func run() error {
 	metricsURL := fs.String("xray-metrics-url", env("XRAY_METRICS_URL", ""), "Xray HTTP metrics base URL; empty discovers metrics.listen through panel API")
 	listen := fs.String("listen-address", env("LISTEN_ADDRESS", ":9108"), "metrics host:port")
 	timeoutText := fs.String("scrape-timeout", env("SCRAPE_TIMEOUT", "4s"), "total collection deadline")
+	logLevel := fs.String("log-level", env("LOG_LEVEL", "info"), "logging level (debug, info, warn, error)")
+	logFormat := fs.String("log-format", env("LOG_FORMAT", "text"), "logging format (text, json)")
 	showVersion := fs.Bool("version", false, "print exporter version")
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		return err
@@ -47,6 +49,30 @@ func run() error {
 		fmt.Println(version)
 		return nil
 	}
+	var level slog.Level
+	switch strings.ToLower(*logLevel) {
+	case "debug":
+		level = slog.LevelDebug
+	case "info":
+		level = slog.LevelInfo
+	case "warn":
+		level = slog.LevelWarn
+	case "error":
+		level = slog.LevelError
+	default:
+		return fmt.Errorf("LOG_LEVEL must be debug, info, warn, or error")
+	}
+	handlerOpts := &slog.HandlerOptions{Level: level}
+	var handler slog.Handler
+	switch strings.ToLower(*logFormat) {
+	case "json":
+		handler = slog.NewJSONHandler(os.Stderr, handlerOpts)
+	case "text":
+		handler = slog.NewTextHandler(os.Stderr, handlerOpts)
+	default:
+		return fmt.Errorf("LOG_FORMAT must be text or json")
+	}
+	slog.SetDefault(slog.New(handler))
 	if !validPanelURL(*panelURL) {
 		return fmt.Errorf("XUI_URL must be an HTTP(S) URL without credentials, query or fragment")
 	}
@@ -70,6 +96,9 @@ func run() error {
 	defer conn.Close()
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.Proxy = nil
+	transport.MaxIdleConns = 20
+	transport.MaxIdleConnsPerHost = 10
+	transport.IdleConnTimeout = 90 * time.Second
 	client := &http.Client{Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	exporter := &Exporter{Panel: &Panel{URL: *panelURL, Token: *token, Client: client}, Core: newCore(conn), Expvars: &Expvars{URL: *metricsURL, Client: client}, Timeout: timeout, Version: version}
 	server := &http.Server{Addr: *listen, Handler: exporter.Handler(), ReadHeaderTimeout: 5 * time.Second, WriteTimeout: timeout + 5*time.Second, IdleTimeout: 60 * time.Second}

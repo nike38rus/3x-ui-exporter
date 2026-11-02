@@ -9,6 +9,8 @@ services:
       XRAY_METRICS_URL: ${XRAY_METRICS_URL:-}
       SCRAPE_TIMEOUT: 4s
       LISTEN_ADDRESS: :9108
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_FORMAT: ${LOG_FORMAT:-text}
     read_only: true
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]

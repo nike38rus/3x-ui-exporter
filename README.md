@@ -28,7 +28,8 @@ export SCRAPE_TIMEOUT=4s
 ```
 
 All settings have matching CLI flags (`--xui-url`, `--xui-api-token`,
-`--xray-api`, `--xray-metrics-url`, `--listen-address`, `--scrape-timeout`). CLI overrides environment.
+`--xray-api`, `--xray-metrics-url`, `--listen-address`, `--scrape-timeout`,
+`--log-level`, `--log-format`). CLI overrides environment.
 Prefer an environment variable for the token, to keep it out of process arguments.
 The base URL can include a panel base path. HTTP redirects are rejected; secrets
 and configuration contents are never logged.
