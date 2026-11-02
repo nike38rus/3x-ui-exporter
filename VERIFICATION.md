@@ -78,6 +78,17 @@ IPv4/IPv6 wildcard normalization, concrete addresses, invalid listeners, overrid
 precedence, concurrent endpoints, and removal of configuration without reuse of
 old addresses or samples. The edge build was verified alongside v0.3.0 on the live NAS.
 
+## v0.6.0 release preparation
+
+Race-detector tests with concurrent balancers, go vet, and multi-architecture
+builds passed. The edge container running commit c807b88 with scratch runtime,
+concurrent balancer polling, and early expvars execution was verified live on the
+Docker host at port 9109. All 3 sources (api, expvars, grpc) reported scrape
+success 1, with scrape durations in low single-digit milliseconds (api ~4.5ms,
+expvars ~1.1ms, grpc ~1.5ms). All 235 metrics were confirmed intact.
+Optional self-monitoring and client traffic flags were verified via unit tests
+and remain disabled by default.
+
 ## v0.5.0 release preparation
 
 Race-detector tests, go vet, native macOS and static Linux amd64/arm64 builds,
