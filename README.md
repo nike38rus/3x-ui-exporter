@@ -328,15 +328,13 @@ The default view surfaces Xray state, versions, target health, balancer modes, o
 
 ### Dashboard Quality Score
 
-The dashboard calculates an outbound **Quality Score** (0–100, higher is better) using burst observatory window statistics over the selected range `$__range`.
+The dashboard calculates an outbound **Quality Score** (0–100, higher is better) using burst observatory window statistics over the selected dashboard time range (`$__range`).
 
 Quality is calculated as a **weighted geometric mean** of three components:
-1. **Reliability ($R$):** Penalizes probe failure ratio $f = \frac{\sum \text{probe\_failed\_samples}}{\sum \text{probe\_samples}}$:
-   $$R = 100 \cdot e^{-10 \cdot f}$$
-2. **RTT Stability ($S$):** Penalizes tail spread between $P_{95}$ and $P_{50}$ mean RTT:
-   $$S = 100 \cdot e^{-2 \cdot (P_{95} - P_{50})}$$
-3. **Latency ($L$):** Rewards low median latency ($P_{50} \le 300\text{ ms} \rightarrow 100$, $\ge 1.3\text{ s} \rightarrow 0$):
-   $$L = \text{clamp}(130 - 100 \cdot P_{50}, 0, 100)$$
+
+1. **Reliability ($R$):** Penalizes probe failure ratio $f = \frac{\sum \text{failed probes}}{\sum \text{total probes}}$: $R = 100 \cdot e^{-10 \cdot f}$
+2. **RTT Stability ($S$):** Penalizes tail spread between $P_{95}$ and $P_{50}$ mean RTT: $S = 100 \cdot e^{-2 \cdot (P_{95} - P_{50})}$
+3. **Latency ($L$):** Rewards low median latency ($P_{50} \le 300\text{ ms} \rightarrow 100$, $\ge 1.3\text{ s} \rightarrow 0$): $L = \text{clamp}(130 - 100 \cdot P_{50}, 0, 100)$
 
 $$\text{Quality} = 100 \cdot \left(\frac{R}{100}\right)^{0.50} \cdot \left(\frac{S}{100}\right)^{0.30} \cdot \left(\frac{L}{100}\right)^{0.20}$$
 
