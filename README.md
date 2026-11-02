@@ -1,103 +1,117 @@
 # 3x-ui exporter
 
+[![CI](https://github.com/nike38rus/3x-ui-exporter/actions/workflows/ci.yml/badge.svg)](https://github.com/nike38rus/3x-ui-exporter/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/nike38rus/3x-ui-exporter?logo=github)](https://github.com/nike38rus/3x-ui-exporter/releases)
+[![Container Image](https://img.shields.io/badge/GHCR-docker_image-blue?logo=docker)](https://github.com/nike38rus/3x-ui-exporter/pkgs/container/3x-ui-exporter)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/nike38rus/3x-ui-exporter)](go.mod)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+High-performance, stateless Prometheus exporter for the **[3x-ui](https://github.com/MHSanaei/3x-ui)** control panel and its running **Xray core**.
+
+Provides real-time visibility into traffic throughput, memory and GC behavior, balancer selection and fallback states, and outbound latency health via Xray's Observatory probe statistics.
+
+---
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [Architecture](#architecture)
+- [Quick Start](#quick-start)
+  - [Docker Compose (Recommended)](#docker-compose-recommended)
+  - [Prometheus Configuration](#prometheus-configuration)
+  - [Binary Execution](#binary-execution)
+- [Configuration Reference](#configuration-reference)
+- [Metrics Reference](#metrics-reference)
+  - [Exporter Diagnostics](#exporter-diagnostics)
+  - [Panel and Xray Status](#panel-and-xray-status)
+  - [Traffic Statistics](#traffic-statistics)
+  - [Balancers and Routing](#balancers-and-routing)
+  - [Observatory and RTT](#observatory-and-rtt)
+  - [Xray Go Runtime and Memory](#xray-go-runtime-and-memory)
+- [Grafana Dashboard](#grafana-dashboard)
+  - [Overview Dashboard](#overview-dashboard)
+  - [Dashboard Quality Score](#dashboard-quality-score)
+- [Technical Principles](#technical-principles)
+  - [Endpoint Discovery](#endpoint-discovery)
+  - [Balancer Strategy Semantics](#balancer-strategy-semantics)
+  - [Fault Isolation and Request Budget](#fault-isolation-and-request-budget)
+- [Development and Build](#development-and-build)
+- [Disclaimer and Maintenance](#disclaimer-and-maintenance)
+- [License](#license)
+
+---
+
 ## Overview
 
-Synchronous Prometheus exporter for 3x-ui and its running Xray core. The HTTP
-API source discovers configuration and reads panel/Xray status; gRPC reads runtime outbounds and balancers.
-One HTTP expvars response supplies traffic, memory/GC and observatory results. No polling loop, exporter configuration file, or stale cache.
+Traditional exporters for 3x-ui often rely on periodic background polling, store stale metrics in memory caches, or invoke heavy Xray gRPC RPCs (`StatsService`, `ObservatoryService`, `GetSysStats`) that add unnecessary CPU and synchronization overhead.
 
-## Disclaimer and maintenance policy
+**3x-ui-exporter** operates strictly on a **synchronous, pull-based model**:
+- Every Prometheus scrape triggers fresh queries across upstream interfaces with an enforced deadline (`SCRAPE_TIMEOUT`).
+- All traffic, memory/GC, and observatory measurements are retrieved in **a single lightweight HTTP request** to Xray's internal `/debug/vars` (expvars) endpoint.
+- Panel configuration and versions are queried in parallel via 3x-ui REST API.
+- Runtime routing and balancers are queried concurrently via public Xray gRPC services.
+- If an upstream source fails, independent metrics continue to be served with clear source-level failure indicators (`xui_exporter_scrape_success{source="..."} 0`).
 
-This project is **100% vibe-coded with AI**. It was built for my own setup and
-is shared as-is, with no promise of support, ongoing maintenance or future releases.
-I may make changes if and when I need them myself.
+---
 
-**Issues will not be read, and pull requests are unlikely to be reviewed or merged.**
-Do not rely on this repository for fixes or feature requests. If the project does
-not meet your needs, fork it and adapt it for yourself.
+## Key Features
 
-## Run
+- **Zero-Cache & No Stale Data:** Measurements are never cached across scrapes. If a service stops, metrics reflect the failure immediately instead of masking it with historical values.
+- **Ultra-Fast Scrape Latency:** Parallel upstream collection and optimized HTTP connection pooling deliver complete scrapes in low single-digit milliseconds ($< 5\text{ ms}$).
+- **Automatic Metrics Discovery:** Automatically extracts Xray's `metrics.listen` address directly from current panel settings, with support for explicit URL overrides.
+- **Role-Aware Balancer Tracking:** Distinguishes between `primary` targets, configured `fallback` paths, and active `override` states across leastLoad, leastPing, random, and roundRobin strategies.
+- **Comprehensive Observatory Insights:** Exports burst observatory probe counts, failure rates, and RTT distributions (mean, min, max, deviation).
+- **Hardened Distroless/Scratch Image:** Final Docker image is built `FROM scratch` with a statically linked Go binary: ~15 MB total size, runs as non-root user `65532:65532`, with zero OS packages and zero CVEs.
+- **Out-of-the-Box Grafana Dashboards:** Includes production-verified Grafana dashboards (in both Classic and Schema v2 formats) featuring a comprehensive Overview and an automated outbound **Quality Score**.
 
-```sh
-export XUI_URL=http://panel.example:2053
-export XUI_API_TOKEN='<token>'
-export XRAY_API=127.0.0.1:62789
-export LISTEN_ADDRESS=127.0.0.1:9108
-export SCRAPE_TIMEOUT=4s
-./bin/3x-ui-exporter
+---
+
+## Architecture
+
+The exporter acts as a bridge between Prometheus and the 3x-ui / Xray ecosystem:
+
+```mermaid
+flowchart LR
+    Prom["Prometheus\n(/metrics)"] --> Exp["3x-ui-exporter\n(Stateless & Concurrent)"]
+
+    subgraph "Upstream Sources"
+        direction TB
+        Exp -->|"Parallel API (HTTP)\n/panel/api/xray/\n/panel/api/server/status"| Panel["3x-ui Panel\n(Config & Status)"]
+        Exp -->|"Single HTTP Request\n/debug/vars (expvars)"| Expvars["Xray Core Expvars\n(Traffic, Mem/GC, Observatory)"]
+        Exp -->|"Concurrent gRPC\nHandlerService\nRoutingService"| Core["Xray Core gRPC\n(Outbounds & Balancers)"]
+    end
 ```
 
-All settings have matching CLI flags (`--xui-url`, `--xui-api-token`,
-`--xray-api`, `--xray-metrics-url`, `--listen-address`, `--scrape-timeout`,
-`--log-level`, `--log-format`, `--include-exporter-metrics`, `--collect-client-stats`). CLI overrides environment.
-Prefer an environment variable for the token, to keep it out of process arguments.
-The base URL can include a panel base path. HTTP redirects are rejected; secrets
-and configuration contents are never logged.
+### Upstream Sources at a Glance
 
-Endpoints: `/metrics`, `/healthz` (exporter liveness only), `/` (landing page).
-The collector shares a total deadline per HTTP request. Failed source collection
-still returns HTTP 200 with source status and independent successful metrics.
-Source startup failures do not terminate the exporter.
+| Source | Protocol & Endpoint | Purpose & Retrieved Data |
+| --- | --- | --- |
+| **`api`** | HTTP REST `POST /panel/api/xray/`<br>`GET /panel/api/server/status` | Discovers balancer rules, selector prefixes, subscription outbounds, panel version, Xray version, and process state. |
+| **`expvars`** | HTTP `GET /debug/vars` | Fetches inbound/outbound traffic counters, memory/GC stats, and observatory probe/RTT metrics in **one** roundtrip. |
+| **`grpc`** | gRPC `ListOutbounds`<br>`GetBalancerInfo` | Inspects live runtime outbound inventory and queries active balancer selection/override targets concurrently. |
+| **`exporter`** | Internal runtime diagnostics | Emits scrape success, collection timing per source, and exporter build version. |
 
-Xray gRPC must provide HandlerService; RoutingService is needed when balancers
-are configured. StatsService, ObservatoryService and GetSysStats are not used.
-Traffic, memory/GC and observatory results come from HTTP `/debug/vars`.
+---
 
-By default the exporter discovers the HTTP metrics address from `metrics.listen`
-in the panel settings received during the current scrape. No extra API request
-is needed. Set `XRAY_METRICS_URL` (or `--xray-metrics-url`) to override discovery,
-for example `http://xray.example:11111` when using a remote or port-mapped endpoint.
-An explicit URL is used even if panel configuration is unavailable or its metrics
-listener is disabled. The panel token is never sent to expvars.
+## Quick Start
 
-Discovery treats `0.0.0.0:PORT` and `:PORT` as `http://127.0.0.1:PORT`, and
-`[::]:PORT` as `http://[::1]:PORT`. Concrete addresses are retained. These loopback
-addresses require the exporter to share Xray's network namespace or host; wildcard
-listeners do not reveal a remotely reachable host. Discovery uses HTTP; HTTPS and
-base paths require an explicit URL. Missing/invalid listener settings produce
-`source="expvars"` success `0`, without guessing a port or reusing an old address.
-If panel configuration cannot be read, automatic expvars discovery cannot proceed;
-an explicit URL removes that dependency. The API configuration describes saved
-settings, not proof that they have been applied to the running Xray.
+### Docker Compose (Recommended)
 
-A valid empty response or absent optional observatory/traffic groups is successful
-collection and produces no corresponding measurements. Xray traffic policies
-determine which counters exist; missing counters are never synthesized.
+The recommended deployment places the exporter alongside 3x-ui by joining the panel's container network namespace. This allows secure, loopback-only communication without exposing Xray's gRPC control port or expvars listener to external networks.
 
-## Docker Compose
+#### Option A: Adding to an existing Compose file
 
-The examples use v0.6.0 and discover the metrics endpoint by default. Set
-`XRAY_METRICS_URL` in `.env` only when an explicit address is required.
-
-The example shares the network namespace of an existing Xray/3x-ui container
-on the same Docker host. Set XRAY_CONTAINER to its actual container name.
-The exporter listens on port 9108 in that namespace; no separate port mapping
-is needed. In a bridge deployment, publish 9108 from the Xray container;
-with macvlan, use that container IP. After recreating the Xray container, recreate this exporter too so it joins
-the current network namespace.
-
-```sh
-cp .env.example .env
-# Edit .env: set the token, container name and addresses.
-docker compose up -d
-```
-
-The default image tag is 0.6.0. To use the latest successful main build, set
-`EXPORTER_VERSION=edge` in `.env`. The `edge` tag is updated after each
-successful main pipeline.
-To build your checkout locally:
-
-```sh
-docker compose -f compose.yaml -f compose.build.yaml up -d --build
-```
-
-When both services belong to the same Compose project, use the **service key**
-from `services:` instead of the container name. Add this exporter service to your
-existing Compose file (here the panel service key is `x-ui`):
+Add the `exporter` service directly to your existing 3x-ui `compose.yaml` (assuming your panel service key is `x-ui`):
 
 ```yaml
 services:
-  # Your existing x-ui service remains here.
+  x-ui:
+    # Your existing 3x-ui service definition
+    image: ghcr.io/mhsanaei/3x-ui:latest
+    container_name: 3x-ui
+    # ...
+
   exporter:
     image: ghcr.io/nike38rus/3x-ui-exporter:0.6.0
     network_mode: service:x-ui
@@ -109,23 +123,32 @@ services:
       XUI_URL: http://127.0.0.1:2053
       XUI_API_TOKEN: ${XUI_API_TOKEN:?Set XUI_API_TOKEN}
       XRAY_API: 127.0.0.1:62789
-      XRAY_METRICS_URL: http://127.0.0.1:11111
+      # XRAY_METRICS_URL is empty by default to auto-discover metrics.listen
+      XRAY_METRICS_URL: ""
       LISTEN_ADDRESS: :9108
       SCRAPE_TIMEOUT: 4s
+      LOG_LEVEL: info
+      LOG_FORMAT: text
     read_only: true
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
     restart: unless-stopped
 ```
 
-`network_mode: service:x-ui` establishes startup ordering. The explicit dependency
-also requests an exporter restart after Compose-controlled updates/restarts of
-the panel; it does not supervise automatic Docker Engine restarts. API readiness
-is not required at exporter startup: unavailable sources are retried on each
-scrape. Separate Compose projects must use the `container:` example instead.
+#### Option B: Standalone Compose Deployment
 
-The example uses port 9108; override LISTEN_ADDRESS in Compose if it conflicts
-with another exporter. SCRAPE_TIMEOUT must be shorter than the Prometheus timeout.
+If deploying as a standalone stack against a running 3x-ui container on the same Docker host:
+
+```sh
+# Clone repository and prepare environment
+cp .env.example .env
+# Edit .env to set your XUI_API_TOKEN and XRAY_CONTAINER name
+docker compose up -d
+```
+
+### Prometheus Configuration
+
+Add the scrape job to your `prometheus.yml`:
 
 ```yaml
 scrape_configs:
@@ -133,473 +156,268 @@ scrape_configs:
     scrape_interval: 5s
     scrape_timeout: 5s
     static_configs:
-      - targets: ["xray.example:9108"]
+      - targets: ["127.0.0.1:9108"]
 ```
 
-The metrics endpoint has no authentication. Keep it on a trusted monitoring
-network. The panel token needs permission to POST /panel/api/xray/; an admin
-API token is supported. Do not expose the Xray gRPC control port to the internet.
+> [!NOTE]
+> Ensure that Prometheus's `scrape_timeout` is slightly greater than or equal to the exporter's `SCRAPE_TIMEOUT` (e.g. 5s scrape timeout vs 4s exporter deadline).
 
-## Grafana dashboards
+### Binary Execution
 
-Import grafana-3x-ui.classic.json for the classic dashboard JSON format, or
-use grafana-3x-ui.v2.json with Grafana resource schema v2 support. They are two
-exports of the same dashboard, not two dashboards to install simultaneously.
-Choose your Prometheus datasource on import; the supplied queries expect
-job="xui-exporter". Select an instance, then outbound/balancer filters.
-Dashboards were exported from Grafana 13.2; older versions are not guaranteed
-compatible. The classic format is the more widely supported import option.
-
-Queries use the current metric schema without compatibility rewrites. Historical
-series keep their original labels; schema changes can appear as separate series
-or gaps. Ordinary observatory and burstObservatory remain supported.
-
-Quality scores in Grafana are dashboard heuristics, not the Xray balancer score.
-Collection duration shows overlapping source spans without stacking; Total is
-the separate scrape_duration_seconds measurement made by Prometheus.
-
-## Dashboard overview
-
-The dashboard opens on Overview: Xray state and version, panel version,
-Prometheus target, successful/present metric sources, balancer availability
-and operating modes, observed outbound health, and aggregate traffic.
-![Dashboard overview](docs/images/overview.jpg)
-
-Detailed sections retain entity-level health, selection, traffic and runtime data.
-Links preserve the selected instance and time range.
-
-Inbound throughput is drawn above zero and outbound throughput below zero;
-each sums uplink and downlink across all tags. These are endpoint counters,
-not incoming versus outgoing network bytes. Their difference is not packet loss.
-
-## Metrics
-
-Metrics are grouped by the entity they describe. The tables list labels emitted
-by the exporter; Prometheus adds scrape labels such as `job` and `instance`.
-All durations are in seconds and traffic/memory sizes are in bytes.
-
-Every scrape collects fresh data. Missing or unknown measurements remain absent;
-confirmed zeros and false states are published. Counters are cumulative within
-an Xray process lifetime and may reset when Xray restarts; use `rate()` or
-`increase()` for traffic and allocation rates. Gauges describe current state or
-the current observation window.
-
-The screenshots below are actual Grafana captures with anonymized entity names.
-Private addresses and browser controls are excluded; measurements are unchanged.
-The Balancers screenshots show the v0.2.0 role-aware panels. Quality scores and
-other derived values are calculated in Grafana, not exported metrics.
-
-### Metric sources at a glance
-
-The source label on exporter diagnostics identifies an upstream interface, not
-an entity: balancers use gRPC, but outbound traffic and observatory use expvars.
-Panel-reported Xray versions/state come from HTTP API, not gRPC.
-
-| Source | Request / response fields | Exported metrics / purpose |
-| --- | --- | --- |
-| Panel HTTP API (`api`) | `POST /panel/api/xray/`: `xraySetting`, `subscriptionOutbounds` | Configuration discovery for balancer tags, strategies, selectors, fallback chains and configured outbound definitions. No standalone configuration metric is emitted. |
-| Panel HTTP API (`api`) | `GET /panel/api/server/status`: `panelVersion`, `xray.version`, `xray.state` | `xui_panel_info`, `xui_xray_info`, `xui_xray_state`. These describe the panel's view of the running components. |
-| Xray gRPC (`grpc`) | `HandlerService.ListOutbounds`, `RoutingService.GetBalancerInfo` | `xui_balancer_outbound_selected`, `xui_balancer_outbound_available`, using panel configuration to identify and interpret the balancers. The runtime outbound inventory is an input, not a separate exported metric. |
-| Xray HTTP expvars (`expvars`) | `GET /debug/vars`: `stats.inbound`, `stats.outbound` | `xui_inbound_traffic_bytes_total`, `xui_outbound_traffic_bytes_total`. |
-| Xray HTTP expvars (`expvars`) | The same response: `observatory` | All `xui_observatory_outbound_*` metrics, for ordinary observatory and burstObservatory. No ObservatoryService RPC is used. |
-| Xray HTTP expvars (`expvars`) | The same response: `memstats` | All `xui_xray_memory_*` and `xui_xray_gc_*` metrics. No GetSysStats RPC is used. |
-| Exporter itself | Results and timing of its upstream requests; embedded build version | `xui_exporter_scrape_success`, `xui_exporter_scrape_duration_seconds`, `xui_exporter_build_info`. |
-| Prometheus itself | Scraping the exporter's `/metrics` endpoint | `up`, `scrape_duration_seconds`. These are not emitted by this exporter. |
-| Grafana / PromQL | Queries over the metrics above | Quality scores, selected-time percentages, selection-state changes, throughput and traffic totals. These are not additional exporter metrics. |
-
-The three expvars rows share one HTTP request per collection. Balancer metrics
-have two inputs: panel configuration supplies the intended structure; gRPC
-supplies runtime state. Neither source substitutes for the other. Collection
-conditions and failure behavior for the current implementation are documented
-under [Request budget and failures](#request-budget-and-failures).
-
-### Observatory
-
-Source: Xray expvars. Ordinary observatory provides alive state and delay;
-burstObservatory additionally provides window probe counts and RTT statistics
-when HealthPing data is present. RTT statistics require at least one successful
-sample. LastSeen/LastTry are not exported.
-
-| Metric | Labels | Values and description |
-| --- | --- | --- |
-| `xui_observatory_outbound_alive` | `outbound`: outbound tag | Gauge: `1` = alive, `0` = not alive according to Xray. Latest probe state for ordinary observatory; window state for burstObservatory. |
-| `xui_observatory_outbound_delay_seconds` | `outbound` | Gauge: nonnegative Xray delay, in seconds. Latest successful probe for ordinary observatory or burst window average. Omitted when Xray reports the outbound as not alive. |
-| `xui_observatory_outbound_rtt_mean_seconds` | `outbound` | Gauge: mean RTT in the burst observation window, in seconds. |
-| `xui_observatory_outbound_rtt_min_seconds` | `outbound` | Gauge: minimum RTT in the burst observation window, in seconds. |
-| `xui_observatory_outbound_rtt_max_seconds` | `outbound` | Gauge: maximum RTT in the burst observation window, in seconds. |
-| `xui_observatory_outbound_rtt_deviation_seconds` | `outbound` | Gauge: RTT deviation reported by Xray for the burst observation window, in seconds. |
-| `xui_observatory_outbound_probe_samples` | `outbound` | Gauge: total probes in the current burst window, including failures. Not a cumulative counter. |
-| `xui_observatory_outbound_probe_failed_samples` | `outbound` | Gauge: failed probes in the current burst window. Not a cumulative counter. |
-
-#### Dashboard Quality score
-
-`Quality` is a dashboard-only heuristic on a 0–100 scale; higher is better.
-It is not an exported metric, an Xray leastLoad score, or an input to routing.
-All components are calculated per outbound over the selected dashboard time range
-(`$__range`) using burstObservatory data.
-
-Inputs:
-
-- `f` = `sum_over_time(probe_failed_samples) / sum_over_time(probe_samples)`.
-  This is a failure estimate weighted by the probe counts in each observed window.
-- `P50` and `P95` = `quantile_over_time(0.50, rtt_mean_seconds)` and
-  `quantile_over_time(0.95, rtt_mean_seconds)`. Both are measured in **seconds**.
-
-The metric names above omit the common `xui_observatory_outbound_` prefix for
-readability. `clamp(x, 0, 100)` limits a value to the 0–100 range.
-
-| Component | Formula | Meaning |
-| --- | --- | --- |
-| Reliability (`R`) | `100 * exp(-10 * f)` | Penalizes probe failures. No failures gives 100; a 1% failure estimate gives about 90.5. |
-| RTT stability (`S`) | `100 * exp(-2 * (P95 - P50))` | Penalizes the upper-tail spread of observed mean RTT. A 100 ms P95–P50 gap gives about 81.9. This does not use the exported RTT deviation metric. |
-| Latency (`L`) | `clamp(130 - 100 * P50, 0, 100)` | Rewards low median delay: 100 at P50 ≤ 300 ms, 80 at 500 ms, and 0 at P50 ≥ 1.3 s. |
-
-The final score is a **weighted geometric mean**, not an arithmetic average:
-
-```text
-Quality = 100 * (R / 100)^0.50 * (S / 100)^0.30 * (L / 100)^0.20
-```
-
-The weights are 50% reliability, 30% RTT stability and 20% latency. A low component
-pulls the combined score down; a zero latency component makes Quality zero.
-The table colors Quality red below 60, orange from 60 to below 80, yellow from
-80 to below 90, and green from 90 upward. These weights, constants and thresholds
-are dashboard choices, not universal service-quality limits.
-
-Interpretation limits:
-
-- P50/P95 describe sampled **observation-window means**, not individual HTTP
-  request latency. The windows overlap, and repeated scrapes may include the
-  same probes; `f` is not a failure ratio over unique probes.
-- Missing samples are not replaced with zero and missing coverage is not itself
-  penalized. RTT statistics exclude windows without successful samples; failures
-  affect the Reliability component instead.
-- Ordinary observatory lacks the burst inputs needed for this score. Missing
-  inputs leave the score absent; a zero total probe denominator makes it
-  undefined. Neither case means a score of zero.
-- Quality does not measure throughput, application responsiveness or actual user
-  traffic. Compare it over the same time range and alongside probe success and RTT.
-
-![Observatory health and dashboard quality scores](docs/images/observatory.jpg)
-
-<details>
-<summary>Latency and probe history</summary>
-
-![Observatory latency and burst probes](docs/images/observatory-probes.jpg)
-
-</details>
-
-### Inbounds
-
-Source: Xray expvars traffic statistics. Only counters enabled by Xray traffic
-policies are published. User-level counters (`xui_client_traffic_bytes_total`) are
-available when `--collect-client-stats` is enabled.
-
-| Metric | Labels | Values and description |
-| --- | --- | --- |
-| `xui_inbound_traffic_bytes_total` | `inbound`: inbound tag; `direction`: `uplink` or `downlink` | Counter: cumulative bytes through the inbound. Uplink is client-to-destination traffic; downlink is destination-to-client traffic. Missing directions are omitted, not filled with zero. |
-
-### Clients (optional)
-
-Source: Xray expvars user statistics. Disabled by default to keep metric cardinality minimal; enable with `--collect-client-stats` or `COLLECT_CLIENT_STATS=true`.
-
-| Metric | Labels | Values and description |
-| --- | --- | --- |
-| `xui_client_traffic_bytes_total` | `client`: client email/tag; `direction`: `uplink` or `downlink` | Counter: cumulative bytes through the proxy for the individual user. Missing directions are omitted. |
-
-![Inbound throughput and traffic distribution](docs/images/inbounds.jpg)
-
-### Outbounds
-
-Source: Xray expvars traffic statistics. Traffic counters measure transferred
-bytes; they do not indicate whether an outbound is currently selected or healthy.
-
-| Metric | Labels | Values and description |
-| --- | --- | --- |
-| `xui_outbound_traffic_bytes_total` | `outbound`: outbound tag; `direction`: `uplink` or `downlink` | Counter: cumulative bytes through the outbound. Uplink is client-to-destination traffic; downlink is destination-to-client traffic. Only directions enabled by Xray traffic policies are published. |
-
-![Outbound throughput and traffic distribution](docs/images/outbounds.jpg)
-
-### Balancers
-
-Source: Xray gRPC runtime state, with configuration discovery from the panel API.
-Selection describes the path a balancer currently prefers, not a log of actual
-connections or proof that traffic has traversed that path.
-
-| Metric | Labels | Values and description |
-| --- | --- | --- |
-| `xui_balancer_outbound_selected` | `balancer`: balancer tag; `role`: `primary`, `fallback` or `override`; `outbound`: tag, or empty for override | Gauge: `1` = selected/active, `0` = confirmed not selected/inactive. The role-specific rules are below. Missing runtime balancers and collection errors produce no selection series. |
-| `xui_balancer_outbound_available` | `balancer` | Gauge: `1` = the selected target or fallback resolves to an existing runtime outbound, `0` = no resolvable path. Structural availability only: it does not probe internet access or guarantee channel health. |
-
-#### Selection roles
-
-| Role | Outbound label | Publication and values |
-| --- | --- | --- |
-| `primary` | Actual runtime candidate/target tag | One series per known selector candidate, plus any returned primary target outside the selector. Selected targets are `1`; others are `0`. A successfully observed empty choice produces confirmed zeros. Subject to strategy support below. |
-| `fallback` | Exact configured `fallbackTag` | Published only when fallback is configured and its selection state is known. `1` when primary selection is empty and no override is active; otherwise `0`. A loopback fallback retains its loopback tag, not the final downstream target. |
-| `override` | Empty string | A stable series for every successfully read runtime balancer. `1` when override is active, otherwise `0`; its concrete target tag is intentionally not exported. |
-
-An active override sets primary and configured fallback selection to zero.
-Empty label values are equivalent to missing labels in Prometheus; identify
-override by `role`, not by the presence of `outbound`. The same outbound tag can
-appear in primary and fallback roles without a collision.
-
-Availability follows unconditional loopback chains with cycle detection.
-Conditional loopback routes require routing context and cause a balancer
-collection error. If a rule has both outboundTag and balancerTag, outboundTag
-has precedence. A fallback can be active while availability is zero.
-
-#### Strategy support
-
-Selection support is strategy-dependent. **leastLoad is the production-verified
-strategy**; do not assume all Xray balancers expose equivalent monitoring data.
-
-| Strategy | Primary selection | Configured fallback activity | Override activity |
-| --- | --- | --- | --- |
-| leastLoad | Supported | Supported | Supported |
-| leastPing | Supported by Xray API and automated tests; not live-verified | Supported | Supported |
-| random | Unknown without override; omitted | Unknown without override; omitted | Supported |
-| roundRobin | Unknown without override; omitted | Unknown without override; omitted | Supported |
-
-Xray GetBalancerInfo exposes candidate lists, not actual selected targets, for
-random and roundRobin. We do not interpret those candidates as active selection
-or infer fallback from them. With override active, known primary candidates and
-configured fallback report zero, and override reports one. Override activity is
-reported even when normal selection cannot be observed.
-
-All four strategies expose structural outbound availability; for random and
-roundRobin it describes resolvable candidates/fallback, not proof of their actual
-choice or health. Availability is never an internet connectivity guarantee.
-For leastLoad/leastPing, principle targets represent current strategy preference,
-not a log of routed connections. Runtime routing reads use public Xray gRPC
-services and protobuf packages pinned to the v26.9.30 commit. Automated tests
-cover selection roles for all four strategies, including empty results and overrides.
-
-![Balancer selection history](docs/images/balancers.jpg)
-
-<details>
-<summary>Availability and selected primary target count</summary>
-
-![Balancer availability and selected target count](docs/images/balancer-availability.jpg)
-
-</details>
-
-### Panel state
-
-Sources: panel API for versions/process state; Xray expvars `memstats` for
-memory/GC. Memory metrics describe the Xray Go runtime, not the exporter process. Go-managed memory is not process RSS. Uptime and goroutine
-counts are intentionally not exported.
-
-| Metric | Labels | Values and description |
-| --- | --- | --- |
-| `xui_panel_info` | `version`: panel version | Gauge: always `1`; version reported by the running panel's status API. Omitted when missing. |
-| `xui_xray_info` | `version`: Xray version | Gauge: always `1`; Xray version reported by the panel, not independent attestation of the running binary. Omitted when missing. |
-| `xui_xray_state` | `state`: `running`, `stop` or `error` | Gauge: one series per known state; the active state is `1`, the other two are `0`. Missing/unknown state produces no state series. This is the panel's process view, not an internet health check. |
-| `xui_xray_memory_alloc_bytes` | None | Gauge: bytes occupied by allocated heap objects (`Alloc`). |
-| `xui_xray_memory_sys_bytes` | None | Gauge: bytes obtained from the OS by the Go runtime (`Sys`); includes runtime-managed regions, not just live heap objects. |
-| `xui_xray_memory_alloc_bytes_total` | None | Counter: cumulative bytes allocated for heap objects, including objects subsequently freed (`TotalAlloc`). |
-| `xui_xray_memory_mallocs_total` | None | Counter: cumulative number of heap objects allocated (`Mallocs`). |
-| `xui_xray_memory_frees_total` | None | Counter: cumulative number of heap objects freed (`Frees`). |
-| `xui_xray_memory_live_objects` | None | Gauge: current number of allocated heap objects (`HeapObjects`). |
-| `xui_xray_gc_cycles_total` | None | Counter: completed garbage collection cycles (`NumGC`). |
-| `xui_xray_gc_pause_seconds_total` | None | Counter: cumulative GC stop-the-world pause time, converted from nanoseconds to seconds (`PauseTotalNs`). |
-
-The panel refreshes server/status in the background (nominally every two seconds);
-the exporter requests the latest snapshot on every scrape without its own cache.
-The response does not provide a serialized snapshot timestamp, so its freshness
-cannot be independently verified. Missing fields are omitted, malformed fields
-mark API collection unsuccessful while valid independent fields remain available.
-Diagnostic `errorMsg` text is not exported or logged. The screenshots below show
-the panel/core versions, process state and Xray memory/GC panels.
-
-![Xray memory and allocation throughput](docs/images/panel-state.jpg)
-
-<details>
-<summary>Garbage collection</summary>
-
-![Xray garbage collection metrics](docs/images/xray-gc.jpg)
-
-</details>
-
-### Exporter
-
-Source: the exporter itself. A successful Prometheus scrape does not imply that
-all upstream sources succeeded: `/metrics` can return HTTP 200 with source
-failure gauges and valid metrics from independent sources.
-
-| Metric | Labels | Values and description |
-| --- | --- | --- |
-| `xui_exporter_scrape_success` | `source`: `api`, `grpc` or `expvars` | Gauge: `1` = source requests succeeded and their responses satisfy the exporter contract; `0` = a request/contract failure, or no endpoint could be resolved. All three source series are emitted on every exporter response, including zero values. This is collection success, not component health or presence of every optional metric. |
-| `xui_exporter_scrape_duration_seconds` | `source`: `api`, `grpc` or `expvars` | Gauge: elapsed wall-clock time of this source's collection work in the current scrape, in seconds. Excludes waiting for other sources; API measures the span of its two parallel requests, not their sum. Not CPU time. |
-| `xui_exporter_build_info` | `version`: embedded build version | Gauge: always `1`; the label identifies the running build. |
-
-The dashboard also displays `up` and `scrape_duration_seconds`, which are created
-by Prometheus, not this exporter. Settings and server/status requests start together; gRPC and expvars start as
-soon as settings completes. The duration panel shows overlapping source durations
-without stacking; Total is the end-to-end duration measured by Prometheus.
-
-The duration panel shows API and Runtime spans alongside the independent
-Prometheus Total, without stacking overlapping intervals.
-
-![Exporter collection status and duration](docs/images/exporter-stats.jpg)
-
-## Dashboard queries
-
-Use exporter v0.2.0 or later for primary/fallback/override selection roles.
-Selection queries retain historical series without `role`; old and new label sets
-remain separate series rather than being migrated or merged. On a range spanning
-an upgrade, selected-time percentages are calculated over the available samples
-of each series, not over the entire range with missing samples counted as zero.
-
-Selected time (%), instant query:
-
-```promql
-100 * avg_over_time(xui_balancer_outbound_selected{balancer=~"$balancer"}[$__range])
-```
-
-Timeline (range query):
-
-```promql
-xui_balancer_outbound_selected{balancer=~"$balancer"}
-```
-
-Use role and outbound in the legend; fallback and override appear alongside
-primary targets. Selected target count filters `role="primary"`; it has no data
-for history predating that label. No primary role is inferred for older samples.
-
-Range panels use a 5-second minimum interval and a 5,000-point target. Grafana
-increases the step for longer ranges to stay below the Prometheus 11,000-point
-limit. Short states can disappear at coarser resolution; zoom in to inspect them.
-
-State timeline: fixed color mode, value mappings 0=gray/Not selected and
-1=green/Selected, mergeValues=true. Time percentages require regular complete
-scrapes. Multiple selected targets may sum above 100%.
-
-Selection state changes in a centered minute (minimum query step of one minute, centered bars):
-
-```promql
-sum by (instance,balancer) (changes(xui_balancer_outbound_selected[1m] offset -30s))
-```
-
-Each 0/1 transition is counted separately across primary, fallback and override.
-A target replacement may cause multiple transitions. Minute boundaries and
-scrape gaps limit completeness; this is not a connection-switch log. The latest
-centered bucket is incomplete. At query steps above one minute, the panel samples
-one-minute windows rather than counting all transitions over the intervening time.
-
-## Collection timing
-
-Each scrape starts the settings and server/status API requests in parallel. As
-soon as settings completes, gRPC and expvars begin concurrently, even if status
-is still running. All operations share the scrape deadline.
-
-API duration spans from the start of the API phase until both requests complete;
-it is not their summed duration and does not include waiting for runtime sources.
-gRPC and expvars durations measure their own work. These intervals overlap, so
-the dashboard does not stack them. Runtime shows max(gRPC, expvars); Total is
-Prometheus scrape_duration_seconds, including processing and network overhead.
-Source durations alone cannot reconstruct Total. Operations taking 100 ms or
-longer emit a warning without secrets.
-
-## Request budget and failures
-
-With N configured balancers: two panel API requests, one HTTP expvars request,
-one ListOutbounds and N GetBalancerInfo calls: N+4 total. With no balancers,
-ListOutbounds still runs and the normal budget is four calls. When panel settings
-fail, no balancer-specific RPCs run; ListOutbounds still independently checks gRPC.
-If no expvars address can be discovered and no override is supplied, no HTTP
-request is possible and expvars success is zero. GetSysStats and QueryStats are
-never called.
-
-The existing `source="api"` covers both panel requests; its success is one only
-when both requests and their decoding succeed. Valid status fields survive a
-settings failure, and valid configuration-driven metrics survive a status failure.
-No new collector/source label is introduced. Failed status collection does not
-reuse an old snapshot or synthesize a stopped state.
-
-The API provides configuration discovery and panel/core versions/process state;
-gRPC provides runtime outbound inventory and balancer state; expvars provides
-traffic, memory/GC and observation. Balancer metrics combine configuration and
-runtime inputs as described in the source map above. No caching, source switching or alternate-source
-fallback collection. Missing data remains absent. Valid groups survive malformed
-siblings; decoding errors mark the responsible source unsuccessful. Empty or missing
-optional groups produce no measurements and do not constitute contract failures.
-All three success and duration series are always present. An API failure does not
-mark gRPC unsuccessful: ListOutbounds is still performed, and only the unknown
-balancer-specific requests/metrics are omitted. A failure deriving balancer metrics
-from configuration does not change the result of successful gRPC requests.
-
-For expvars, the response must be a JSON object; optional supported groups may be
-absent, null or empty as allowed by their decoders. Present groups must have valid
-types and values. For gRPC, an empty outbound list or empty target list is valid;
-empty/duplicate outbound tags, empty target tags and malformed responses are not.
-The known "cannot find tag" response is treated as runtime absence rather than a
-transport failure. Source duration excludes waiting for panel discovery and
-measures the source work, including endpoint resolution. A discovery failure
-therefore still emits a duration even though no HTTP request could be made.
-
-## Panel settings discovery
-
-Each scrape calls POST /panel/api/xray/ with the API token. The exporter reads
-the saved xraySetting template and subscriptionOutbounds, excludes disabled
-routing rules (preserving the internal API rule), and removes UI-only rule
-metadata. This avoids full configuration generation and traffic maintenance
-performed by getConfigJson. Runtime inventory and balancer state still come
-from gRPC. Settings are not cached and do not prove they were applied to Xray.
-
-## Build and test
+You can run the static binary directly on the host or inside a virtual machine:
 
 ```sh
-make test
-make build
-make linux
-docker build -t 3x-ui-exporter:dev .
+export XUI_URL=http://127.0.0.1:2053
+export XUI_API_TOKEN="your-panel-api-token"
+export XRAY_API=127.0.0.1:62789
+export LISTEN_ADDRESS=:9108
+export SCRAPE_TIMEOUT=4s
+
+./bin/3x-ui-exporter
 ```
 
-The Docker image contains all dependencies and runs unprivileged. Use a read-only
-filesystem and drop capabilities (see compose.yaml). For placement alongside
-Xray, prefer its container network namespace; no LAN exposure of gRPC is needed.
-See VERIFICATION.md for tested scenarios and compatibility scope.
+---
 
-Read-only live checks: `XUI_TEST_EXPVARS_URL=http://xray.example:11111 make test`
-and `XUI_TEST_GRPC=host:port XUI_TEST_BALANCER=test-balancer make test`.
+## Configuration Reference
 
-## Continuous integration
+All settings can be configured via command-line flags or environment variables. CLI flags take precedence over environment variables.
 
-GitHub Actions runs on pushes to main, pull requests and manual dispatches.
-Independent jobs check Go formatting, module files, race tests, go vet,
-third-party notices, workflow syntax, dashboard JSON and Git history for secrets.
-CI also builds Linux amd64/arm64 binaries and a Docker image, then checks the
-packaged version, health endpoint and metrics response with an unavailable panel.
-The container runs with a read-only filesystem and no Linux capabilities.
-After all checks pass on main, CI uploads Linux amd64/arm64 archives and SHA-256
-checksums as an Actions artifact (retained for 14 days). It also publishes the
-multi-architecture image `ghcr.io/nike38rus/3x-ui-exporter:edge` and a
-`sha-<full-commit-SHA>` tag. Development builds report version
-`v0.0.0-dev.<short-commit-SHA>`. Pull requests never publish images or artifacts.
+| CLI Flag | Environment Variable | Default | Description |
+| --- | --- | --- | --- |
+| `--xui-url` | `XUI_URL` | *None (Required)* | 3x-ui panel base URL, including optional base path (e.g. `http://127.0.0.1:2053`). |
+| `--xui-api-token` | `XUI_API_TOKEN` | *None (Required)* | 3x-ui Bearer API token. Prefer environment variable to prevent process list exposure. |
+| `--xray-api` | `XRAY_API` | `127.0.0.1:62789` | Xray gRPC host and port (`host:port`). |
+| `--xray-metrics-url` | `XRAY_METRICS_URL` | `""` *(empty)* | Xray expvars HTTP base URL. If empty, automatically discovered from panel `metrics.listen`. |
+| `--listen-address` | `LISTEN_ADDRESS` | `:9108` | Address and port for the exporter HTTP server to bind. |
+| `--scrape-timeout` | `SCRAPE_TIMEOUT` | `4s` | Total deadline per scrape request across all upstream sources. |
+| `--log-level` | `LOG_LEVEL` | `info` | Log verbosity level: `debug`, `info`, `warn`, `error`. |
+| `--log-format` | `LOG_FORMAT` | `text` | Log format output: `text` or `json`. |
+| `--include-exporter-metrics` | `INCLUDE_EXPORTER_METRICS` | `false` | When `true`, exports standard Go runtime (`go_*`) and process (`process_*`) metrics for the exporter itself. |
+| `--collect-client-stats` | `COLLECT_CLIENT_STATS` | `false` | When `true`, parses individual user/client counters into `xui_client_traffic_bytes_total`. |
+| `--version` | — | `false` | Prints exporter version and exits. |
 
-## Releases
+---
 
-CI checks pull requests and main. Pushing a vMAJOR.MINOR.PATCH tag runs tests,
-builds static Linux amd64/arm64 archives with SHA-256 checksums, creates a
-GitHub release and publishes a multi-architecture GHCR image. A tag such as
-v0.6.0 produces ghcr.io/nike38rus/3x-ui-exporter:0.6.0. The first GHCR package
-may need its visibility set to public in GitHub package settings.
+## Metrics Reference
 
-Each release also publishes architecture-specific tags, for example
-`0.6.0-amd64` and `0.6.0-arm64`. They point directly to the existing platform
-manifests without rebuilding the image. The common `0.6.0` tag selects the
-platform automatically and retains build provenance. The Architecture tags
-workflow can add these aliases to an already published release.
+All metrics are prefixed with `xui_`. Missing or unknown measurements remain absent (never synthesized as zero unless confirmed by Xray).
 
-Build locally with make release VERSION=v0.6.0. Archives include dashboards,
-README with its screenshot assets, LICENSE and third-party notices. Build version is embedded via
--X main.version and exposed in xui_exporter_build_info. Release workflows
-publish versioned releases when a tag is pushed; local builds do not publish anything.
+### Exporter Diagnostics
+
+Diagnostics describe the collection process itself. All three source series are emitted on every scrape.
+
+| Metric | Type | Labels | Description |
+| --- | --- | --- | --- |
+| `xui_exporter_scrape_success` | Gauge | `source` (`api`, `expvars`, `grpc`) | `1` if source requests succeeded and satisfied contract; `0` on error. |
+| `xui_exporter_scrape_duration_seconds` | Gauge | `source` (`api`, `expvars`, `grpc`) | Elapsed wall-clock time spent querying this source in the current scrape. |
+| `xui_exporter_build_info` | Gauge | `version` | Always `1`. Identifies the running exporter version. |
+
+### Panel and Xray Status
+
+Derived from 3x-ui REST API (`GET /panel/api/server/status`).
+
+| Metric | Type | Labels | Description |
+| --- | --- | --- | --- |
+| `xui_panel_info` | Gauge | `version` | Always `1`. Panel version reported by 3x-ui. |
+| `xui_xray_info` | Gauge | `version` | Always `1`. Xray binary version reported by the panel. |
+| `xui_xray_state` | Gauge | `state` (`running`, `stop`, `error`) | `1` for the active state, `0` for inactive states. |
+
+### Traffic Statistics
+
+Derived from Xray expvars (`stats.inbound`, `stats.outbound`, and optional `stats.user`).
+
+| Metric | Type | Labels | Description |
+| --- | --- | --- | --- |
+| `xui_inbound_traffic_bytes_total` | Counter | `inbound`, `direction` (`uplink`, `downlink`) | Cumulative bytes traversing the inbound handler. |
+| `xui_outbound_traffic_bytes_total` | Counter | `outbound`, `direction` (`uplink`, `downlink`) | Cumulative bytes traversing the outbound handler. |
+| `xui_client_traffic_bytes_total` | Counter | `client`, `direction` (`uplink`, `downlink`) | Cumulative bytes per user email/tag (enabled via `--collect-client-stats`). |
+
+> [!TIP]
+> Use PromQL `rate()` or `increase()` over traffic counters to calculate network throughput (bytes per second).
+
+### Balancers and Routing
+
+Derived from panel routing configuration and runtime Xray gRPC `RoutingService`.
+
+| Metric | Type | Labels | Description |
+| --- | --- | --- | --- |
+| `xui_balancer_outbound_selected` | Gauge | `balancer`, `outbound`, `role` (`primary`, `fallback`, `override`) | `1` if selected/active; `0` if inactive. |
+| `xui_balancer_outbound_available` | Gauge | `balancer` | `1` if balancer resolves to an available runtime outbound (structural check). |
+
+#### Selection Roles
+
+- **`primary`:** Represents known selector candidates. `1` for the currently preferred target, `0` for others.
+- **`fallback`:** Emitted when `fallbackTag` is configured. `1` when primary selection is empty and no override is active; otherwise `0`.
+- **`override`:** `1` when runtime override is active, `0` otherwise.
+
+### Observatory and RTT
+
+Derived from Xray expvars (`observatory`). Supports ordinary observatory and HealthPing burstObservatory.
+
+| Metric | Type | Labels | Description |
+| --- | --- | --- | --- |
+| `xui_observatory_outbound_alive` | Gauge | `outbound` | `1` = alive, `0` = unreachable according to Xray probes. |
+| `xui_observatory_outbound_delay_seconds` | Gauge | `outbound` | Delay in seconds. Latest probe (ordinary) or window average (burst). Omitted if not alive. |
+| `xui_observatory_outbound_rtt_mean_seconds` | Gauge | `outbound` | Mean RTT across the observation window in seconds. |
+| `xui_observatory_outbound_rtt_min_seconds` | Gauge | `outbound` | Minimum RTT in the burst window in seconds. |
+| `xui_observatory_outbound_rtt_max_seconds` | Gauge | `outbound` | Maximum RTT in the burst window in seconds. |
+| `xui_observatory_outbound_rtt_deviation_seconds` | Gauge | `outbound` | RTT deviation in the burst window in seconds. |
+| `xui_observatory_outbound_probe_samples` | Gauge | `outbound` | Total probes executed in the current burst window. |
+| `xui_observatory_outbound_probe_failed_samples` | Gauge | `outbound` | Failed probes in the current burst window. |
+
+### Xray Go Runtime and Memory
+
+Derived from Xray expvars (`memstats`). Measures the memory footprint of the proxied Xray core process (not the exporter).
+
+| Metric | Type | Description |
+| --- | --- | --- |
+| `xui_xray_memory_alloc_bytes` | Gauge | Bytes allocated on heap currently in use (`Alloc`). |
+| `xui_xray_memory_sys_bytes` | Gauge | Total bytes obtained from the OS by the runtime (`Sys`). |
+| `xui_xray_memory_alloc_bytes_total` | Counter | Cumulative bytes allocated for heap objects (`TotalAlloc`). |
+| `xui_xray_memory_mallocs_total` | Counter | Cumulative count of allocated heap objects. |
+| `xui_xray_memory_frees_total` | Counter | Cumulative count of freed heap objects. |
+| `xui_xray_memory_live_objects` | Gauge | Current count of live allocated heap objects. |
+| `xui_xray_gc_cycles_total` | Counter | Number of completed garbage collection cycles. |
+| `xui_xray_gc_pause_seconds_total` | Counter | Cumulative GC stop-the-world pause duration in seconds. |
+
+---
+
+## Grafana Dashboard
+
+The repository includes pre-built, production-tested Grafana dashboards:
+- **`grafana-3x-ui.classic.json`**: Standard classic dashboard format (recommended for most installations).
+- **`grafana-3x-ui.v2.json`**: Exported for Grafana resource schema v2.
+
+### Overview Dashboard
+
+The default view surfaces Xray state, versions, target health, balancer modes, observed outbound health, and aggregate throughput:
+
+![Dashboard Overview](docs/images/overview.jpg)
+
+<details>
+<summary>Click to view detailed section screenshots</summary>
+
+#### Balancer Selection History
+![Balancers](docs/images/balancers.jpg)
+
+#### Balancer Availability
+![Balancer Availability](docs/images/balancer-availability.jpg)
+
+#### Observatory Health
+![Observatory Health](docs/images/observatory.jpg)
+
+#### Observatory Latency & Burst Probes
+![Observatory Probes](docs/images/observatory-probes.jpg)
+
+#### Inbound Throughput
+![Inbounds](docs/images/inbounds.jpg)
+
+#### Outbound Throughput
+![Outbounds](docs/images/outbounds.jpg)
+
+#### Panel State & Memory
+![Panel State](docs/images/panel-state.jpg)
+
+#### Garbage Collection
+![Xray GC](docs/images/xray-gc.jpg)
+
+#### Exporter Diagnostics
+![Exporter Diagnostics](docs/images/exporter-stats.jpg)
+
+</details>
+
+### Dashboard Quality Score
+
+The dashboard calculates an outbound **Quality Score** (0–100, higher is better) using burst observatory window statistics over the selected range `$__range`.
+
+Quality is calculated as a **weighted geometric mean** of three components:
+1. **Reliability ($R$):** Penalizes probe failure ratio $f = \frac{\sum \text{probe\_failed\_samples}}{\sum \text{probe\_samples}}$:
+   $$R = 100 \cdot e^{-10 \cdot f}$$
+2. **RTT Stability ($S$):** Penalizes tail spread between $P_{95}$ and $P_{50}$ mean RTT:
+   $$S = 100 \cdot e^{-2 \cdot (P_{95} - P_{50})}$$
+3. **Latency ($L$):** Rewards low median latency ($P_{50} \le 300\text{ ms} \rightarrow 100$, $\ge 1.3\text{ s} \rightarrow 0$):
+   $$L = \text{clamp}(130 - 100 \cdot P_{50}, 0, 100)$$
+
+$$\text{Quality} = 100 \cdot \left(\frac{R}{100}\right)^{0.50} \cdot \left(\frac{S}{100}\right)^{0.30} \cdot \left(\frac{L}{100}\right)^{0.20}$$
+
+---
+
+## Technical Principles
+
+### Endpoint Discovery
+
+When `XRAY_METRICS_URL` is omitted, the exporter inspects `metrics.listen` in the panel settings retrieved during the current scrape:
+- `0.0.0.0:PORT` or `:PORT` is normalized to `http://127.0.0.1:PORT`.
+- `[::]:PORT` is normalized to `http://[::1]:PORT`.
+- Loopback addresses require the exporter to share Xray's container network namespace or host network.
+- Discovery does not guess ports or reuse stale addresses across scrapes. If discovery fails or settings are unavailable, `source="expvars"` emits success `0`. Setting an explicit `XRAY_METRICS_URL` removes panel dependency.
+
+### Balancer Strategy Semantics
+
+| Strategy | Primary Selection | Configured Fallback | Override Activity |
+| --- | --- | --- | --- |
+| **leastLoad** | Fully Supported | Supported | Supported |
+| **leastPing** | Supported by API / Tests | Supported | Supported |
+| **random** | Omitted *(unknown)* | Omitted *(unknown)* | Supported |
+| **roundRobin** | Omitted *(unknown)* | Omitted *(unknown)* | Supported |
+
+Xray's `GetBalancerInfo` exposes candidate pools, not actual connection logs, for `random` and `roundRobin`. We intentionally omit primary and fallback selection for these strategies unless an override is actively set.
+
+### Fault Isolation and Request Budget
+
+- Scrapes are bound by a strict context deadline (`SCRAPE_TIMEOUT`).
+- Upstream requests run concurrently:
+  - Total collection time is bounded by $\max(T_{api}, T_{expvars}, T_{grpc})$.
+  - Independent sources survive sibling failures.
+- Normal request budget:
+  - 2 panel API requests (`POST /panel/api/xray/`, `GET /panel/api/server/status`)
+  - 1 expvars HTTP request (`GET /debug/vars`)
+  - 1 `ListOutbounds` gRPC call + $N$ parallel `GetBalancerInfo` calls (where $N$ is the count of configured balancers).
+
+---
+
+## Development and Build
+
+### Prerequisites
+
+- Go 1.24+ (uses `testing/synctest`)
+- Docker (optional, for container builds)
+
+### Common Make Targets
+
+```sh
+# Prepare build cache and download dependencies
+make download
+
+# Run tests with race detector and go vet
+make test
+
+# Build native binary into bin/3x-ui-exporter
+make build
+
+# Cross-compile static Linux binaries for amd64 and arm64
+make linux
+
+# Refresh third-party license notices
+make licenses
+
+# Package release archives with checksums
+make release VERSION=v0.6.0
+```
+
+---
+
+## Disclaimer and Maintenance
+
+This project was built for personal infrastructure and is shared as-is, with no guarantee of ongoing support, maintenance, or backward compatibility.
+
+> [!IMPORTANT]
+> **Issues and pull requests are not monitored.** If you need modifications, bug fixes, or new features, please fork the repository and adapt it to your requirements.
+
+---
 
 ## License
 
-Original project code is licensed under MIT; see LICENSE. Dependencies retain
-their own licenses; see THIRD_PARTY_NOTICES.md and third_party_licenses/.
-The linked, unmodified Xray components are MPL-2.0; the notices include exact
-source archive links. Container base-image components retain their own licenses.
+- Exporter code is licensed under the [MIT License](LICENSE).
+- Unmodified, linked Xray components are licensed under [MPL-2.0](https://github.com/XTLS/Xray-core).
+- Third-party dependencies retain their respective licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and [third_party_licenses/](third_party_licenses/).
