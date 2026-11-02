@@ -77,7 +77,7 @@ flowchart LR
 
     subgraph "Upstream Sources"
         direction TB
-        Exp -->|"Parallel API (HTTP)\n/panel/api/xray/\n/panel/api/server/status\n/panel/api/inbounds/onlines"| Panel["3x-ui Panel\n(Config, Status & Onlines)"]
+        Exp -->|"Parallel API (HTTP)\n/panel/api/xray/\n/panel/api/server/status\n/panel/api/clients/onlines"| Panel["3x-ui Panel\n(Config, Status & Onlines)"]
         Exp -->|"Single HTTP Request\n/debug/vars (expvars)"| Expvars["Xray Core Expvars\n(Traffic, Mem/GC, Observatory)"]
         Exp -->|"Concurrent gRPC\nHandlerService\nRoutingService"| Core["Xray Core gRPC\n(Outbounds & Balancers)"]
     end
@@ -87,7 +87,7 @@ flowchart LR
 
 | Source | Protocol & Endpoint | Purpose & Retrieved Data |
 | --- | --- | --- |
-| **`api`** | HTTP REST `POST /panel/api/xray/`<br>`GET /panel/api/server/status`<br>`POST /panel/api/inbounds/onlines` | Discovers balancer rules, selector prefixes, subscription outbounds, panel version, Xray version, process state, open TCP/UDP sockets, and online clients count. |
+| **`api`** | HTTP REST `POST /panel/api/xray/`<br>`GET /panel/api/server/status`<br>`POST /panel/api/clients/onlines` | Discovers balancer rules, selector prefixes, subscription outbounds, panel version, Xray version, process state, open TCP/UDP sockets, and online clients count. |
 | **`expvars`** | HTTP `GET /debug/vars` | Fetches inbound/outbound traffic counters, memory/GC stats, and observatory probe/RTT metrics in **one** roundtrip. |
 | **`grpc`** | gRPC `ListOutbounds`<br>`GetBalancerInfo` | Inspects live runtime outbound inventory and queries active balancer selection/override targets concurrently. |
 | **`exporter`** | Internal runtime diagnostics | Emits scrape success, collection timing per source, and exporter build version. |
@@ -410,7 +410,7 @@ Xray's `GetBalancerInfo` exposes candidate pools, not actual connection logs, fo
   - Total collection time is bounded by $\max(T_{api}, T_{expvars}, T_{grpc})$.
   - Independent sources survive sibling failures.
 - Normal request budget:
-  - 3 panel API requests (`POST /panel/api/xray/`, `GET /panel/api/server/status`, `POST /panel/api/inbounds/onlines`)
+  - 3 panel API requests (`POST /panel/api/xray/`, `GET /panel/api/server/status`, `POST /panel/api/clients/onlines`)
   - 1 expvars HTTP request (`GET /debug/vars`)
   - 1 `ListOutbounds` gRPC call + $N$ parallel `GetBalancerInfo` calls (where $N$ is the count of configured balancers).
 

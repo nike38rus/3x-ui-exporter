@@ -31,7 +31,7 @@ func (p *Panel) Status(ctx context.Context) (*PanelStatus, error) {
 }
 
 func (p *Panel) Onlines(ctx context.Context) (int, error) {
-	raw, err := p.object(ctx, http.MethodPost, "/panel/api/inbounds/onlines")
+	raw, err := p.object(ctx, http.MethodPost, "/panel/api/clients/onlines")
 	if err != nil {
 		return 0, err
 	}

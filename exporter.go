@@ -195,7 +195,7 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 		go func() {
 			defer wg.Done()
 			start := time.Now()
-			defer reportSlow(start, "api", "inbounds/onlines")
+			defer reportSlow(start, "api", "clients/onlines")
 			onlines, onlinesErr = onlinesSrc.Onlines(ctx)
 			if onlinesErr == nil {
 				hasOnlines = true
@@ -291,7 +291,7 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 	for _, item := range []struct {
 		name string
 		err  error
-	}{{"api_settings", cfgErr}, {"api_status", statusErr}, {"expvars", expErr}, {"traffic", trafficErr}, {"grpc", grpcErr}, {"balancer_metrics", balancerErr}} {
+	}{{"api_settings", cfgErr}, {"api_status", statusErr}, {"api_onlines", onlinesErr}, {"expvars", expErr}, {"traffic", trafficErr}, {"grpc", grpcErr}, {"balancer_metrics", balancerErr}} {
 		if item.err != nil {
 			slog.Warn("collection failed", "operation", item.name, "error", item.err.Error(), "error_type", fmt.Sprintf("%T", item.err))
 		} else {

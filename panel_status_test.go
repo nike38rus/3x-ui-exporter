@@ -96,7 +96,7 @@ func TestPanelOnlines(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if r.Method != http.MethodPost || r.URL.Path != "/panel/api/inbounds/onlines" {
+				if r.Method != http.MethodPost || r.URL.Path != "/panel/api/clients/onlines" {
 					t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
 				}
 				w.WriteHeader(tc.code)
@@ -168,7 +168,7 @@ func TestPanelRequestsIndependentAndBudget(t *testing.T) {
 						return
 					}
 					_, _ = w.Write([]byte(`{"success":true,"obj":{"panelVersion":"p","xray":{"version":"x","state":"running"}}}`))
-				case "/panel/api/inbounds/onlines":
+				case "/panel/api/clients/onlines":
 					_, _ = w.Write([]byte(`{"success":true,"obj":["u@test.com"]}`))
 				case "/debug/vars":
 					_, _ = w.Write([]byte(`{"stats":{"outbound":{"A":{"uplink":1}}}}`))
@@ -198,7 +198,7 @@ func TestPanelRequestsIndependentAndBudget(t *testing.T) {
 			}
 			mu.Lock()
 			defer mu.Unlock()
-			if counts["/panel/api/xray/"] != 1 || counts["/panel/api/server/status"] != 1 || counts["/panel/api/inbounds/onlines"] != 1 || counts["/debug/vars"] != 1 {
+			if counts["/panel/api/xray/"] != 1 || counts["/panel/api/server/status"] != 1 || counts["/panel/api/clients/onlines"] != 1 || counts["/debug/vars"] != 1 {
 				t.Fatal(counts)
 			}
 			want := 1
@@ -222,7 +222,7 @@ func TestStatusUsesSharedDeadlineAndDoesNotRetainOldData(t *testing.T) {
 		switch r.URL.Path {
 		case "/panel/api/xray/":
 			_, _ = w.Write([]byte(`{"success":true,"obj":{"xraySetting":{}}}`))
-		case "/panel/api/inbounds/onlines":
+		case "/panel/api/clients/onlines":
 			_, _ = w.Write([]byte(`{"success":true,"obj":[]}`))
 		case "/panel/api/server/status":
 			switch current {
