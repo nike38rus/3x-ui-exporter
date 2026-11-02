@@ -78,6 +78,17 @@ IPv4/IPv6 wildcard normalization, concrete addresses, invalid listeners, overrid
 precedence, concurrent endpoints, and removal of configuration without reuse of
 old addresses or samples. The edge build was verified alongside v0.3.0 on the live NAS.
 
+## v0.5.0 release preparation
+
+Race-detector tests, go vet, native macOS and static Linux amd64/arm64 builds,
+license generation and release archive packaging passed.
+The edge container running from scratch with UID 65532 and bundled certificates
+was verified on the live Docker host. The exporter initialized cleanly,
+healthz responded with ok, and all three metric sources (api, expvars, grpc)
+reported scrape success 1. Structured log level and format flags, enriched error
+descriptions on collection failures, and expanded HTTP idle connection pools were
+verified.
+
 ## v0.4.0 release preparation
 
 Race-detector tests, go vet, native macOS and static Linux amd64/arm64 builds,

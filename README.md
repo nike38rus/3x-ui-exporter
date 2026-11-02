@@ -66,7 +66,7 @@ determine which counters exist; missing counters are never synthesized.
 
 ## Docker Compose
 
-The examples use v0.4.0 and discover the metrics endpoint by default. Set
+The examples use v0.5.0 and discover the metrics endpoint by default. Set
 `XRAY_METRICS_URL` in `.env` only when an explicit address is required.
 
 The example shares the network namespace of an existing Xray/3x-ui container
@@ -82,7 +82,7 @@ cp .env.example .env
 docker compose up -d
 ```
 
-The default image tag is 0.4.0. To use the latest successful main build, set
+The default image tag is 0.5.0. To use the latest successful main build, set
 `EXPORTER_VERSION=edge` in `.env`. The `edge` tag is updated after each
 successful main pipeline.
 To build your checkout locally:
@@ -99,7 +99,7 @@ existing Compose file (here the panel service key is `x-ui`):
 services:
   # Your existing x-ui service remains here.
   exporter:
-    image: ghcr.io/nike38rus/3x-ui-exporter:0.4.0
+    image: ghcr.io/nike38rus/3x-ui-exporter:0.5.0
     network_mode: service:x-ui
     depends_on:
       x-ui:
@@ -574,16 +574,16 @@ multi-architecture image `ghcr.io/nike38rus/3x-ui-exporter:edge` and a
 CI checks pull requests and main. Pushing a vMAJOR.MINOR.PATCH tag runs tests,
 builds static Linux amd64/arm64 archives with SHA-256 checksums, creates a
 GitHub release and publishes a multi-architecture GHCR image. A tag such as
-v0.4.0 produces ghcr.io/nike38rus/3x-ui-exporter:0.4.0. The first GHCR package
+v0.5.0 produces ghcr.io/nike38rus/3x-ui-exporter:0.5.0. The first GHCR package
 may need its visibility set to public in GitHub package settings.
 
 Each release also publishes architecture-specific tags, for example
-`0.4.0-amd64` and `0.4.0-arm64`. They point directly to the existing platform
-manifests without rebuilding the image. The common `0.4.0` tag selects the
+`0.5.0-amd64` and `0.5.0-arm64`. They point directly to the existing platform
+manifests without rebuilding the image. The common `0.5.0` tag selects the
 platform automatically and retains build provenance. The Architecture tags
 workflow can add these aliases to an already published release.
 
-Build locally with make release VERSION=v0.4.0. Archives include dashboards,
+Build locally with make release VERSION=v0.5.0. Archives include dashboards,
 README with its screenshot assets, LICENSE and third-party notices. Build version is embedded via
 -X main.version and exposed in xui_exporter_build_info. Release workflows
 publish versioned releases when a tag is pushed; local builds do not publish anything.
