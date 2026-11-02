@@ -113,11 +113,11 @@ func run() error {
 	transport.IdleConnTimeout = 90 * time.Second
 	client := &http.Client{Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	exporter := &Exporter{
-		Panel:         &Panel{URL: *panelURL, Token: *token, Client: client},
-		Core:          newCore(conn),
-		Expvars:       &Expvars{URL: *metricsURL, Client: client, CollectClient: *collectClientStats},
-		Timeout:       timeout,
-		Version:       version,
+		Panel:   &Panel{URL: *panelURL, Token: *token, Client: client},
+		Core:    newCore(conn),
+		Expvars: &Expvars{URL: *metricsURL, Client: client, CollectClient: *collectClientStats},
+		Timeout: timeout,
+		Version: version,
 	}
 	server := &http.Server{Addr: *listen, Handler: exporter.Handler(), ReadHeaderTimeout: 5 * time.Second, WriteTimeout: timeout + 5*time.Second, IdleTimeout: 60 * time.Second}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
