@@ -74,3 +74,67 @@ func TestSourceDurationsExcludeOtherSources(t *testing.T) {
 		})
 	}
 }
+
+type explicitDelayedObserver struct {
+	delayedObserver
+}
+
+func (explicitDelayedObserver) hasExplicitURL() bool { return true }
+
+func TestExplicitExpvarsRunsConcurrentlyWithAPI(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		cfg := configuration(t, `{"observatory":{},"routing":{"balancers":[{"tag":"lb","selector":["A"],"strategy":{"type":"leastLoad"}}]}}`)
+		core := &delayedCore{fakeCore{tags: map[string]bool{"A": true}, states: map[string]*BalancerState{"lb": {Targets: map[string]bool{"A": true}}}}}
+		e := &Exporter{
+			Panel:   delayedPanel{cfg: cfg, delay: 200 * time.Millisecond},
+			Core:    core,
+			Expvars: explicitDelayedObserver{delayedObserver{delay: 200 * time.Millisecond}},
+		}
+		start := time.Now()
+		_ = e.scrape(context.Background())
+		// Explicit expvars runs concurrently with API: max(200ms api + 30ms grpc, 200ms expvars) = 230ms (instead of 200+200+30 = 430ms).
+		if got, want := time.Since(start), 230*time.Millisecond; got != want {
+			t.Fatalf("scrape duration %v, want %v", got, want)
+		}
+	})
+}
+
+type multiDelayedCore struct {
+	fakeCore
+	delay time.Duration
+}
+
+func (c *multiDelayedCore) Outbounds(ctx context.Context) (map[string]bool, error) {
+	return c.fakeCore.Outbounds(ctx)
+}
+func (c *multiDelayedCore) Balancer(ctx context.Context, tag string) (*BalancerState, error) {
+	time.Sleep(c.delay)
+	return c.fakeCore.Balancer(ctx, tag)
+}
+
+func TestParallelBalancersTiming(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		cfg := configuration(t, `{"routing":{"balancers":[{"tag":"lb1","selector":["A"],"strategy":{"type":"leastLoad"}},{"tag":"lb2","selector":["A"],"strategy":{"type":"leastLoad"}},{"tag":"lb3","selector":["A"],"strategy":{"type":"leastLoad"}}]}}`)
+		core := &multiDelayedCore{
+			fakeCore: fakeCore{tags: map[string]bool{"A": true}, states: map[string]*BalancerState{
+				"lb1": {Targets: map[string]bool{"A": true}},
+				"lb2": {Targets: map[string]bool{"A": true}},
+				"lb3": {Targets: map[string]bool{"A": true}},
+			}},
+			delay: 50 * time.Millisecond,
+		}
+		e := &Exporter{Core: core}
+		start := time.Now()
+		_, states, err := e.readGRPC(context.Background(), cfg)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(states) != 3 {
+			t.Fatalf("got %d states, want 3", len(states))
+		}
+		// 3 balancers running in parallel taking 50ms each should take 50ms total, NOT 150ms!
+		if got, want := time.Since(start), 50*time.Millisecond; got != want {
+			t.Fatalf("parallel balancers duration %v, want %v", got, want)
+		}
+	})
+}

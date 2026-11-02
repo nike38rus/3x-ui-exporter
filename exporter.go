@@ -105,6 +105,9 @@ type PanelSource interface {
 type ExpvarsSource interface {
 	Snapshot(context.Context, *Config) (*ExpvarsSnapshot, error)
 }
+type explicitExpvars interface {
+	hasExplicitURL() bool
+}
 type Exporter struct {
 	Expvars ExpvarsSource
 	Panel   PanelSource
@@ -179,6 +182,36 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 		}
 		statusElapsed = time.Since(apiStart)
 	}()
+	var data *ExpvarsSnapshot
+	var expErr, grpcErr, balancerErr, trafficErr error
+	var expDuration, grpcDuration time.Duration
+	var balancer, traffic samples
+
+	hasExplicit := false
+	if exp, ok := e.Expvars.(explicitExpvars); ok && exp.hasExplicitURL() {
+		hasExplicit = true
+	}
+	if hasExplicit {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			start := time.Now()
+			defer reportSlow(start, "expvars", "debug/vars")
+			defer func() { expDuration = time.Since(start) }()
+			if e.Expvars == nil {
+				expErr = errors.New("missing expvars source")
+				return
+			}
+			data, expErr = e.Expvars.Snapshot(ctx, nil)
+			if expErr == nil && data == nil {
+				expErr = errors.New("missing expvars snapshot")
+			}
+			if data != nil {
+				expErr = errors.Join(expErr, data.Err)
+			}
+		}()
+	}
+
 	cfg, cfgErr := e.Panel.Configuration(ctx)
 	configElapsed := time.Since(apiStart)
 	reportSlow(apiStart, "api", "getXraySetting")
@@ -188,28 +221,27 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 	if cfgErr != nil {
 		cfg = nil
 	}
-	var data *ExpvarsSnapshot
-	var expErr, grpcErr, balancerErr, trafficErr error
-	var expDuration, grpcDuration time.Duration
-	var balancer, traffic samples
-	wg.Add(2)
-	go func() {
-		defer wg.Done()
-		start := time.Now()
-		defer reportSlow(start, "expvars", "debug/vars")
-		defer func() { expDuration = time.Since(start) }()
-		if e.Expvars == nil {
-			expErr = errors.New("missing expvars source")
-			return
-		}
-		data, expErr = e.Expvars.Snapshot(ctx, cfg)
-		if expErr == nil && data == nil {
-			expErr = errors.New("missing expvars snapshot")
-		}
-		if data != nil {
-			expErr = errors.Join(expErr, data.Err)
-		}
-	}()
+	if !hasExplicit {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			start := time.Now()
+			defer reportSlow(start, "expvars", "debug/vars")
+			defer func() { expDuration = time.Since(start) }()
+			if e.Expvars == nil {
+				expErr = errors.New("missing expvars source")
+				return
+			}
+			data, expErr = e.Expvars.Snapshot(ctx, cfg)
+			if expErr == nil && data == nil {
+				expErr = errors.New("missing expvars snapshot")
+			}
+			if data != nil {
+				expErr = errors.Join(expErr, data.Err)
+			}
+		}()
+	}
+	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		start := time.Now()
@@ -262,13 +294,38 @@ func (e *Exporter) readGRPC(ctx context.Context, cfg *Config) (map[string]bool, 
 		return nil, nil, err
 	}
 	states := map[string]*BalancerState{}
-	if cfg != nil {
-		for _, b := range cfg.Routing.Balancers {
+	if cfg != nil && len(cfg.Routing.Balancers) > 0 {
+		if len(cfg.Routing.Balancers) == 1 {
+			b := cfg.Routing.Balancers[0]
 			state, err := e.Core.Balancer(ctx, b.Tag)
 			if err != nil {
 				return nil, nil, err
 			}
 			states[b.Tag] = state
+		} else {
+			var bWg sync.WaitGroup
+			var bMu sync.Mutex
+			var firstErr error
+			for _, b := range cfg.Routing.Balancers {
+				bWg.Add(1)
+				go func(tag string) {
+					defer bWg.Done()
+					state, err := e.Core.Balancer(ctx, tag)
+					bMu.Lock()
+					defer bMu.Unlock()
+					if err != nil {
+						if firstErr == nil {
+							firstErr = err
+						}
+						return
+					}
+					states[tag] = state
+				}(b.Tag)
+			}
+			bWg.Wait()
+			if firstErr != nil {
+				return nil, nil, firstErr
+			}
 		}
 	}
 	return outbounds, states, nil

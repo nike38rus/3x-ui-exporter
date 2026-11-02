@@ -28,6 +28,10 @@ type Expvars struct {
 	Client *http.Client
 }
 
+func (e *Expvars) hasExplicitURL() bool {
+	return e != nil && e.URL != ""
+}
+
 func (e *Expvars) Snapshot(ctx context.Context, cfg *Config) (*ExpvarsSnapshot, error) {
 	baseURL, err := metricsEndpoint(e.URL, cfg)
 	if err != nil {
