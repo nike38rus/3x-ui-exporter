@@ -330,13 +330,53 @@ The default view surfaces Xray state, versions, target health, balancer modes, o
 
 The dashboard calculates an outbound **Quality Score** (0–100, higher is better) using burst observatory window statistics over the selected dashboard time range (`$__range`).
 
-Quality is calculated as a **weighted geometric mean** of three components:
-
-1. **Reliability ($R$):** Penalizes probe failure ratio $f = \frac{\sum \text{failed probes}}{\sum \text{total probes}}$: $R = 100 \cdot e^{-10 \cdot f}$
-2. **RTT Stability ($S$):** Penalizes tail spread between $P_{95}$ and $P_{50}$ mean RTT: $S = 100 \cdot e^{-2 \cdot (P_{95} - P_{50})}$
-3. **Latency ($L$):** Rewards low median latency ($P_{50} \le 300\text{ ms} \rightarrow 100$, $\ge 1.3\text{ s} \rightarrow 0$): $L = \text{clamp}(130 - 100 \cdot P_{50}, 0, 100)$
+Rather than looking at raw ping numbers in isolation, the score combines probe success, latency consistency, and speed into a single intuitive metric.
 
 $$\text{Quality} = 100 \cdot \left(\frac{R}{100}\right)^{0.50} \cdot \left(\frac{S}{100}\right)^{0.30} \cdot \left(\frac{L}{100}\right)^{0.20}$$
+
+#### How It Works
+
+The score is computed as a **weighted geometric mean** of three components:
+
+1. **Reliability ($R$, weight 50%): Can packets get through?**
+   - Formula: $R = 100 \cdot e^{-10 \cdot f}$, where $f = \frac{\sum \text{failed probes}}{\sum \text{total probes}}$ is the probe failure ratio.
+   - **In plain terms:** Measures packet loss during health probes. Packet drops are penalized heavily on an exponential scale:
+     - **0% packet loss** $\rightarrow$ **100** points (perfect)
+     - **3% packet loss** $\rightarrow$ **~74** points
+     - **5% packet loss** $\rightarrow$ **~60** points
+     - **10% packet loss** $\rightarrow$ **~37** points
+     - **25%+ packet loss** $\rightarrow$ **< 10** points
+   - *Rationale:* A proxy route that drops connections is frustrating to use, no matter how fast its successful pings are.
+
+2. **RTT Stability ($S$, weight 30%): Does latency jump around?**
+   - Formula: $S = 100 \cdot e^{-2 \cdot (P_{95} - P_{50})}$
+   - **In plain terms:** Measures jitter and latency spikes by calculating the spread between worst-case tail latency (95th percentile, $P_{95}$) and typical median latency (50th percentile, $P_{50}$):
+     - **Consistent latency** (e.g. median 100 ms, tail 130 ms, spread = 30 ms) $\rightarrow$ **~94** points.
+     - **Erratic spikes** (e.g. median 100 ms, tail 800 ms, spread = 700 ms) $\rightarrow$ drops to **~25** points.
+   - *Rationale:* High jitter causes stuttering in voice/video calls, game rubber-banding, and stalled web page loads.
+
+3. **Latency ($L$, weight 20%): How fast is it?**
+   - Formula: $L = \text{clamp}(130 - 100 \cdot P_{50}, 0, 100)$
+   - **In plain terms:** Rewards low median response time ($P_{50}$):
+     - Latency **$\le$ 300 ms** receives the full **100** points.
+     - Above **300 ms**, the score decreases linearly (10 points lost for each additional 100 ms).
+     - Latency **$\ge$ 1.3 seconds** receives **0** points.
+   - *Rationale:* Web browsing feels fast under 300 ms, so an outbound with 60 ms is not penalized relative to 180 ms, but multi-second roundtrips are penalized.
+
+#### Why Geometric Mean?
+
+In a standard arithmetic average, a completely dead outbound ($R = 0$) could still score $50$ points if latency and stability happened to look acceptable. 
+
+With a **geometric mean**, if *any* single component collapses to zero, the entire overall score drops to zero. An outbound must be reliable, stable, *and* reasonably fast to earn a high score.
+
+#### Score Interpretation
+
+| Score | Rating | Meaning |
+| --- | --- | --- |
+| **90 – 100** | 🟢 Excellent | Zero packet loss, rock-solid latency, fast response. Ideal for gaming and VoIP. |
+| **70 – 89** | 🟡 Good | Highly reliable with minor jitter or moderate latency. Great for streaming and browsing. |
+| **40 – 69** | 🟠 Degraded | Noticeable packet loss or severe latency spikes. May cause buffering or slow page loads. |
+| **0 – 39** | 🔴 Critical | High failure rate or extreme lag. Outbound needs investigation or fallback activation. |
 
 ---
 
