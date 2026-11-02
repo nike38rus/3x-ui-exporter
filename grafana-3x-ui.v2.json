@@ -6557,7 +6557,46 @@
                     }
                   ]
                 }
-              }
+              },
+              "variables": [
+                {
+                  "kind": "QueryVariable",
+                  "spec": {
+                    "name": "outbound",
+                    "current": {
+                      "text": "",
+                      "value": ""
+                    },
+                    "label": "Outbounds",
+                    "hide": "dontHide",
+                    "refresh": "onTimeRangeChanged",
+                    "skipUrlSync": false,
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "spec": {
+                        "qryType": 1,
+                        "query": "label_values(xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"},outbound)",
+                        "refId": "PrometheusVariableQueryEditor-VariableQuery"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "prometheus-1",
+                        "grafana.app/export-datasource-name": "prometheus-infra"
+                      }
+                    },
+                    "regex": "",
+                    "regexApplyTo": "value",
+                    "sort": "alphabeticalAsc",
+                    "definition": "label_values(xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"},outbound)",
+                    "options": [],
+                    "multi": true,
+                    "includeAll": true,
+                    "allValue": ".*",
+                    "allowCustomValue": false
+                  }
+                }
+              ]
             }
           },
           {
@@ -6742,7 +6781,46 @@
                     }
                   ]
                 }
-              }
+              },
+              "variables": [
+                {
+                  "kind": "QueryVariable",
+                  "spec": {
+                    "name": "balancer",
+                    "current": {
+                      "text": "",
+                      "value": ""
+                    },
+                    "label": "Balancers",
+                    "hide": "dontHide",
+                    "refresh": "onTimeRangeChanged",
+                    "skipUrlSync": false,
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "spec": {
+                        "qryType": 1,
+                        "query": "label_values(xui_balancer_outbound_available{job=\"xui-exporter\",instance=\"${instance}\"},balancer)",
+                        "refId": "PrometheusVariableQueryEditor-VariableQuery"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "prometheus-1",
+                        "grafana.app/export-datasource-name": "prometheus-infra"
+                      }
+                    },
+                    "regex": "",
+                    "regexApplyTo": "value",
+                    "sort": "alphabeticalAsc",
+                    "definition": "label_values(xui_balancer_outbound_available{job=\"xui-exporter\",instance=\"${instance}\"},balancer)",
+                    "options": [],
+                    "multi": true,
+                    "includeAll": true,
+                    "allValue": ".*",
+                    "allowCustomValue": false
+                  }
+                }
+              ]
             }
           },
           {

@@ -5412,6 +5412,64 @@
         "regexApplyTo": "value",
         "sort": 1,
         "type": "query"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS-INFRA}"
+        },
+        "definition": "label_values(xui_balancer_outbound_available{job=\"xui-exporter\",instance=\"${instance}\"},balancer)",
+        "includeAll": true,
+        "allValue": ".*",
+        "label": "Balancers",
+        "multi": true,
+        "name": "balancer",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(xui_balancer_outbound_available{job=\"xui-exporter\",instance=\"${instance}\"},balancer)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 2,
+        "regex": "",
+        "regexApplyTo": "value",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS-INFRA}"
+        },
+        "definition": "label_values(xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"},outbound)",
+        "includeAll": true,
+        "allValue": ".*",
+        "label": "Outbounds",
+        "multi": true,
+        "name": "outbound",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"},outbound)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 2,
+        "regex": "",
+        "regexApplyTo": "value",
+        "sort": 1,
+        "type": "query"
       }
     ]
   },
