@@ -338,3 +338,22 @@ func TestSelectionRolesCollectionFailure(t *testing.T) {
 		t.Fatalf("failed collection must not synthesize selection states: %v %v", m, err)
 	}
 }
+
+func TestIncludeExporterMetrics(t *testing.T) {
+	eWithout := &Exporter{Panel: fakePanel{cfg: &Config{}}, Timeout: time.Second}
+	hWithout := eWithout.Handler()
+	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	recWithout := httptest.NewRecorder()
+	hWithout.ServeHTTP(recWithout, req)
+	if strings.Contains(recWithout.Body.String(), "go_goroutines") {
+		t.Fatal("exporter metrics emitted when disabled")
+	}
+
+	eWith := &Exporter{Panel: fakePanel{cfg: &Config{}}, Timeout: time.Second, IncludeExporterMetrics: true}
+	hWith := eWith.Handler()
+	recWith := httptest.NewRecorder()
+	hWith.ServeHTTP(recWith, req)
+	if !strings.Contains(recWith.Body.String(), "go_goroutines") {
+		t.Fatal("missing exporter metrics when enabled")
+	}
+}

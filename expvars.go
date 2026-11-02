@@ -24,8 +24,9 @@ type ExpvarsSnapshot struct {
 	Err                 error
 }
 type Expvars struct {
-	URL    string
-	Client *http.Client
+	URL           string
+	Client        *http.Client
+	CollectClient bool
 }
 
 func (e *Expvars) hasExplicitURL() bool {
@@ -55,9 +56,9 @@ func (e *Expvars) Snapshot(ctx context.Context, cfg *Config) (*ExpvarsSnapshot, 
 	if err != nil || len(body) > limit {
 		return nil, errors.New("invalid or oversized expvars response")
 	}
-	return decodeExpvars(body)
+	return decodeExpvars(body, e.CollectClient)
 }
-func decodeExpvars(body []byte) (*ExpvarsSnapshot, error) {
+func decodeExpvars(body []byte, collectClient bool) (*ExpvarsSnapshot, error) {
 	var envelope map[string]json.RawMessage
 	if json.Unmarshal(body, &envelope) != nil || envelope == nil {
 		return nil, errors.New("invalid expvars JSON")
@@ -65,7 +66,7 @@ func decodeExpvars(body []byte) (*ExpvarsSnapshot, error) {
 	r := &ExpvarsSnapshot{}
 	var err error
 	if configured(envelope["stats"]) {
-		r.Traffic, err = expvarsTraffic(envelope["stats"])
+		r.Traffic, err = expvarsTraffic(envelope["stats"], collectClient)
 		r.TrafficPresent = err == nil
 		r.Err = errors.Join(r.Err, err)
 	}
@@ -103,13 +104,17 @@ func expvarsObservation(raw json.RawMessage) (samples, error) {
 	}
 	return observationMetrics(result)
 }
-func expvarsTraffic(raw json.RawMessage) ([]*TrafficCounter, error) {
+func expvarsTraffic(raw json.RawMessage, collectClient bool) ([]*TrafficCounter, error) {
 	var groups map[string]json.RawMessage
 	if json.Unmarshal(raw, &groups) != nil || groups == nil {
 		return nil, errors.New("invalid stats object")
 	}
 	var result []*TrafficCounter
-	for _, kind := range []string{"inbound", "outbound"} {
+	kinds := []string{"inbound", "outbound"}
+	if collectClient {
+		kinds = append(kinds, "user")
+	}
+	for _, kind := range kinds {
 		if !configured(groups[kind]) {
 			continue
 		}

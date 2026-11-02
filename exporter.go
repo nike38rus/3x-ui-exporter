@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	obs "github.com/xtls/xray-core/app/observatory"
 	hc "github.com/xtls/xray-core/app/proxyman/command"
@@ -109,11 +110,12 @@ type explicitExpvars interface {
 	hasExplicitURL() bool
 }
 type Exporter struct {
-	Expvars ExpvarsSource
-	Panel   PanelSource
-	Core    Core
-	Timeout time.Duration
-	Version string
+	Expvars                ExpvarsSource
+	Panel                  PanelSource
+	Core                   Core
+	Timeout                time.Duration
+	Version                string
+	IncludeExporterMetrics bool
 }
 type samples []prometheus.Metric
 
@@ -161,6 +163,12 @@ func (e *Exporter) Handler() http.Handler {
 		ctx, cancel := context.WithTimeout(r.Context(), e.Timeout)
 		defer cancel()
 		registry := prometheus.NewRegistry()
+		if e.IncludeExporterMetrics {
+			registry.MustRegister(
+				collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
+				collectors.NewGoCollector(),
+			)
+		}
 		registry.MustRegister(snapshot{e.scrape(ctx)})
 		promhttp.HandlerFor(registry, promhttp.HandlerOpts{}).ServeHTTP(w, r)
 	})
@@ -395,14 +403,18 @@ func trafficMetrics(stats []*TrafficCounter) (samples, error) {
 			return nil, errors.New("nil traffic entry")
 		}
 		parts := strings.Split(s.Name, ">>>")
-		if len(parts) != 4 || (parts[0] != "inbound" && parts[0] != "outbound") || parts[2] != "traffic" {
+		if len(parts) != 4 || (parts[0] != "inbound" && parts[0] != "outbound" && parts[0] != "user") || parts[2] != "traffic" {
 			continue
 		}
 		if parts[1] == "" || (parts[3] != "uplink" && parts[3] != "downlink") || s.Value < 0 || seen[s.Name] {
 			return nil, errors.New("invalid or duplicate traffic entry")
 		}
 		seen[s.Name] = true
-		result.add("xui_"+parts[0]+"_traffic_bytes_total", "Cumulative Xray traffic bytes; direction is relative to the proxied connection.", prometheus.CounterValue, float64(s.Value), []string{parts[0], "direction"}, parts[1], parts[3])
+		if parts[0] == "user" {
+			result.add("xui_client_traffic_bytes_total", "Cumulative Xray client traffic bytes; direction is relative to the proxied connection.", prometheus.CounterValue, float64(s.Value), []string{"client", "direction"}, parts[1], parts[3])
+		} else {
+			result.add("xui_"+parts[0]+"_traffic_bytes_total", "Cumulative Xray traffic bytes; direction is relative to the proxied connection.", prometheus.CounterValue, float64(s.Value), []string{parts[0], "direction"}, parts[1], parts[3])
+		}
 	}
 	return result, nil
 }

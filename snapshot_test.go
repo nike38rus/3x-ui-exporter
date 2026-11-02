@@ -86,7 +86,8 @@ func TestOneSnapshotWithoutSourceFallback(t *testing.T) {
 }
 
 func TestMemoryPresenceAndPartialGroups(t *testing.T) {
-	data, err := decodeExpvars([]byte(`{"stats":{"outbound":{"original-tag":{"uplink":0,"downlink":null}},"user":{"private":{"uplink":999}}},"memstats":{"Alloc":0,"HeapObjects":23,"PauseTotalNs":250000000},"observatory":{"A":null}}`))
+	raw := `{"stats":{"outbound":{"original-tag":{"uplink":0,"downlink":null}},"user":{"private":{"uplink":999}}},"memstats":{"Alloc":0,"HeapObjects":23,"PauseTotalNs":250000000},"observatory":{"A":null}}`
+	data, err := decodeExpvars([]byte(raw), false)
 	if err != nil || data.Err == nil || !data.TrafficPresent {
 		t.Fatal(data, err)
 	}
@@ -108,6 +109,21 @@ func TestMemoryPresenceAndPartialGroups(t *testing.T) {
 	}
 	if v := sampleValues(t, m, "xui_outbound_traffic_bytes_total"); len(v) != 1 || v["direction=uplink;outbound=original-tag;"] != 0 {
 		t.Fatal(v)
+	}
+	if len(sampleValues(t, m, "xui_client_traffic_bytes_total")) != 0 {
+		t.Fatal("client metrics emitted when disabled")
+	}
+
+	dataWithClient, err := decodeExpvars([]byte(raw), true)
+	if err != nil || len(dataWithClient.Traffic) != 2 {
+		t.Fatalf("unexpected client data: %+v %v", dataWithClient, err)
+	}
+	mWithClient, err := trafficMetrics(dataWithClient.Traffic)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v := sampleValues(t, mWithClient, "xui_client_traffic_bytes_total"); len(v) != 1 || v["client=private;direction=uplink;"] != 999 {
+		t.Fatalf("unexpected client metrics: %v", v)
 	}
 	for _, raw := range []string{`{"Alloc":-1}`, `{"Alloc":1.5}`, `[]`} {
 		if _, err := expvarsMemory([]byte(raw)); err == nil {

@@ -29,7 +29,7 @@ export SCRAPE_TIMEOUT=4s
 
 All settings have matching CLI flags (`--xui-url`, `--xui-api-token`,
 `--xray-api`, `--xray-metrics-url`, `--listen-address`, `--scrape-timeout`,
-`--log-level`, `--log-format`). CLI overrides environment.
+`--log-level`, `--log-format`, `--include-exporter-metrics`, `--collect-client-stats`). CLI overrides environment.
 Prefer an environment variable for the token, to keep it out of process arguments.
 The base URL can include a panel base path. HTTP redirects are rejected; secrets
 and configuration contents are never logged.
@@ -292,11 +292,20 @@ Interpretation limits:
 ### Inbounds
 
 Source: Xray expvars traffic statistics. Only counters enabled by Xray traffic
-policies are published; user-level counters are excluded.
+policies are published. User-level counters (`xui_client_traffic_bytes_total`) are
+available when `--collect-client-stats` is enabled.
 
 | Metric | Labels | Values and description |
 | --- | --- | --- |
 | `xui_inbound_traffic_bytes_total` | `inbound`: inbound tag; `direction`: `uplink` or `downlink` | Counter: cumulative bytes through the inbound. Uplink is client-to-destination traffic; downlink is destination-to-client traffic. Missing directions are omitted, not filled with zero. |
+
+### Clients (optional)
+
+Source: Xray expvars user statistics. Disabled by default to keep metric cardinality minimal; enable with `--collect-client-stats` or `COLLECT_CLIENT_STATS=true`.
+
+| Metric | Labels | Values and description |
+| --- | --- | --- |
+| `xui_client_traffic_bytes_total` | `client`: client email/tag; `direction`: `uplink` or `downlink` | Counter: cumulative bytes through the proxy for the individual user. Missing directions are omitted. |
 
 ![Inbound throughput and traffic distribution](docs/images/inbounds.jpg)
 
