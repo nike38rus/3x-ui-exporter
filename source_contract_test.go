@@ -70,7 +70,7 @@ func TestFundamentalSourceStatus(t *testing.T) {
 			if len(sampleValues(t, m, "xui_exporter_scrape_duration_seconds")) != 3 {
 				t.Fatal("missing duration")
 			}
-			if core.lists != 1 || core.balancers != 0 {
+			if core.lists.Load() != 1 || core.balancers.Load() != 0 {
 				t.Fatal("incorrect RPC budget", core)
 			}
 		})

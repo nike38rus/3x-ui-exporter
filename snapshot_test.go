@@ -17,15 +17,15 @@ func (staticExpvars) Snapshot(context.Context, *Config) (*ExpvarsSnapshot, error
 
 type countedCore struct {
 	fakeCore
-	lists, balancers int
+	lists, balancers atomic.Int64
 }
 
 func (c *countedCore) Outbounds(ctx context.Context) (map[string]bool, error) {
-	c.lists++
+	c.lists.Add(1)
 	return c.fakeCore.Outbounds(ctx)
 }
 func (c *countedCore) Balancer(ctx context.Context, tag string) (*BalancerState, error) {
-	c.balancers++
+	c.balancers.Add(1)
 	return c.fakeCore.Balancer(ctx, tag)
 }
 func TestOneSnapshotWithoutSourceFallback(t *testing.T) {
@@ -58,8 +58,8 @@ func TestOneSnapshotWithoutSourceFallback(t *testing.T) {
 			c := &countedCore{fakeCore: fakeCore{tags: map[string]bool{"A": true}, states: map[string]*BalancerState{"one": {Targets: map[string]bool{"A": true}}, "two": {Targets: map[string]bool{"A": true}}}}}
 			e := &Exporter{Panel: fakePanel{cfg: cfg}, Core: c, Expvars: &Expvars{URL: srv.URL, Client: srv.Client()}}
 			m := e.scrape(context.Background())
-			if c.lists != 1 || c.balancers != 2 {
-				t.Fatalf("RPC counts list=%d balancers=%d", c.lists, c.balancers)
+			if c.lists.Load() != 1 || c.balancers.Load() != 2 {
+				t.Fatalf("RPC counts list=%d balancers=%d", c.lists.Load(), c.balancers.Load())
 			}
 			if got := len(sampleValues(t, m, "xui_outbound_traffic_bytes_total")); got != tc.trafficCount {
 				t.Fatalf("traffic count=%d, want %d", got, tc.trafficCount)
