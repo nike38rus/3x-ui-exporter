@@ -113,7 +113,7 @@ services:
     # ...
 
   exporter:
-    image: ghcr.io/nike38rus/3x-ui-exporter:0.6.0
+    image: ghcr.io/nike38rus/3x-ui-exporter:0.6.1
     network_mode: service:x-ui
     depends_on:
       x-ui:
@@ -192,7 +192,6 @@ All settings can be configured via command-line flags or environment variables. 
 | `--scrape-timeout` | `SCRAPE_TIMEOUT` | `4s` | Total deadline per scrape request across all upstream sources. |
 | `--log-level` | `LOG_LEVEL` | `info` | Log verbosity level: `debug`, `info`, `warn`, `error`. |
 | `--log-format` | `LOG_FORMAT` | `text` | Log format output: `text` or `json`. |
-| `--include-exporter-metrics` | `INCLUDE_EXPORTER_METRICS` | `true` | When `true`, exports standard Go runtime (`go_*`) and process (`process_*`) metrics for the exporter itself. |
 | `--collect-client-stats` | `COLLECT_CLIENT_STATS` | `false` | When `true`, parses individual user/client counters into `xui_client_traffic_bytes_total`. |
 | `--version` | — | `false` | Prints exporter version and exits. |
 
@@ -440,7 +439,7 @@ make linux
 make licenses
 
 # Package release archives with checksums
-make release VERSION=v0.6.0
+make release VERSION=v0.6.1
 ```
 
 ---

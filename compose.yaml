@@ -1,6 +1,6 @@
 services:
   exporter:
-    image: ghcr.io/nike38rus/3x-ui-exporter:${EXPORTER_VERSION:-0.6.0}
+    image: ghcr.io/nike38rus/3x-ui-exporter:${EXPORTER_VERSION:-0.6.1}
     network_mode: container:${XRAY_CONTAINER:-3xui_app}
     environment:
       XUI_URL: ${XUI_URL:-http://127.0.0.1:2053}
@@ -11,7 +11,6 @@ services:
       LISTEN_ADDRESS: :9108
       LOG_LEVEL: ${LOG_LEVEL:-info}
       LOG_FORMAT: ${LOG_FORMAT:-text}
-      INCLUDE_EXPORTER_METRICS: ${INCLUDE_EXPORTER_METRICS:-true}
       COLLECT_CLIENT_STATS: ${COLLECT_CLIENT_STATS:-false}
     read_only: true
     cap_drop: [ALL]

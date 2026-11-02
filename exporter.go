@@ -110,12 +110,11 @@ type explicitExpvars interface {
 	hasExplicitURL() bool
 }
 type Exporter struct {
-	Expvars                ExpvarsSource
-	Panel                  PanelSource
-	Core                   Core
-	Timeout                time.Duration
-	Version                string
-	IncludeExporterMetrics bool
+	Expvars ExpvarsSource
+	Panel   PanelSource
+	Core    Core
+	Timeout time.Duration
+	Version string
 }
 type samples []prometheus.Metric
 
@@ -163,13 +162,11 @@ func (e *Exporter) Handler() http.Handler {
 		ctx, cancel := context.WithTimeout(r.Context(), e.Timeout)
 		defer cancel()
 		registry := prometheus.NewRegistry()
-		if e.IncludeExporterMetrics {
-			registry.MustRegister(
-				collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
-				collectors.NewGoCollector(),
-			)
-		}
-		registry.MustRegister(snapshot{e.scrape(ctx)})
+		registry.MustRegister(
+			collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
+			collectors.NewGoCollector(),
+			snapshot{e.scrape(ctx)},
+		)
 		promhttp.HandlerFor(registry, promhttp.HandlerOpts{}).ServeHTTP(w, r)
 	})
 }

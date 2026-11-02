@@ -339,21 +339,16 @@ func TestSelectionRolesCollectionFailure(t *testing.T) {
 	}
 }
 
-func TestIncludeExporterMetrics(t *testing.T) {
-	eWithout := &Exporter{Panel: fakePanel{cfg: &Config{}}, Timeout: time.Second}
-	hWithout := eWithout.Handler()
+func TestExporterProcessAndGoMetrics(t *testing.T) {
+	e := &Exporter{Panel: fakePanel{cfg: &Config{}}, Timeout: time.Second}
+	h := e.Handler()
 	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
-	recWithout := httptest.NewRecorder()
-	hWithout.ServeHTTP(recWithout, req)
-	if strings.Contains(recWithout.Body.String(), "go_goroutines") {
-		t.Fatal("exporter metrics emitted when disabled")
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if !strings.Contains(rec.Body.String(), "go_goroutines") {
+		t.Fatal("missing go runtime metrics")
 	}
-
-	eWith := &Exporter{Panel: fakePanel{cfg: &Config{}}, Timeout: time.Second, IncludeExporterMetrics: true}
-	hWith := eWith.Handler()
-	recWith := httptest.NewRecorder()
-	hWith.ServeHTTP(recWith, req)
-	if !strings.Contains(recWith.Body.String(), "go_goroutines") {
-		t.Fatal("missing exporter metrics when enabled")
+	if !strings.Contains(rec.Body.String(), "process_resident_memory_bytes") {
+		t.Fatal("missing process metrics")
 	}
 }
