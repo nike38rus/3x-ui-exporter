@@ -1293,7 +1293,7 @@
           "refId": "C"
         }
       ],
-      "title": "Balancers · Availability and attention",
+      "title": "Balancers \u00b7 Availability and attention",
       "type": "timeseries"
     },
     {
@@ -1512,7 +1512,7 @@
           "refId": "C"
         }
       ],
-      "title": "Observed outbounds · Health history",
+      "title": "Observed outbounds \u00b7 Health history",
       "type": "timeseries"
     },
     {
@@ -1709,7 +1709,7 @@
           "expr": "8 * sum (rate(xui_inbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\"}[$__rate_interval])) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
           "instant": false,
           "interval": "5s",
-          "legendFormat": "Inbounds · uplink + downlink",
+          "legendFormat": "Inbounds \u00b7 uplink + downlink",
           "range": true,
           "refId": "A"
         },
@@ -1722,12 +1722,12 @@
           "expr": "8 * sum (rate(xui_outbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\"}[$__rate_interval])) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
           "instant": false,
           "interval": "5s",
-          "legendFormat": "Outbounds · uplink + downlink",
+          "legendFormat": "Outbounds \u00b7 uplink + downlink",
           "range": true,
           "refId": "B"
         }
       ],
-      "title": "Total traffic · Inbounds ↑ / Outbounds ↓",
+      "title": "Total traffic \u00b7 Inbounds \u2191 / Outbounds \u2193",
       "type": "timeseries"
     },
     {
@@ -3021,7 +3021,7 @@
               "editorMode": "code",
               "expr": "xui_observatory_outbound_rtt_min_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}",
               "instant": false,
-              "legendFormat": "{{outbound}} · min",
+              "legendFormat": "{{outbound}} \u00b7 min",
               "range": true,
               "refId": "A"
             },
@@ -3033,7 +3033,7 @@
               "editorMode": "code",
               "expr": "xui_observatory_outbound_rtt_max_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}",
               "instant": false,
-              "legendFormat": "{{outbound}} · max",
+              "legendFormat": "{{outbound}} \u00b7 max",
               "range": true,
               "refId": "B"
             }
@@ -5122,6 +5122,259 @@
             }
           ],
           "title": "Collection duration",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "description": "Resident Set Size (RSS) memory from OS process stats and live Go heap allocations.",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 15,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "showValues": false,
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "bytes"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 12,
+            "x": 0,
+            "y": 35
+          },
+          "id": 58,
+          "interval": "5s",
+          "maxDataPoints": 5000,
+          "options": {
+            "legend": {
+              "calcs": [
+                "lastNotNull",
+                "max"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "pluginVersion": "13.2.4",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "expr": "process_resident_memory_bytes{job=\"xui-exporter\",instance=\"${instance}\"}",
+              "instant": false,
+              "legendFormat": "Resident (RSS)",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "expr": "go_memstats_alloc_bytes{job=\"xui-exporter\",instance=\"${instance}\"}",
+              "instant": false,
+              "legendFormat": "Go Heap (Alloc)",
+              "range": true,
+              "refId": "B"
+            }
+          ],
+          "title": "Exporter process memory",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "description": "Process CPU utilization rate and active Go runtime goroutines.",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 15,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "showValues": false,
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "percent"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Goroutines"
+                },
+                "properties": [
+                  {
+                    "id": "custom.axisPlacement",
+                    "value": "right"
+                  },
+                  {
+                    "id": "unit",
+                    "value": "short"
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 12,
+            "x": 12,
+            "y": 35
+          },
+          "id": 59,
+          "interval": "5s",
+          "maxDataPoints": 5000,
+          "options": {
+            "legend": {
+              "calcs": [
+                "lastNotNull",
+                "max"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "pluginVersion": "13.2.4",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "expr": "rate(process_cpu_seconds_total{job=\"xui-exporter\",instance=\"${instance}\"}[$__rate_interval]) * 100",
+              "instant": false,
+              "legendFormat": "CPU Usage",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "expr": "go_goroutines{job=\"xui-exporter\",instance=\"${instance}\"}",
+              "instant": false,
+              "legendFormat": "Goroutines",
+              "range": true,
+              "refId": "B"
+            }
+          ],
+          "title": "Exporter CPU & Goroutines",
           "type": "timeseries"
         }
       ],

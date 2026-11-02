@@ -1725,7 +1725,7 @@
                         "editorMode": "code",
                         "expr": "xui_observatory_outbound_rtt_min_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}",
                         "instant": false,
-                        "legendFormat": "{{outbound}} · min",
+                        "legendFormat": "{{outbound}} \u00b7 min",
                         "range": true
                       },
                       "labels": {
@@ -1748,7 +1748,7 @@
                         "editorMode": "code",
                         "expr": "xui_observatory_outbound_rtt_max_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}",
                         "instant": false,
-                        "legendFormat": "{{outbound}} · max",
+                        "legendFormat": "{{outbound}} \u00b7 max",
                         "range": true
                       },
                       "labels": {
@@ -4217,7 +4217,7 @@
         "kind": "Panel",
         "spec": {
           "id": 43,
-          "title": "Balancers · Availability and attention",
+          "title": "Balancers \u00b7 Availability and attention",
           "description": "Above zero: available balancers, including those served by fallback. Below zero: unavailable balancers and active fallback, stacked as independent attention indicators. These are not a partition: an available balancer can also use fallback, so do not subtract the lower stack from the upper one. Override is shown separately in the summary. Counts describe sampled states, not replacement events or outage duration. Missing source data produces gaps. Open selected outbounds to identify the affected balancer.",
           "links": [
             {
@@ -4475,7 +4475,7 @@
         "kind": "Panel",
         "spec": {
           "id": 44,
-          "title": "Total traffic · Inbounds ↑ / Outbounds ↓",
+          "title": "Total traffic \u00b7 Inbounds \u2191 / Outbounds \u2193",
           "description": "Above zero: total throughput across all inbounds. Below zero: total throughput across all outbounds. Each side sums uplink + downlink, in bits per second. These are traffic rates measured at two sets of Xray endpoints, not total incoming versus outgoing network traffic: the same routed bytes may appear on both sides. Internal tags and multiple routing hops may also contribute, so a difference does not measure loss. Missing or disabled counters remain absent. Open the matching detail view to identify individual channels.",
           "links": [
             {
@@ -4505,7 +4505,7 @@
                         "expr": "8 * sum (rate(xui_inbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\"}[$__rate_interval])) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
                         "instant": false,
                         "interval": "5s",
-                        "legendFormat": "Inbounds · uplink + downlink",
+                        "legendFormat": "Inbounds \u00b7 uplink + downlink",
                         "range": true
                       },
                       "labels": {
@@ -4529,7 +4529,7 @@
                         "expr": "8 * sum (rate(xui_outbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\"}[$__rate_interval])) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
                         "instant": false,
                         "interval": "5s",
-                        "legendFormat": "Outbounds · uplink + downlink",
+                        "legendFormat": "Outbounds \u00b7 uplink + downlink",
                         "range": true
                       },
                       "labels": {
@@ -5279,7 +5279,7 @@
         "kind": "Panel",
         "spec": {
           "id": 50,
-          "title": "Observed outbounds · Health history",
+          "title": "Observed outbounds \u00b7 Health history",
           "description": "Above zero: UP outbounds. Below zero: DEGRADED and DOWN, stacked. These three states partition the observed population at each sample; their absolute counts sum to the number of observed outbounds. DEGRADED requires burst probe samples. Missing observations or failed collection produce gaps, never healthy zeroes. Open outbound health to see tags, latency and quality.",
           "links": [
             {
@@ -5982,6 +5982,317 @@
             }
           }
         }
+      },
+      "panel-58": {
+        "kind": "Panel",
+        "spec": {
+          "id": 58,
+          "title": "Exporter process memory",
+          "description": "Resident Set Size (RSS) memory from OS process stats and live Go heap allocations.",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "process_resident_memory_bytes{job=\"xui-exporter\",instance=\"${instance}\"}",
+                        "instant": false,
+                        "legendFormat": "Resident (RSS)",
+                        "range": true
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "prometheus-1",
+                        "grafana.app/export-datasource-name": "prometheus-infra"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "go_memstats_alloc_bytes{job=\"xui-exporter\",instance=\"${instance}\"}",
+                        "instant": false,
+                        "legendFormat": "Go Heap (Alloc)",
+                        "range": true
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "prometheus-1",
+                        "grafana.app/export-datasource-name": "prometheus-infra"
+                      }
+                    },
+                    "refId": "B",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {
+                "maxDataPoints": 5000,
+                "interval": "5s"
+              }
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "timeseries",
+            "version": "13.2.4",
+            "spec": {
+              "options": {
+                "legend": {
+                  "calcs": [
+                    "lastNotNull",
+                    "max"
+                  ],
+                  "displayMode": "table",
+                  "placement": "right",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "desc"
+                }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "bytes",
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      },
+                      {
+                        "value": 80,
+                        "color": "red"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-59": {
+        "kind": "Panel",
+        "spec": {
+          "id": 59,
+          "title": "Exporter CPU & Goroutines",
+          "description": "Process CPU utilization rate and active Go runtime goroutines.",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "rate(process_cpu_seconds_total{job=\"xui-exporter\",instance=\"${instance}\"}[$__rate_interval]) * 100",
+                        "instant": false,
+                        "legendFormat": "CPU Usage",
+                        "range": true
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "prometheus-1",
+                        "grafana.app/export-datasource-name": "prometheus-infra"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "go_goroutines{job=\"xui-exporter\",instance=\"${instance}\"}",
+                        "instant": false,
+                        "legendFormat": "Goroutines",
+                        "range": true
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "prometheus-1",
+                        "grafana.app/export-datasource-name": "prometheus-infra"
+                      }
+                    },
+                    "refId": "B",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {
+                "maxDataPoints": 5000,
+                "interval": "5s"
+              }
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "timeseries",
+            "version": "13.2.4",
+            "spec": {
+              "options": {
+                "legend": {
+                  "calcs": [
+                    "lastNotNull",
+                    "max"
+                  ],
+                  "displayMode": "table",
+                  "placement": "right",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "desc"
+                }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "percent",
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      },
+                      {
+                        "value": 80,
+                        "color": "red"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  }
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Goroutines"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.axisPlacement",
+                        "value": "right"
+                      },
+                      {
+                        "id": "unit",
+                        "value": "short"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
       }
     },
     "layout": {
@@ -6637,6 +6948,32 @@
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-24"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 0,
+                        "y": 9,
+                        "width": 12,
+                        "height": 6,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-58"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 12,
+                        "y": 9,
+                        "width": 12,
+                        "height": 6,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-59"
                         }
                       }
                     }

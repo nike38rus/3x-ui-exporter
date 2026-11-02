@@ -192,7 +192,7 @@ All settings can be configured via command-line flags or environment variables. 
 | `--scrape-timeout` | `SCRAPE_TIMEOUT` | `4s` | Total deadline per scrape request across all upstream sources. |
 | `--log-level` | `LOG_LEVEL` | `info` | Log verbosity level: `debug`, `info`, `warn`, `error`. |
 | `--log-format` | `LOG_FORMAT` | `text` | Log format output: `text` or `json`. |
-| `--include-exporter-metrics` | `INCLUDE_EXPORTER_METRICS` | `false` | When `true`, exports standard Go runtime (`go_*`) and process (`process_*`) metrics for the exporter itself. |
+| `--include-exporter-metrics` | `INCLUDE_EXPORTER_METRICS` | `true` | When `true`, exports standard Go runtime (`go_*`) and process (`process_*`) metrics for the exporter itself. |
 | `--collect-client-stats` | `COLLECT_CLIENT_STATS` | `false` | When `true`, parses individual user/client counters into `xui_client_traffic_bytes_total`. |
 | `--version` | — | `false` | Prints exporter version and exits. |
 

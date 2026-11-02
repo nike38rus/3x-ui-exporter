@@ -52,7 +52,7 @@ func run() error {
 	timeoutText := fs.String("scrape-timeout", env("SCRAPE_TIMEOUT", "4s"), "total collection deadline")
 	logLevel := fs.String("log-level", env("LOG_LEVEL", "info"), "logging level (debug, info, warn, error)")
 	logFormat := fs.String("log-format", env("LOG_FORMAT", "text"), "logging format (text, json)")
-	includeExporterMetrics := fs.Bool("include-exporter-metrics", envBool("INCLUDE_EXPORTER_METRICS", false), "include Go runtime and process metrics for the exporter itself")
+	includeExporterMetrics := fs.Bool("include-exporter-metrics", envBool("INCLUDE_EXPORTER_METRICS", true), "include Go runtime and process metrics for the exporter itself")
 	collectClientStats := fs.Bool("collect-client-stats", envBool("COLLECT_CLIENT_STATS", false), "export individual client/user traffic counters from Xray")
 	showVersion := fs.Bool("version", false, "print exporter version")
 	if err := fs.Parse(os.Args[1:]); err != nil {
