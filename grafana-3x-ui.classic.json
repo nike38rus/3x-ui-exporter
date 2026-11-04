@@ -86,7 +86,7 @@
         "x": 0,
         "y": 0
       },
-      "id": 60,
+      "id": 62,
       "title": "Overview",
       "type": "row"
     },
@@ -750,7 +750,7 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 12,
+        "w": 7,
         "x": 0,
         "y": 4
       },
@@ -1000,8 +1000,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 12,
-        "x": 12,
+        "w": 7,
+        "x": 7,
         "y": 4
       },
       "id": 47,
@@ -1076,6 +1076,198 @@
       ],
       "title": "Observed outbounds",
       "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS-INFRA}"
+      },
+      "description": "Current active client sessions reported by the panel",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "noValue": "No data",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 14,
+        "y": 4
+      },
+      "id": 61,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {},
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.3.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "xui_online_clients{job=\"xui-exporter\",instance=\"${instance}\"}",
+          "instant": true,
+          "legendFormat": "Clients",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "Online clients",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS-INFRA}"
+      },
+      "description": "Current open network sockets reported by the panel environment",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 7,
+        "x": 17,
+        "y": 4
+      },
+      "id": 60,
+      "options": {
+        "legend": {
+          "calcs": [
+            "last"
+          ],
+          "displayMode": "list",
+          "enableFacetedFilter": false,
+          "overflow": "ellipsis",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "13.3.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "expr": "xui_open_sockets{job=\"xui-exporter\",instance=\"${instance}\",protocol=\"tcp\"}",
+          "interval": "5s",
+          "legendFormat": "TCP",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "expr": "xui_open_sockets{job=\"xui-exporter\",instance=\"${instance}\",protocol=\"udp\"}",
+          "instant": false,
+          "interval": "5s",
+          "legendFormat": "UDP",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Connection stats",
+      "type": "timeseries"
     },
     {
       "datasource": {
@@ -1293,7 +1485,7 @@
           "refId": "C"
         }
       ],
-      "title": "Balancers · Availability and attention",
+      "title": "Balancers \u00b7 Availability and attention",
       "type": "timeseries"
     },
     {
@@ -1512,7 +1704,7 @@
           "refId": "C"
         }
       ],
-      "title": "Observed outbounds · Health history",
+      "title": "Observed outbounds \u00b7 Health history",
       "type": "timeseries"
     },
     {
@@ -1709,7 +1901,7 @@
           "expr": "8 * sum (rate(xui_inbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\"}[$__rate_interval])) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
           "instant": false,
           "interval": "5s",
-          "legendFormat": "Inbounds · uplink + downlink",
+          "legendFormat": "Inbounds \u00b7 uplink + downlink",
           "range": true,
           "refId": "A"
         },
@@ -1722,12 +1914,12 @@
           "expr": "8 * sum (rate(xui_outbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\"}[$__rate_interval])) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
           "instant": false,
           "interval": "5s",
-          "legendFormat": "Outbounds · uplink + downlink",
+          "legendFormat": "Outbounds \u00b7 uplink + downlink",
           "range": true,
           "refId": "B"
         }
       ],
-      "title": "Total traffic · Inbounds ↑ / Outbounds ↓",
+      "title": "Total traffic \u00b7 Inbounds \u2191 / Outbounds \u2193",
       "type": "timeseries"
     },
     {
@@ -1738,7 +1930,7 @@
         "x": 0,
         "y": 20
       },
-      "id": 61,
+      "id": 63,
       "panels": [
         {
           "datasource": {
@@ -1822,7 +2014,7 @@
               "sort": "none"
             }
           },
-          "pluginVersion": "13.2.4",
+          "pluginVersion": "13.3.0",
           "targets": [
             {
               "datasource": {
@@ -2056,9 +2248,10 @@
             "frozenColumns": {
               "left": 1
             },
-            "showHeader": true
+            "showHeader": true,
+            "zebraStriping": false
           },
-          "pluginVersion": "13.2.4",
+          "pluginVersion": "13.3.0",
           "targets": [
             {
               "datasource": {
@@ -2335,9 +2528,10 @@
             "frozenColumns": {
               "left": 1
             },
-            "showHeader": true
+            "showHeader": true,
+            "zebraStriping": false
           },
-          "pluginVersion": "13.2.4",
+          "pluginVersion": "13.3.0",
           "targets": [
             {
               "datasource": {
@@ -2593,9 +2787,10 @@
                 "desc": true,
                 "displayName": "Quality"
               }
-            ]
+            ],
+            "zebraStriping": false
           },
-          "pluginVersion": "13.2.4",
+          "pluginVersion": "13.3.0",
           "targets": [
             {
               "datasource": {
@@ -2803,7 +2998,7 @@
               "sort": "desc"
             }
           },
-          "pluginVersion": "13.2.4",
+          "pluginVersion": "13.3.0",
           "targets": [
             {
               "datasource": {
@@ -2906,7 +3101,7 @@
               "sort": "desc"
             }
           },
-          "pluginVersion": "13.2.4",
+          "pluginVersion": "13.3.0",
           "targets": [
             {
               "datasource": {
@@ -3011,7 +3206,7 @@
               "sort": "desc"
             }
           },
-          "pluginVersion": "13.2.4",
+          "pluginVersion": "13.3.0",
           "targets": [
             {
               "datasource": {
@@ -3021,7 +3216,7 @@
               "editorMode": "code",
               "expr": "xui_observatory_outbound_rtt_min_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}",
               "instant": false,
-              "legendFormat": "{{outbound}} · min",
+              "legendFormat": "{{outbound}} \u00b7 min",
               "range": true,
               "refId": "A"
             },
@@ -3033,7 +3228,7 @@
               "editorMode": "code",
               "expr": "xui_observatory_outbound_rtt_max_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}",
               "instant": false,
-              "legendFormat": "{{outbound}} · max",
+              "legendFormat": "{{outbound}} \u00b7 max",
               "range": true,
               "refId": "B"
             }
@@ -3128,7 +3323,7 @@
               "sort": "desc"
             }
           },
-          "pluginVersion": "13.2.4",
+          "pluginVersion": "13.3.0",
           "targets": [
             {
               "datasource": {
@@ -3158,7 +3353,7 @@
         "x": 0,
         "y": 21
       },
-      "id": 62,
+      "id": 64,
       "panels": [
         {
           "datasource": {
@@ -3242,7 +3437,7 @@
               "sort": "desc"
             }
           },
-          "pluginVersion": "13.2.4",
+          "pluginVersion": "13.3.0",
           "targets": [
             {
               "datasource": {
@@ -3312,9 +3507,10 @@
             "showUnfilled": true,
             "sizing": "manual",
             "text": {},
+            "textMode": "auto",
             "valueMode": "color"
           },
-          "pluginVersion": "13.2.4",
+          "pluginVersion": "13.3.0",
           "targets": [
             {
               "datasource": {
@@ -3386,7 +3582,7 @@
               "sort": "none"
             }
           },
-          "pluginVersion": "13.2.4",
+          "pluginVersion": "13.3.0",
           "targets": [
             {
               "datasource": {
@@ -3430,7 +3626,7 @@
         "x": 0,
         "y": 22
       },
-      "id": 63,
+      "id": 65,
       "panels": [
         {
           "datasource": {
@@ -3705,7 +3901,7 @@
         "x": 0,
         "y": 23
       },
-      "id": 64,
+      "id": 66,
       "panels": [
         {
           "datasource": {
@@ -3765,9 +3961,10 @@
             "text": {
               "valueSize": 16
             },
+            "textMode": "auto",
             "valueMode": "color"
           },
-          "pluginVersion": "13.2.4",
+          "pluginVersion": "13.3.0",
           "targets": [
             {
               "datasource": {
@@ -3872,7 +4069,7 @@
               "sort": "none"
             }
           },
-          "pluginVersion": "13.2.4",
+          "pluginVersion": "13.3.0",
           "targets": [
             {
               "datasource": {
@@ -3967,7 +4164,7 @@
               "sort": "none"
             }
           },
-          "pluginVersion": "13.2.4",
+          "pluginVersion": "13.3.0",
           "targets": [
             {
               "datasource": {
@@ -4069,7 +4266,7 @@
               "sort": "none"
             }
           },
-          "pluginVersion": "13.2.4",
+          "pluginVersion": "13.3.0",
           "targets": [
             {
               "datasource": {
@@ -4174,7 +4371,7 @@
               "sort": "desc"
             }
           },
-          "pluginVersion": "13.2.4",
+          "pluginVersion": "13.3.0",
           "targets": [
             {
               "datasource": {
@@ -4204,7 +4401,7 @@
         "x": 0,
         "y": 24
       },
-      "id": 65,
+      "id": 67,
       "panels": [
         {
           "datasource": {
@@ -4873,7 +5070,7 @@
         "x": 0,
         "y": 25
       },
-      "id": 66,
+      "id": 68,
       "panels": [
         {
           "datasource": {
@@ -5474,7 +5671,7 @@
     ]
   },
   "time": {
-    "from": "now-30m",
+    "from": "now-3h",
     "to": "now"
   },
   "timepicker": {
@@ -5494,6 +5691,6 @@
   "timezone": "browser",
   "title": "3x-ui",
   "uid": "3x-ui-exporter",
-  "version": 27,
+  "version": 30,
   "weekStart": ""
 }
