@@ -3,7 +3,23 @@ name: CI
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - 'grafana-3x-ui.*.json'
+      - 'examples/**'
+      - '.gitignore'
+      - '.gitleaks.toml'
+      - 'LICENSE'
   pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - 'grafana-3x-ui.*.json'
+      - 'examples/**'
+      - '.gitignore'
+      - '.gitleaks.toml'
+      - 'LICENSE'
   workflow_dispatch:
 
 permissions:
