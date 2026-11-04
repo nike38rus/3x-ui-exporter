@@ -59,21 +59,20 @@ func TestPanelStatusFields(t *testing.T) {
 					}
 				}
 			}
-			tcps := sampleValues(t, m, "xui_panel_tcp_connections")
+			sockets := sampleValues(t, m, "xui_open_sockets")
 			if tc.tcp == nil {
-				if len(tcps) != 0 {
-					t.Fatal("unexpected tcp connections", tcps)
+				if _, ok := sockets["protocol=tcp;"]; ok {
+					t.Fatal("unexpected tcp sockets", sockets)
 				}
-			} else if len(tcps) != 1 || tcps[""] != *tc.tcp {
-				t.Fatal("incorrect tcp count", tcps)
+			} else if sockets["protocol=tcp;"] != *tc.tcp {
+				t.Fatal("incorrect tcp count", sockets)
 			}
-			udps := sampleValues(t, m, "xui_panel_udp_connections")
 			if tc.udp == nil {
-				if len(udps) != 0 {
-					t.Fatal("unexpected udp connections", udps)
+				if _, ok := sockets["protocol=udp;"]; ok {
+					t.Fatal("unexpected udp sockets", sockets)
 				}
-			} else if len(udps) != 1 || udps[""] != *tc.udp {
-				t.Fatal("incorrect udp count", udps)
+			} else if sockets["protocol=udp;"] != *tc.udp {
+				t.Fatal("incorrect udp count", sockets)
 			}
 		})
 	}

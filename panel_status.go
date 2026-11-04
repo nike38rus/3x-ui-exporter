@@ -113,10 +113,10 @@ func panelStatusMetrics(s *PanelStatus) samples {
 		}
 	}
 	if s.TCPCount != nil {
-		gauge(&result, "xui_panel_tcp_connections", "Current open TCP connections reported by panel.", float64(*s.TCPCount), nil)
+		gauge(&result, "xui_open_sockets", "Current open network sockets reported by the panel environment.", float64(*s.TCPCount), []string{"protocol"}, "tcp")
 	}
 	if s.UDPCount != nil {
-		gauge(&result, "xui_panel_udp_connections", "Current open UDP connections reported by panel.", float64(*s.UDPCount), nil)
+		gauge(&result, "xui_open_sockets", "Current open network sockets reported by the panel environment.", float64(*s.UDPCount), []string{"protocol"}, "udp")
 	}
 	return result
 }

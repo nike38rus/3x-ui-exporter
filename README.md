@@ -220,8 +220,7 @@ Derived from 3x-ui REST API (`GET /panel/api/server/status`).
 | `xui_panel_info` | Gauge | `version` | Always `1`. Panel version reported by 3x-ui. |
 | `xui_xray_info` | Gauge | `version` | Always `1`. Xray binary version reported by the panel. |
 | `xui_xray_state` | Gauge | `state` (`running`, `stop`, `error`) | `1` for the active state, `0` for inactive states. |
-| `xui_panel_tcp_connections` | Gauge | — | Current open TCP sockets reported by panel. |
-| `xui_panel_udp_connections` | Gauge | — | Current open UDP sockets reported by panel. |
+| `xui_open_sockets` | Gauge | `protocol` (`tcp`, `udp`) | Current open network sockets reported by the panel environment. |
 | `xui_online_clients` | Gauge | — | Current active client sessions reported by panel. |
 
 ### Traffic Statistics
