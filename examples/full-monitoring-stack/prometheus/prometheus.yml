@@ -4,7 +4,9 @@ global:
 
 scrape_configs:
   - job_name: 'xui-exporter'
+    scrape_interval: 5s
+    scrape_timeout: 4s
     static_configs:
-      - targets: ['exporter:9108']
+      - targets: ['3x-ui:9108']
         labels:
-          instance: '127.0.0.1:9108'
+          instance: '3x-ui:9108'
