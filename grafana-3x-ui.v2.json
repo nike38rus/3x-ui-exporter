@@ -4477,8 +4477,8 @@
         "kind": "Panel",
         "spec": {
           "id": 44,
-          "title": "Total traffic · Inbounds ↑ / Outbounds ↓",
-          "description": "Above zero: total throughput across all inbounds. Below zero: total throughput across all outbounds. Each side sums uplink + downlink, in bits per second. These are traffic rates measured at two sets of Xray endpoints, not total incoming versus outgoing network traffic: the same routed bytes may appear on both sides. Internal tags and multiple routing hops may also contribute, so a difference does not measure loss. Missing or disabled counters remain absent. Open the matching detail view to identify individual channels.",
+          "title": "Total traffic · Download / Upload",
+          "description": "Above zero: client download throughput (downlink rate into inbounds). Below zero: client upload throughput (uplink rate into inbounds). Stated in bits per second. Missing or disabled counters remain absent. Open detail views to inspect individual inbound channels.",
           "links": [
             {
               "title": "Inbound traffic details",
@@ -4504,10 +4504,10 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "8 * sum (rate(xui_inbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\"}[$__rate_interval])) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+                        "expr": "8 * sum (rate(xui_inbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",direction=\"downlink\"}[$__rate_interval])) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
                         "instant": false,
                         "interval": "5s",
-                        "legendFormat": "Inbounds · uplink + downlink",
+                        "legendFormat": "Download",
                         "range": true
                       },
                       "labels": {
@@ -4528,10 +4528,10 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "8 * sum (rate(xui_outbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\"}[$__rate_interval])) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+                        "expr": "8 * sum (rate(xui_inbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",direction=\"uplink\"}[$__rate_interval])) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
                         "instant": false,
                         "interval": "5s",
-                        "legendFormat": "Outbounds · uplink + downlink",
+                        "legendFormat": "Upload",
                         "range": true
                       },
                       "labels": {
