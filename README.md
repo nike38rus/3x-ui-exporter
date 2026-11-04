@@ -113,7 +113,7 @@ services:
     # ...
 
   exporter:
-    image: ghcr.io/nike38rus/3x-ui-exporter:0.6.1
+    image: ghcr.io/nike38rus/3x-ui-exporter:0.7.0
     network_mode: service:x-ui
     depends_on:
       x-ui:
@@ -145,6 +145,18 @@ cp .env.example .env
 # Edit .env to set your XUI_API_TOKEN and XRAY_CONTAINER name
 docker compose up -d
 ```
+
+#### Option C: Full All-in-One Monitoring Stack
+
+If you want to spin up the **entire monitoring infrastructure** (3x-ui-exporter + Prometheus + Grafana with pre-provisioned dashboards) in a single command, see the ready-to-run [Full Monitoring Stack Example](examples/full-monitoring-stack):
+
+```sh
+cd examples/full-monitoring-stack
+cp .env.example .env
+# Edit .env and supply your XUI_API_TOKEN
+docker compose up -d
+```
+Grafana will be immediately available at `http://localhost:3000` with the 3x-ui dashboard preloaded.
 
 ### Prometheus Configuration
 

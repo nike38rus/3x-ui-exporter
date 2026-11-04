@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: '3x-ui Dashboards'
+    orgId: 1
+    folder: '3x-ui'
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /etc/grafana/provisioning/dashboards

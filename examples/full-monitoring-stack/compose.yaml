@@ -1,0 +1,67 @@
+services:
+  exporter:
+    image: ghcr.io/nike38rus/3x-ui-exporter:${EXPORTER_VERSION:-0.7.0}
+    container_name: 3x-ui-exporter
+    environment:
+      XUI_URL: ${XUI_URL:-http://3x-ui:2053}
+      XUI_API_TOKEN: ${XUI_API_TOKEN:?Set XUI_API_TOKEN in .env}
+      XRAY_API: ${XRAY_API:-3x-ui:62789}
+      XRAY_METRICS_URL: ${XRAY_METRICS_URL:-}
+      SCRAPE_TIMEOUT: 4s
+      LISTEN_ADDRESS: :9108
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_FORMAT: ${LOG_FORMAT:-text}
+      COLLECT_CLIENT_STATS: ${COLLECT_CLIENT_STATS:-false}
+    ports:
+      - "9108:9108"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+  prometheus:
+    image: prom/prometheus:v3.2.1
+    container_name: 3x-ui-prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+  grafana:
+    image: grafana/grafana:11.5.2
+    container_name: 3x-ui-grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ../../grafana-3x-ui.classic.json:/etc/grafana/provisioning/dashboards/grafana-3x-ui.classic.json:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+networks:
+  monitoring:
+    name: 3x-ui-monitoring
+
+volumes:
+  prometheus_data:
+  grafana_data:
