@@ -113,7 +113,7 @@ services:
     # ...
 
   exporter:
-    image: ghcr.io/nike38rus/3x-ui-exporter:0.7.0
+    image: ghcr.io/nike38rus/3x-ui-exporter:1.0.0
     network_mode: service:x-ui
     depends_on:
       x-ui:
