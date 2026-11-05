@@ -200,16 +200,16 @@ func nodeMetrics(nodes []*NodeStatus) samples {
 				gauge(&result, "xui_node_xray_state", "Remote node Xray core state captured during heartbeat.", number(n.XrayState == state), []string{"node", "state"}, n.Name, state)
 			}
 		}
-		if n.CPUPct != nil && *n.CPUPct >= 0 {
+		if isOnline && n.CPUPct != nil && *n.CPUPct >= 0 {
 			gauge(&result, "xui_node_cpu_percent", "Remote node CPU utilization percent.", *n.CPUPct, labels, n.Name)
 		}
-		if n.MemPct != nil && *n.MemPct >= 0 {
+		if isOnline && n.MemPct != nil && *n.MemPct >= 0 {
 			gauge(&result, "xui_node_memory_percent", "Remote node memory utilization percent.", *n.MemPct, labels, n.Name)
 		}
-		if n.UptimeSecs != nil {
+		if isOnline && n.UptimeSecs != nil {
 			gauge(&result, "xui_node_uptime_seconds", "Remote node uptime in seconds.", float64(*n.UptimeSecs), labels, n.Name)
 		}
-		if n.PanelVersion != "" || n.XrayVersion != "" {
+		if isOnline && (n.PanelVersion != "" || n.XrayVersion != "") {
 			gauge(&result, "xui_node_info", "Remote node version metadata.", 1, []string{"node", "xray_version", "panel_version"}, n.Name, n.XrayVersion, n.PanelVersion)
 		}
 	}

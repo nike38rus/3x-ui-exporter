@@ -368,7 +368,10 @@ func TestNodesDecodesAndMetrics(t *testing.T) {
 					"name": "node-eu",
 					"status": "offline",
 					"latencyMs": -1,
-					"xrayState": "stop"
+					"xrayState": "stop",
+					"cpuPct": 0,
+					"memPct": 0,
+					"uptimeSecs": 0
 				}
 			]`,
 			wantOnline: map[string]float64{"node=node-us;": 1, "node=node-eu;": 0},
