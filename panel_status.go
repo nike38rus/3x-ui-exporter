@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"sort"
 	"strings"
 )
 
@@ -22,6 +23,15 @@ type OnlineSource interface {
 	Onlines(context.Context) (int, error)
 }
 
+type InboundStatus struct {
+	Tag    string
+	Enable bool
+}
+
+type InboundSource interface {
+	Inbounds(context.Context) ([]*InboundStatus, error)
+}
+
 func (p *Panel) Status(ctx context.Context) (*PanelStatus, error) {
 	raw, err := p.object(ctx, http.MethodGet, "/panel/api/server/status")
 	if err != nil {
@@ -36,6 +46,53 @@ func (p *Panel) Onlines(ctx context.Context) (int, error) {
 		return 0, err
 	}
 	return decodeOnlines(raw)
+}
+
+func (p *Panel) Inbounds(ctx context.Context) ([]*InboundStatus, error) {
+	raw, err := p.object(ctx, http.MethodGet, "/panel/api/inbounds/list")
+	if err != nil {
+		return nil, err
+	}
+	return decodeInbounds(raw)
+}
+
+func decodeInbounds(raw json.RawMessage) ([]*InboundStatus, error) {
+	type rawInbound struct {
+		Tag    *string `json:"tag"`
+		Enable *bool   `json:"enable"`
+	}
+	var list []rawInbound
+	if json.Unmarshal(raw, &list) != nil {
+		return nil, errors.New("invalid inbounds array")
+	}
+	seen := map[string]bool{}
+	var result []*InboundStatus
+	for _, item := range list {
+		if item.Tag == nil || item.Enable == nil {
+			return nil, errors.New("invalid inbound entry")
+		}
+		tag := *item.Tag
+		if strings.TrimSpace(tag) == "" || seen[tag] {
+			return nil, errors.New("empty or duplicate inbound tag")
+		}
+		seen[tag] = true
+		result = append(result, &InboundStatus{
+			Tag:    tag,
+			Enable: *item.Enable,
+		})
+	}
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Tag < result[j].Tag
+	})
+	return result, nil
+}
+
+func inboundStatusMetrics(inbounds []*InboundStatus) samples {
+	var result samples
+	for _, in := range inbounds {
+		gauge(&result, "xui_inbound_enabled", "Whether inbound is administratively enabled in the panel.", number(in.Enable), []string{"inbound"}, in.Tag)
+	}
+	return result
 }
 
 func decodeOnlines(raw json.RawMessage) (int, error) {

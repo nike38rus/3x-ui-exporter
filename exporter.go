@@ -174,7 +174,7 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 	apiStart := time.Now()
 	var status *PanelStatus
 	var statusErr error
-	var statusElapsed, onlinesElapsed time.Duration
+	var statusElapsed, onlinesElapsed, inboundsElapsed time.Duration
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
@@ -201,6 +201,22 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 				hasOnlines = true
 			}
 			onlinesElapsed = time.Since(apiStart)
+		}()
+	}
+	var inbounds []*InboundStatus
+	var inboundsErr error
+	var hasInbounds bool
+	if inbSrc, ok := e.Panel.(InboundSource); ok {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			start := time.Now()
+			defer reportSlow(start, "api", "inbounds/list")
+			inbounds, inboundsErr = inbSrc.Inbounds(ctx)
+			if inboundsErr == nil {
+				hasInbounds = true
+			}
+			inboundsElapsed = time.Since(apiStart)
 		}()
 	}
 	var data *ExpvarsSnapshot
@@ -274,7 +290,7 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 		}
 	}()
 	wg.Wait()
-	apiDuration := max(configElapsed, statusElapsed, onlinesElapsed).Seconds()
+	apiDuration := max(configElapsed, statusElapsed, onlinesElapsed, inboundsElapsed).Seconds()
 	if data != nil {
 		traffic, trafficErr = trafficMetrics(data.Traffic)
 		expErr = errors.Join(expErr, trafficErr)
@@ -284,6 +300,9 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 	if hasOnlines {
 		gauge(&result, "xui_online_clients", "Current active clients online reported by panel.", float64(onlines), nil)
 	}
+	if hasInbounds {
+		result = append(result, inboundStatusMetrics(inbounds)...)
+	}
 	if data != nil {
 		result = append(result, data.Memory...)
 		result = append(result, data.Observation...)
@@ -291,14 +310,14 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 	for _, item := range []struct {
 		name string
 		err  error
-	}{{"api_settings", cfgErr}, {"api_status", statusErr}, {"api_onlines", onlinesErr}, {"expvars", expErr}, {"traffic", trafficErr}, {"grpc", grpcErr}, {"balancer_metrics", balancerErr}} {
+	}{{"api_settings", cfgErr}, {"api_status", statusErr}, {"api_inbounds", inboundsErr}, {"api_onlines", onlinesErr}, {"expvars", expErr}, {"traffic", trafficErr}, {"grpc", grpcErr}, {"balancer_metrics", balancerErr}} {
 		if item.err != nil {
 			slog.Warn("collection failed", "operation", item.name, "error", item.err.Error(), "error_type", fmt.Sprintf("%T", item.err))
 		} else {
 			slog.Debug("collection succeeded", "operation", item.name)
 		}
 	}
-	gauge(&result, "xui_exporter_scrape_success", "Whether source requests succeeded and their responses satisfied the exporter contract.", number(cfgErr == nil && statusErr == nil), []string{"source"}, "api")
+	gauge(&result, "xui_exporter_scrape_success", "Whether source requests succeeded and their responses satisfied the exporter contract.", number(cfgErr == nil && statusErr == nil && inboundsErr == nil && onlinesErr == nil), []string{"source"}, "api")
 	gauge(&result, "xui_exporter_scrape_duration_seconds", "Elapsed source collection time in seconds.", apiDuration, []string{"source"}, "api")
 	gauge(&result, "xui_exporter_scrape_success", "Whether source requests succeeded and their responses satisfied the exporter contract.", number(expErr == nil), []string{"source"}, "expvars")
 	gauge(&result, "xui_exporter_scrape_duration_seconds", "Elapsed source collection time in seconds.", expDuration.Seconds(), []string{"source"}, "expvars")

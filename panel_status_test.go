@@ -146,7 +146,7 @@ func TestPanelStatusRequestAndErrors(t *testing.T) {
 }
 
 func TestPanelRequestsIndependentAndBudget(t *testing.T) {
-	for _, failed := range []string{"", "settings", "status"} {
+	for _, failed := range []string{"", "settings", "status", "inbounds", "onlines"} {
 		t.Run(failed, func(t *testing.T) {
 			counts := map[string]int{}
 			var mu sync.Mutex
@@ -168,7 +168,17 @@ func TestPanelRequestsIndependentAndBudget(t *testing.T) {
 					}
 					_, _ = w.Write([]byte(`{"success":true,"obj":{"panelVersion":"p","xray":{"version":"x","state":"running"}}}`))
 				case "/panel/api/clients/onlines":
+					if failed == "onlines" {
+						w.WriteHeader(503)
+						return
+					}
 					_, _ = w.Write([]byte(`{"success":true,"obj":["u@test.com"]}`))
+				case "/panel/api/inbounds/list":
+					if failed == "inbounds" {
+						w.WriteHeader(503)
+						return
+					}
+					_, _ = w.Write([]byte(`{"success":true,"obj":[{"tag":"inbound-443","enable":true},{"tag":"inbound-80","enable":false}]}`))
 				case "/debug/vars":
 					_, _ = w.Write([]byte(`{"stats":{"outbound":{"A":{"uplink":1}}}}`))
 				default:
@@ -180,7 +190,7 @@ func TestPanelRequestsIndependentAndBudget(t *testing.T) {
 			e := &Exporter{Panel: &Panel{URL: srv.URL, Token: "token", Client: srv.Client()}, Core: core, Expvars: &Expvars{URL: srv.URL, Client: srv.Client()}}
 			m := e.scrape(context.Background())
 			if sampleValues(t, m, "xui_exporter_scrape_success")["source=api;"] != number(failed == "") {
-				t.Fatal("incorrect API status")
+				t.Fatalf("case %s: incorrect API status", failed)
 			}
 			wantInfo := 1
 			if failed == "status" {
@@ -188,6 +198,20 @@ func TestPanelRequestsIndependentAndBudget(t *testing.T) {
 			}
 			if len(sampleValues(t, m, "xui_panel_info")) != wantInfo {
 				t.Fatal("status data lost or synthesized")
+			}
+			wantOnlines := 1
+			if failed == "onlines" {
+				wantOnlines = 0
+			}
+			if len(sampleValues(t, m, "xui_online_clients")) != wantOnlines {
+				t.Fatal("online clients data lost or synthesized")
+			}
+			wantInbounds := 2
+			if failed == "inbounds" {
+				wantInbounds = 0
+			}
+			if len(sampleValues(t, m, "xui_inbound_enabled")) != wantInbounds {
+				t.Fatal("inbound data lost or synthesized")
 			}
 			if len(sampleValues(t, m, "xui_outbound_traffic_bytes_total")) != 1 {
 				t.Fatal("independent traffic lost")
@@ -197,7 +221,7 @@ func TestPanelRequestsIndependentAndBudget(t *testing.T) {
 			}
 			mu.Lock()
 			defer mu.Unlock()
-			if counts["/panel/api/xray/"] != 1 || counts["/panel/api/server/status"] != 1 || counts["/panel/api/clients/onlines"] != 1 || counts["/debug/vars"] != 1 {
+			if counts["/panel/api/xray/"] != 1 || counts["/panel/api/server/status"] != 1 || counts["/panel/api/clients/onlines"] != 1 || counts["/panel/api/inbounds/list"] != 1 || counts["/debug/vars"] != 1 {
 				t.Fatal(counts)
 			}
 			want := 1
@@ -222,6 +246,8 @@ func TestStatusUsesSharedDeadlineAndDoesNotRetainOldData(t *testing.T) {
 		case "/panel/api/xray/":
 			_, _ = w.Write([]byte(`{"success":true,"obj":{"xraySetting":{}}}`))
 		case "/panel/api/clients/onlines":
+			_, _ = w.Write([]byte(`{"success":true,"obj":[]}`))
+		case "/panel/api/inbounds/list":
 			_, _ = w.Write([]byte(`{"success":true,"obj":[]}`))
 		case "/panel/api/server/status":
 			switch current {
@@ -257,5 +283,75 @@ func TestStatusUsesSharedDeadlineAndDoesNotRetainOldData(t *testing.T) {
 				t.Fatal("failed source marked successful")
 			}
 		}
+	}
+}
+
+func TestInboundsDecodesAndMetrics(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		raw     string
+		wantErr bool
+		want    map[string]float64
+	}{
+		{
+			name: "active and disabled",
+			raw:  `[{"tag":"vless-443","enable":true},{"tag":"vmess-80","enable":false}]`,
+			want: map[string]float64{"inbound=vless-443;": 1, "inbound=vmess-80;": 0},
+		},
+		{
+			name: "preserves tag literals with whitespace",
+			raw:  `[{"tag":" inbound-spaced ","enable":true},{"tag":"inbound-spaced","enable":false}]`,
+			want: map[string]float64{"inbound= inbound-spaced ;": 1, "inbound=inbound-spaced;": 0},
+		},
+		{
+			name: "empty array",
+			raw:  `[]`,
+			want: map[string]float64{},
+		},
+		{
+			name:    "missing tag",
+			raw:     `[{"enable":true}]`,
+			wantErr: true,
+		},
+		{
+			name:    "empty tag",
+			raw:     `[{"tag":" ","enable":true}]`,
+			wantErr: true,
+		},
+		{
+			name:    "duplicate tag",
+			raw:     `[{"tag":"inb","enable":true},{"tag":"inb","enable":false}]`,
+			wantErr: true,
+		},
+		{
+			name:    "missing enable",
+			raw:     `[{"tag":"inb"}]`,
+			wantErr: true,
+		},
+		{
+			name:    "not array",
+			raw:     `{}`,
+			wantErr: true,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			inbounds, err := decodeInbounds(json.RawMessage(tc.raw))
+			if (err != nil) != tc.wantErr {
+				t.Fatalf("err=%v, wantErr=%v", err, tc.wantErr)
+			}
+			if tc.wantErr {
+				return
+			}
+			m := inboundStatusMetrics(inbounds)
+			vals := sampleValues(t, m, "xui_inbound_enabled")
+			if len(vals) != len(tc.want) {
+				t.Fatalf("got %v, want %v", vals, tc.want)
+			}
+			for k, v := range tc.want {
+				if vals[k] != v {
+					t.Fatalf("key %s: got %v, want %v", k, vals[k], v)
+				}
+			}
+		})
 	}
 }

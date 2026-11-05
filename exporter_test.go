@@ -370,11 +370,53 @@ func TestOnlineClientsMetric(t *testing.T) {
 	if len(valsWith) != 1 || valsWith[""] != 5 {
 		t.Fatalf("expected 5 online clients, got %v", valsWith)
 	}
+	if sampleValues(t, mWith, "xui_exporter_scrape_success")["source=api;"] != 1 {
+		t.Fatal("expected successful API scrape")
+	}
 
 	eErr := &Exporter{Panel: fakePanelWithOnlines{fakePanel: fakePanel{cfg: &Config{}}, onlinesErr: errors.New("fail")}, Timeout: time.Second}
 	mErr := eErr.scrape(context.Background())
 	valsErr := sampleValues(t, mErr, "xui_online_clients")
 	if len(valsErr) != 0 {
 		t.Fatalf("expected no online clients on error, got %v", valsErr)
+	}
+	if sampleValues(t, mErr, "xui_exporter_scrape_success")["source=api;"] != 0 {
+		t.Fatal("expected failed API scrape on onlines error")
+	}
+}
+
+type fakePanelWithInbounds struct {
+	fakePanel
+	inbounds    []*InboundStatus
+	inboundsErr error
+}
+
+func (f fakePanelWithInbounds) Inbounds(context.Context) ([]*InboundStatus, error) {
+	return f.inbounds, f.inboundsErr
+}
+
+func TestInboundEnabledMetric(t *testing.T) {
+	inbs := []*InboundStatus{
+		{Tag: "vless-in", Enable: true},
+		{Tag: "vmess-in", Enable: false},
+	}
+	eWith := &Exporter{Panel: fakePanelWithInbounds{fakePanel: fakePanel{cfg: &Config{}}, inbounds: inbs}, Timeout: time.Second}
+	mWith := eWith.scrape(context.Background())
+	valsWith := sampleValues(t, mWith, "xui_inbound_enabled")
+	if len(valsWith) != 2 || valsWith["inbound=vless-in;"] != 1 || valsWith["inbound=vmess-in;"] != 0 {
+		t.Fatalf("unexpected inbounds metric: %v", valsWith)
+	}
+	if sampleValues(t, mWith, "xui_exporter_scrape_success")["source=api;"] != 1 {
+		t.Fatal("expected successful API scrape")
+	}
+
+	eErr := &Exporter{Panel: fakePanelWithInbounds{fakePanel: fakePanel{cfg: &Config{}}, inboundsErr: errors.New("fail")}, Timeout: time.Second}
+	mErr := eErr.scrape(context.Background())
+	valsErr := sampleValues(t, mErr, "xui_inbound_enabled")
+	if len(valsErr) != 0 {
+		t.Fatalf("expected no inbounds metric on error, got %v", valsErr)
+	}
+	if sampleValues(t, mErr, "xui_exporter_scrape_success")["source=api;"] != 0 {
+		t.Fatal("expected failed API scrape on inbounds error")
 	}
 }
