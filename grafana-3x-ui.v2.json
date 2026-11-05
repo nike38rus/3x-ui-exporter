@@ -3,7 +3,7 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "3x-ui-exporter",
-    "generation": 30,
+    "generation": 47,
     "creationTimestamp": "2026-10-14T17:05:36Z",
     "labels": {},
     "annotations": {}
@@ -377,9 +377,9 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "8 * sum by (instance,inbound) (rate(xui_inbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",inbound!~\"api|node_egress_.*\"}[$__rate_interval]))",
+                        "expr": "8 * (\n  sum by (instance,inbound) (\n    rate(xui_inbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",inbound!~\"api|node_egress_.*\"}[$__rate_interval])\n  )\n  * on (instance,inbound) group_left(remark,node)\n  (0 * xui_inbound_enabled{job=\"xui-exporter\",instance=\"${instance}\"} + 1)\n)",
                         "interval": "5s",
-                        "legendFormat": "{{inbound}}",
+                        "legendFormat": "{{remark}}",
                         "range": true
                       },
                       "labels": {
@@ -399,7 +399,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.4",
+            "version": "13.3.0",
             "spec": {
               "options": {
                 "legend": {
@@ -471,212 +471,6 @@
                     },
                     "thresholdsStyle": {
                       "mode": "off"
-                    }
-                  }
-                },
-                "overrides": []
-              }
-            }
-          }
-        }
-      },
-      "panel-13": {
-        "kind": "Panel",
-        "spec": {
-          "id": 13,
-          "title": "Traffic distribution",
-          "description": "",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "prometheus",
-                      "version": "v0",
-                      "spec": {
-                        "editorMode": "code",
-                        "exemplar": false,
-                        "expr": "sort_desc(sum by (instance,inbound) (increase(xui_inbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",inbound!~\"api|node_egress_.*\"}[$__range])))",
-                        "instant": true,
-                        "legendFormat": "{{inbound}}",
-                        "range": false
-                      },
-                      "labels": {
-                        "grafana.app/export-label": "prometheus-1",
-                        "grafana.app/export-datasource-name": "prometheus-infra"
-                      }
-                    },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "bargauge",
-            "version": "13.2.4",
-            "spec": {
-              "options": {
-                "displayMode": "gradient",
-                "legend": {
-                  "calcs": [],
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": false
-                },
-                "maxVizHeight": 32,
-                "minVizHeight": 16,
-                "minVizWidth": 8,
-                "namePlacement": "left",
-                "orientation": "horizontal",
-                "reduceOptions": {
-                  "calcs": [
-                    "lastNotNull"
-                  ],
-                  "fields": "",
-                  "values": false
-                },
-                "showUnfilled": true,
-                "sizing": "manual",
-                "valueMode": "color"
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "unit": "decbytes",
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      }
-                    ]
-                  },
-                  "color": {
-                    "mode": "thresholds"
-                  }
-                },
-                "overrides": []
-              }
-            }
-          }
-        }
-      },
-      "panel-14": {
-        "kind": "Panel",
-        "spec": {
-          "id": 14,
-          "title": "Traffic direction",
-          "description": "",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "prometheus",
-                      "version": "v0",
-                      "spec": {
-                        "editorMode": "code",
-                        "exemplar": false,
-                        "expr": "sum(increase(xui_inbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",inbound!~\"api|node_egress_.*\",direction=\"uplink\"}[$__range]))",
-                        "instant": true,
-                        "legendFormat": "Uplink",
-                        "range": false
-                      },
-                      "labels": {
-                        "grafana.app/export-label": "prometheus-1",
-                        "grafana.app/export-datasource-name": "prometheus-infra"
-                      }
-                    },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                },
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "prometheus",
-                      "version": "v0",
-                      "spec": {
-                        "editorMode": "code",
-                        "exemplar": false,
-                        "expr": "sum(increase(xui_inbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",inbound!~\"api|node_egress_.*\",direction=\"downlink\"}[$__range]))",
-                        "instant": true,
-                        "legendFormat": "Downlink",
-                        "range": false
-                      },
-                      "labels": {
-                        "grafana.app/export-label": "prometheus-1",
-                        "grafana.app/export-datasource-name": "prometheus-infra"
-                      }
-                    },
-                    "refId": "B",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [],
-              "queryOptions": {}
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "piechart",
-            "version": "13.2.4",
-            "spec": {
-              "options": {
-                "legend": {
-                  "displayMode": "table",
-                  "placement": "right",
-                  "showLegend": true,
-                  "values": [
-                    "percent",
-                    "value"
-                  ]
-                },
-                "pieType": "donut",
-                "reduceOptions": {
-                  "calcs": [
-                    "lastNotNull"
-                  ],
-                  "fields": "",
-                  "values": false
-                },
-                "sort": "desc",
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "single",
-                  "sort": "none"
-                }
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "unit": "decbytes",
-                  "color": {
-                    "mode": "palette-classic",
-                    "fixedColor": "#73BF69"
-                  },
-                  "custom": {
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
                     }
                   }
                 },
@@ -1197,7 +991,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "state-timeline",
-            "version": "13.2.4",
+            "version": "13.3.0",
             "spec": {
               "options": {
                 "alignValue": "left",
@@ -1362,7 +1156,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.4",
+            "version": "13.3.0",
             "spec": {
               "options": {
                 "legend": {
@@ -1918,6 +1712,7 @@
                 "defaults": {
                   "unit": "percentunit",
                   "min": 0,
+                  "max": 1,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
@@ -2043,7 +1838,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.4",
+            "version": "13.3.0",
             "spec": {
               "options": {
                 "legend": {
@@ -2291,7 +2086,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.4",
+            "version": "13.3.0",
             "spec": {
               "options": {
                 "legend": {
@@ -2415,7 +2210,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.4",
+            "version": "13.3.0",
             "spec": {
               "options": {
                 "legend": {
@@ -2564,7 +2359,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.4",
+            "version": "13.3.0",
             "spec": {
               "options": {
                 "legend": {
@@ -2689,7 +2484,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.4",
+            "version": "13.3.0",
             "spec": {
               "options": {
                 "legend": {
@@ -2814,7 +2609,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.4",
+            "version": "13.3.0",
             "spec": {
               "options": {
                 "legend": {
@@ -3779,7 +3574,7 @@
           "links": [
             {
               "title": "Collection history",
-              "url": "/d/${__dashboard.uid}/?viewPanel=panel-23&from=${__from}&to=${__to}&${__all_variables}",
+              "url": "/d/${__dashboard.uid}/?viewPanel=panel-23&${__all_variables}",
               "targetBlank": false
             }
           ],
@@ -3883,12 +3678,12 @@
           "links": [
             {
               "title": "Availability history",
-              "url": "/d/${__dashboard.uid}/?viewPanel=panel-25&from=${__from}&to=${__to}&${__all_variables}",
+              "url": "/d/${__dashboard.uid}/?viewPanel=panel-25&${__all_variables}",
               "targetBlank": false
             },
             {
               "title": "Selected outbounds",
-              "url": "/d/${__dashboard.uid}/?viewPanel=panel-17&from=${__from}&to=${__to}&${__all_variables}",
+              "url": "/d/${__dashboard.uid}/?viewPanel=panel-17&${__all_variables}",
               "targetBlank": false
             }
           ],
@@ -3916,29 +3711,6 @@
                       }
                     },
                     "refId": "A",
-                    "hidden": false
-                  }
-                },
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "prometheus",
-                      "version": "v0",
-                      "spec": {
-                        "editorMode": "code",
-                        "expr": "sum(xui_balancer_outbound_available{job=\"xui-exporter\",instance=\"${instance}\"} == bool 0) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
-                        "instant": true,
-                        "legendFormat": "Unavailable",
-                        "range": false
-                      },
-                      "labels": {
-                        "grafana.app/export-label": "prometheus-1",
-                        "grafana.app/export-datasource-name": "prometheus-infra"
-                      }
-                    },
-                    "refId": "B",
                     "hidden": false
                   }
                 },
@@ -3985,6 +3757,29 @@
                       }
                     },
                     "refId": "D",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "sum(xui_balancer_outbound_available{job=\"xui-exporter\",instance=\"${instance}\"} == bool 0) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+                        "instant": true,
+                        "legendFormat": "Unavailable",
+                        "range": false
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "prometheus-1",
+                        "grafana.app/export-datasource-name": "prometheus-infra"
+                      }
+                    },
+                    "refId": "B",
                     "hidden": false
                   }
                 }
@@ -4224,7 +4019,7 @@
           "links": [
             {
               "title": "Identify balancer and selected role",
-              "url": "/d/${__dashboard.uid}/?viewPanel=panel-17&from=${__from}&to=${__to}&${__all_variables}",
+              "url": "/d/${__dashboard.uid}/?viewPanel=panel-17&${__all_variables}",
               "targetBlank": false
             }
           ],
@@ -4482,12 +4277,12 @@
           "links": [
             {
               "title": "Inbound traffic details",
-              "url": "/d/${__dashboard.uid}/?viewPanel=panel-12&from=${__from}&to=${__to}&${__all_variables}",
+              "url": "/d/${__dashboard.uid}/?viewPanel=panel-12&${__all_variables}",
               "targetBlank": false
             },
             {
               "title": "Outbound traffic details",
-              "url": "/d/${__dashboard.uid}/?viewPanel=panel-9&from=${__from}&to=${__to}&${__all_variables}",
+              "url": "/d/${__dashboard.uid}/?viewPanel=panel-9&${__all_variables}",
               "targetBlank": false
             }
           ],
@@ -4725,7 +4520,7 @@
           "links": [
             {
               "title": "Open details",
-              "url": "/d/${__dashboard.uid}/?viewPanel=panel-1&from=${__from}&to=${__to}&${__all_variables}",
+              "url": "/d/${__dashboard.uid}/?viewPanel=panel-1&${__all_variables}",
               "targetBlank": false
             }
           ],
@@ -5287,7 +5082,7 @@
           "links": [
             {
               "title": "Identify outbound and inspect health",
-              "url": "/d/${__dashboard.uid}/?viewPanel=panel-1&from=${__from}&to=${__to}&${__all_variables}",
+              "url": "/d/${__dashboard.uid}/?viewPanel=panel-1&${__all_variables}",
               "targetBlank": false
             }
           ],
@@ -5604,7 +5399,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.4",
+            "version": "13.3.0",
             "spec": {
               "options": {
                 "legend": {
@@ -5751,7 +5546,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "13.2.4",
+            "version": "13.3.0",
             "spec": {
               "options": {
                 "legend": {
@@ -6406,11 +6201,993 @@
                     ]
                   },
                   "color": {
+                    "mode": "fixed",
+                    "fixedColor": "blue"
+                  },
+                  "noValue": "No data"
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-62": {
+        "kind": "Panel",
+        "spec": {
+          "id": 62,
+          "title": "Administrative state",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "xui_inbound_enabled{instance=\"$instance\",job=\"xui-exporter\",node=\"local\"}",
+                        "legendFormat": "{{remark}}",
+                        "range": true
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "prometheus-1",
+                        "grafana.app/export-datasource-name": "prometheus-infra"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "state-timeline",
+            "version": "13.3.0",
+            "spec": {
+              "options": {
+                "alignValue": "left",
+                "legend": {
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": false
+                },
+                "mergeValues": true,
+                "rowHeight": 0.9,
+                "showValue": "never",
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "single",
+                  "sort": "none"
+                }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "mappings": [
+                    {
+                      "type": "value",
+                      "options": {
+                        "0": {
+                          "text": "Disabled",
+                          "color": "red",
+                          "index": 1
+                        },
+                        "1": {
+                          "text": "Enabled",
+                          "color": "green",
+                          "index": 0
+                        }
+                      }
+                    }
+                  ],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "fixed"
+                  },
+                  "custom": {
+                    "axisPlacement": "auto",
+                    "fillOpacity": 70,
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineWidth": 0,
+                    "spanNulls": false
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-63": {
+        "kind": "Panel",
+        "spec": {
+          "id": 63,
+          "title": "Traffic distribution",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "exemplar": false,
+                        "expr": "sort_desc(\n  sum by (instance,inbound) (\n    increase(xui_inbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",inbound!~\"api|node_egress_.*\"}[$__range])\n  )\n  * on (instance,inbound) group_left(remark,node)\n  (0 * xui_inbound_enabled{job=\"xui-exporter\",instance=\"${instance}\"} + 1)\n)",
+                        "instant": true,
+                        "legendFormat": "{{remark}}",
+                        "range": false
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "prometheus-1",
+                        "grafana.app/export-datasource-name": "prometheus-infra"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "bargauge",
+            "version": "13.3.0",
+            "spec": {
+              "options": {
+                "displayMode": "basic",
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": false
+                },
+                "maxVizHeight": 32,
+                "minVizHeight": 16,
+                "minVizWidth": 8,
+                "namePlacement": "left",
+                "orientation": "horizontal",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showUnfilled": true,
+                "sizing": "manual",
+                "textMode": "value_and_name",
+                "valueMode": "color"
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "decbytes",
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "fieldMinMax": true
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-64": {
+        "kind": "Panel",
+        "spec": {
+          "id": 64,
+          "title": "Availability history",
+          "description": "Remote cluster node availability history over time. Green indicates online based on master panel heartbeat probes; red indicates offline. Missing data indicates collection failure or unconfigured nodes.",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "xui_node_online{job=\"xui-exporter\",instance=\"${instance}\"}",
+                        "legendFormat": "{{node}}",
+                        "range": true
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "prometheus-1",
+                        "grafana.app/export-datasource-name": "prometheus-infra"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "state-timeline",
+            "version": "13.3.0",
+            "spec": {
+              "options": {
+                "alignValue": "left",
+                "legend": {
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": false
+                },
+                "mergeValues": true,
+                "rowHeight": 0.9,
+                "showValue": "never",
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "single",
+                  "sort": "none"
+                }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "mappings": [
+                    {
+                      "type": "value",
+                      "options": {
+                        "0": {
+                          "text": "Down",
+                          "color": "red",
+                          "index": 0
+                        },
+                        "1": {
+                          "text": "Up",
+                          "color": "green",
+                          "index": 1
+                        }
+                      }
+                    }
+                  ],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "continuous-GrYlRd"
+                  },
+                  "custom": {
+                    "axisPlacement": "auto",
+                    "fillOpacity": 70,
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineWidth": 0,
+                    "spanNulls": false
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-65": {
+        "kind": "Panel",
+        "spec": {
+          "id": 65,
+          "title": "Connected nodes",
+          "description": "Online / total remote cluster nodes. Based on master panel heartbeat status. Numeric value is the availability fraction used for color. No data when no remote nodes are configured or panel API is unreachable.",
+          "links": [
+            {
+              "title": "Availability history",
+              "url": "/d/${__dashboard.uid}/?viewPanel=panel-64&${__all_variables}"
+            }
+          ],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "(sum(xui_node_online{job=\"xui-exporter\",instance=\"${instance}\"}) / count(xui_node_online{job=\"xui-exporter\",instance=\"${instance}\"}))\n* on() group_left(summary)\nlabel_join(\n  count_values(\"healthy\", sum(xui_node_online{job=\"xui-exporter\",instance=\"${instance}\"}))\n  * on() group_left(total)\n  count_values(\"total\", count(xui_node_online{job=\"xui-exporter\",instance=\"${instance}\"})),\n  \"summary\", \"/\", \"healthy\", \"total\"\n)\nand on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+                        "instant": true,
+                        "legendFormat": "{{summary}}",
+                        "range": false
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "prometheus-1",
+                        "grafana.app/export-datasource-name": "prometheus-infra"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {
+                "maxDataPoints": 5000,
+                "interval": "5s"
+              }
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "stat",
+            "version": "13.3.0",
+            "spec": {
+              "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "orientation": "horizontal",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "text": {
+                  "titleSize": 32,
+                  "valueSize": 42
+                },
+                "textMode": "name",
+                "wideLayout": false
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "short",
+                  "decimals": 0,
+                  "min": 0,
+                  "max": 1,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "red"
+                      },
+                      {
+                        "value": 1,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
                     "mode": "thresholds"
                   },
                   "noValue": "No data"
                 },
                 "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-66": {
+        "kind": "Panel",
+        "spec": {
+          "id": 66,
+          "title": "Latency",
+          "description": "Round-trip time (RTT) between master panel and remote cluster nodes. Based on master panel heartbeat probes. Missing data indicates offline nodes or heartbeat probe timeout.",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "xui_node_latency_seconds{job=\"xui-exporter\",instance=\"${instance}\"}",
+                        "legendFormat": "{{node}}",
+                        "range": true
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "prometheus-1",
+                        "grafana.app/export-datasource-name": "prometheus-infra"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "timeseries",
+            "version": "13.3.0",
+            "spec": {
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": false
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "none"
+                }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "s",
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      },
+                      {
+                        "value": 80,
+                        "color": "red"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-67": {
+        "kind": "Panel",
+        "spec": {
+          "id": 67,
+          "title": "Inventory",
+          "description": "Inventory of remote cluster nodes: Xray core process state, system uptime, configured inbounds, and software versions.",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "exemplar": false,
+                        "expr": "xui_node_xray_state{job=\"xui-exporter\",instance=\"${instance}\"} == 1",
+                        "format": "table",
+                        "instant": true,
+                        "legendFormat": "__auto",
+                        "range": false
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "prometheus-1",
+                        "grafana.app/export-datasource-name": "prometheus-infra"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "xui_node_uptime_seconds{job=\"xui-exporter\",instance=\"${instance}\"} > 0",
+                        "format": "table",
+                        "instant": false,
+                        "legendFormat": "__auto",
+                        "range": true
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "prometheus-1",
+                        "grafana.app/export-datasource-name": "prometheus-infra"
+                      }
+                    },
+                    "refId": "B",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "count by (node) (xui_inbound_enabled{job=\"xui-exporter\",instance=\"${instance}\",node!=\"local\"})",
+                        "format": "table",
+                        "instant": false,
+                        "legendFormat": "__auto",
+                        "range": true
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "prometheus-1",
+                        "grafana.app/export-datasource-name": "prometheus-infra"
+                      }
+                    },
+                    "refId": "C",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "xui_node_info{job=\"xui-exporter\",instance=\"${instance}\"}",
+                        "format": "table",
+                        "instant": false,
+                        "legendFormat": "__auto",
+                        "range": true
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "prometheus-1",
+                        "grafana.app/export-datasource-name": "prometheus-infra"
+                      }
+                    },
+                    "refId": "D",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [
+                {
+                  "kind": "Transformation",
+                  "group": "joinByField",
+                  "spec": {
+                    "options": {
+                      "byField": "node",
+                      "mode": "outer"
+                    }
+                  }
+                },
+                {
+                  "kind": "Transformation",
+                  "group": "organize",
+                  "spec": {
+                    "options": {
+                      "excludeByName": {
+                        "Time": true,
+                        "Time 1": true,
+                        "Time 2": true,
+                        "Time 3": true,
+                        "Time 4": true,
+                        "Value #A": true,
+                        "Value #D": true,
+                        "__name__": true,
+                        "__name__ 1": true,
+                        "__name__ 2": true,
+                        "__name__ 3": true,
+                        "instance": true,
+                        "instance 1": true,
+                        "instance 2": true,
+                        "instance 3": true,
+                        "job": true,
+                        "job 1": true,
+                        "job 2": true,
+                        "job 3": true
+                      },
+                      "includeByName": {},
+                      "indexByName": {
+                        "Time 1": 8,
+                        "Time 2": 12,
+                        "Time 3": 16,
+                        "Time 4": 17,
+                        "Value #A": 7,
+                        "Value #B": 2,
+                        "Value #C": 3,
+                        "Value #D": 6,
+                        "__name__ 1": 9,
+                        "__name__ 2": 13,
+                        "__name__ 3": 18,
+                        "instance 1": 10,
+                        "instance 2": 14,
+                        "instance 3": 19,
+                        "job 1": 11,
+                        "job 2": 15,
+                        "job 3": 20,
+                        "node": 0,
+                        "panel_version": 4,
+                        "state": 1,
+                        "xray_version": 5
+                      },
+                      "orderByMode": "manual",
+                      "renameByName": {
+                        "Time 1": "",
+                        "Value #A": "",
+                        "Value #B": "Uptime",
+                        "Value #C": "Inbounds",
+                        "job 2": "",
+                        "node": "Node",
+                        "panel_version": "Panel version",
+                        "state": "Xray Core",
+                        "xray_version": "Xray version"
+                      }
+                    }
+                  }
+                }
+              ],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "table",
+            "version": "13.3.0",
+            "spec": {
+              "options": {
+                "cellHeight": "sm",
+                "showHeader": true,
+                "zebraStriping": false
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "red"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "custom": {
+                    "align": "auto",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "footer": {
+                      "reducers": []
+                    },
+                    "inspect": false
+                  }
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Uptime"
+                    },
+                    "properties": [
+                      {
+                        "id": "unit",
+                        "value": "dtdurations"
+                      },
+                      {
+                        "id": "noValue",
+                        "value": "-"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Xray version"
+                    },
+                    "properties": [
+                      {
+                        "id": "noValue",
+                        "value": "-"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Xray Core"
+                    },
+                    "properties": [
+                      {
+                        "id": "noValue",
+                        "value": "offline"
+                      },
+                      {
+                        "id": "mappings",
+                        "value": [
+                          {
+                            "options": {
+                              "running": {
+                                "color": "green",
+                                "index": 0
+                              },
+                              "stop": {
+                                "color": "orange",
+                                "index": 1
+                              }
+                            },
+                            "type": "value"
+                          }
+                        ]
+                      },
+                      {
+                        "id": "custom.cellOptions",
+                        "value": {
+                          "type": "color-text"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "panel-68": {
+        "kind": "Panel",
+        "spec": {
+          "id": 68,
+          "title": "Resources",
+          "description": "Remote cluster node CPU and memory utilization percent over time. Missing data indicates offline nodes.",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "xui_node_cpu_percent{job=\"xui-exporter\",instance=\"${instance}\"}",
+                        "legendFormat": "{{node}} · CPU",
+                        "range": true
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "prometheus-1",
+                        "grafana.app/export-datasource-name": "prometheus-infra"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "xui_node_memory_percent{job=\"xui-exporter\",instance=\"${instance}\"}",
+                        "instant": false,
+                        "legendFormat": "{{node}} · RAM",
+                        "range": true
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "prometheus-1",
+                        "grafana.app/export-datasource-name": "prometheus-infra"
+                      }
+                    },
+                    "refId": "B",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "timeseries",
+            "version": "13.3.0",
+            "spec": {
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": false
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "none"
+                }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "percent",
+                  "decimals": 1,
+                  "min": -100,
+                  "max": 100,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": true,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  }
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byRegexp",
+                      "scope": "series",
+                      "options": "/RAM/"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.transform",
+                        "value": "negative-Y"
+                      }
+                    ]
+                  }
+                ]
               }
             }
           }
@@ -6554,7 +7331,7 @@
                       "spec": {
                         "x": 0,
                         "y": 0,
-                        "width": 5,
+                        "width": 4,
                         "height": 3,
                         "element": {
                           "kind": "ElementReference",
@@ -6565,9 +7342,9 @@
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 5,
+                        "x": 4,
                         "y": 0,
-                        "width": 5,
+                        "width": 4,
                         "height": 3,
                         "element": {
                           "kind": "ElementReference",
@@ -6578,9 +7355,9 @@
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 10,
+                        "x": 8,
                         "y": 0,
-                        "width": 4,
+                        "width": 3,
                         "height": 3,
                         "element": {
                           "kind": "ElementReference",
@@ -6591,62 +7368,23 @@
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 14,
+                        "x": 11,
                         "y": 0,
-                        "width": 5,
-                        "height": 3,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-36"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 19,
-                        "y": 0,
-                        "width": 5,
-                        "height": 3,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-37"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 0,
-                        "y": 3,
-                        "width": 7,
-                        "height": 4,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-41"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 7,
-                        "y": 3,
-                        "width": 7,
-                        "height": 4,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-47"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 14,
-                        "y": 3,
                         "width": 3,
-                        "height": 4,
+                        "height": 3,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-65"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 14,
+                        "y": 0,
+                        "width": 3,
+                        "height": 3,
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-61"
@@ -6657,12 +7395,25 @@
                       "kind": "GridLayoutItem",
                       "spec": {
                         "x": 17,
-                        "y": 3,
-                        "width": 7,
-                        "height": 4,
+                        "y": 0,
+                        "width": 3,
+                        "height": 3,
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-60"
+                          "name": "panel-37"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 20,
+                        "y": 0,
+                        "width": 4,
+                        "height": 3,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-36"
                         }
                       }
                     },
@@ -6670,9 +7421,22 @@
                       "kind": "GridLayoutItem",
                       "spec": {
                         "x": 0,
-                        "y": 7,
-                        "width": 12,
-                        "height": 6,
+                        "y": 3,
+                        "width": 8,
+                        "height": 5,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-41"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 8,
+                        "y": 3,
+                        "width": 16,
+                        "height": 5,
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-43"
@@ -6682,10 +7446,23 @@
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 12,
-                        "y": 7,
-                        "width": 12,
-                        "height": 6,
+                        "x": 0,
+                        "y": 8,
+                        "width": 8,
+                        "height": 5,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-47"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 8,
+                        "y": 8,
+                        "width": 16,
+                        "height": 5,
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-50"
@@ -6697,11 +7474,130 @@
                       "spec": {
                         "x": 0,
                         "y": 13,
-                        "width": 24,
+                        "width": 8,
+                        "height": 6,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-60"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 8,
+                        "y": 13,
+                        "width": 16,
                         "height": 6,
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-44"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "kind": "RowsLayoutRow",
+            "spec": {
+              "title": "Inbounds",
+              "collapse": true,
+              "layout": {
+                "kind": "GridLayout",
+                "spec": {
+                  "items": [
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 24,
+                        "height": 8,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-12"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 0,
+                        "y": 8,
+                        "width": 12,
+                        "height": 7,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-63"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 12,
+                        "y": 8,
+                        "width": 12,
+                        "height": 7,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-62"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "kind": "RowsLayoutRow",
+            "spec": {
+              "title": "Outbounds",
+              "collapse": true,
+              "layout": {
+                "kind": "GridLayout",
+                "spec": {
+                  "items": [
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 24,
+                        "height": 8,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-9"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 0,
+                        "y": 8,
+                        "width": 12,
+                        "height": 8,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-10"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 12,
+                        "y": 8,
+                        "width": 12,
+                        "height": 8,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-11"
                         }
                       }
                     }
@@ -6870,112 +7766,6 @@
           {
             "kind": "RowsLayoutRow",
             "spec": {
-              "title": "Outbounds",
-              "collapse": true,
-              "layout": {
-                "kind": "GridLayout",
-                "spec": {
-                  "items": [
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 0,
-                        "y": 0,
-                        "width": 24,
-                        "height": 8,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-9"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 0,
-                        "y": 8,
-                        "width": 12,
-                        "height": 8,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-10"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 12,
-                        "y": 8,
-                        "width": 12,
-                        "height": 8,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-11"
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          {
-            "kind": "RowsLayoutRow",
-            "spec": {
-              "title": "Inbounds",
-              "collapse": true,
-              "layout": {
-                "kind": "GridLayout",
-                "spec": {
-                  "items": [
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 0,
-                        "y": 0,
-                        "width": 24,
-                        "height": 8,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-12"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 0,
-                        "y": 8,
-                        "width": 12,
-                        "height": 8,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-13"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 12,
-                        "y": 8,
-                        "width": 12,
-                        "height": 8,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-14"
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          {
-            "kind": "RowsLayoutRow",
-            "spec": {
               "title": "Balancers",
               "collapse": true,
               "layout": {
@@ -6987,7 +7777,7 @@
                       "spec": {
                         "x": 0,
                         "y": 0,
-                        "width": 11,
+                        "width": 12,
                         "height": 8,
                         "element": {
                           "kind": "ElementReference",
@@ -6998,9 +7788,9 @@
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 11,
+                        "x": 12,
                         "y": 0,
-                        "width": 13,
+                        "width": 12,
                         "height": 8,
                         "element": {
                           "kind": "ElementReference",
@@ -7175,6 +7965,72 @@
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-34"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "kind": "RowsLayoutRow",
+            "spec": {
+              "title": "Connected nodes",
+              "collapse": true,
+              "layout": {
+                "kind": "GridLayout",
+                "spec": {
+                  "items": [
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 12,
+                        "height": 8,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-64"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 12,
+                        "y": 0,
+                        "width": 12,
+                        "height": 8,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-66"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 0,
+                        "y": 8,
+                        "width": 12,
+                        "height": 8,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-67"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 12,
+                        "y": 8,
+                        "width": 12,
+                        "height": 8,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-68"
                         }
                       }
                     }
