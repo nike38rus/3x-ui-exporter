@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"sort"
 	"strings"
@@ -25,11 +26,30 @@ type OnlineSource interface {
 
 type InboundStatus struct {
 	Tag    string
+	Remark string
+	NodeID *int
 	Enable bool
 }
 
 type InboundSource interface {
 	Inbounds(context.Context) ([]*InboundStatus, error)
+}
+
+type NodeStatus struct {
+	ID           int
+	Name         string
+	Status       string
+	LatencyMs    int
+	XrayState    string
+	CPUPct       *float64
+	MemPct       *float64
+	UptimeSecs   *uint64
+	PanelVersion string
+	XrayVersion  string
+}
+
+type NodeSource interface {
+	Nodes(context.Context) ([]*NodeStatus, error)
 }
 
 func (p *Panel) Status(ctx context.Context) (*PanelStatus, error) {
@@ -56,9 +76,82 @@ func (p *Panel) Inbounds(ctx context.Context) ([]*InboundStatus, error) {
 	return decodeInbounds(raw)
 }
 
+func (p *Panel) Nodes(ctx context.Context) ([]*NodeStatus, error) {
+	raw, err := p.object(ctx, http.MethodGet, "/panel/api/nodes/list")
+	if err != nil {
+		return nil, err
+	}
+	return decodeNodes(raw)
+}
+
+func decodeNodes(raw json.RawMessage) ([]*NodeStatus, error) {
+	type rawNode struct {
+		ID           *int     `json:"id"`
+		Name         *string  `json:"name"`
+		Status       *string  `json:"status"`
+		LatencyMs    *int     `json:"latencyMs"`
+		XrayState    *string  `json:"xrayState"`
+		CPUPct       *float64 `json:"cpuPct"`
+		MemPct       *float64 `json:"memPct"`
+		UptimeSecs   *uint64  `json:"uptimeSecs"`
+		PanelVersion *string  `json:"panelVersion"`
+		XrayVersion  *string  `json:"xrayVersion"`
+	}
+	var list []rawNode
+	if json.Unmarshal(raw, &list) != nil {
+		return nil, errors.New("invalid nodes array")
+	}
+	seenID := map[int]bool{}
+	seenName := map[string]bool{}
+	var result []*NodeStatus
+	for _, item := range list {
+		if item.ID == nil || item.Name == nil {
+			return nil, errors.New("invalid node entry")
+		}
+		name := strings.TrimSpace(*item.Name)
+		if name == "" || seenID[*item.ID] || seenName[name] {
+			return nil, errors.New("empty, invalid or duplicate node")
+		}
+		seenID[*item.ID] = true
+		seenName[name] = true
+
+		s := &NodeStatus{
+			ID:     *item.ID,
+			Name:   name,
+			CPUPct: item.CPUPct,
+			MemPct: item.MemPct,
+		}
+		if item.Status != nil {
+			s.Status = strings.TrimSpace(*item.Status)
+		}
+		if item.LatencyMs != nil {
+			s.LatencyMs = *item.LatencyMs
+		}
+		if item.XrayState != nil {
+			s.XrayState = strings.TrimSpace(*item.XrayState)
+		}
+		if item.UptimeSecs != nil {
+			s.UptimeSecs = item.UptimeSecs
+		}
+		if item.PanelVersion != nil {
+			s.PanelVersion = strings.TrimSpace(*item.PanelVersion)
+		}
+		if item.XrayVersion != nil {
+			s.XrayVersion = strings.TrimSpace(*item.XrayVersion)
+		}
+		result = append(result, s)
+	}
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].ID < result[j].ID
+	})
+	return result, nil
+}
+
 func decodeInbounds(raw json.RawMessage) ([]*InboundStatus, error) {
 	type rawInbound struct {
 		Tag    *string `json:"tag"`
+		Remark *string `json:"remark"`
+		NodeID *int    `json:"nodeId"`
 		Enable *bool   `json:"enable"`
 	}
 	var list []rawInbound
@@ -76,8 +169,14 @@ func decodeInbounds(raw json.RawMessage) ([]*InboundStatus, error) {
 			return nil, errors.New("empty or duplicate inbound tag")
 		}
 		seen[tag] = true
+		remark := ""
+		if item.Remark != nil {
+			remark = strings.TrimSpace(*item.Remark)
+		}
 		result = append(result, &InboundStatus{
 			Tag:    tag,
+			Remark: remark,
+			NodeID: item.NodeID,
 			Enable: *item.Enable,
 		})
 	}
@@ -87,10 +186,52 @@ func decodeInbounds(raw json.RawMessage) ([]*InboundStatus, error) {
 	return result, nil
 }
 
-func inboundStatusMetrics(inbounds []*InboundStatus) samples {
+func nodeMetrics(nodes []*NodeStatus) samples {
+	var result samples
+	for _, n := range nodes {
+		labels := []string{"node"}
+		isOnline := n.Status == "online"
+		gauge(&result, "xui_node_online", "Whether node is reported online by master panel heartbeat.", number(isOnline), labels, n.Name)
+		if isOnline && n.LatencyMs >= 0 {
+			gauge(&result, "xui_node_latency_seconds", "Round-trip latency between master panel and node in seconds.", float64(n.LatencyMs)/1000, labels, n.Name)
+		}
+		if n.XrayState != "" {
+			for _, state := range []string{"running", "stop", "error"} {
+				gauge(&result, "xui_node_xray_state", "Remote node Xray core state captured during heartbeat.", number(n.XrayState == state), []string{"node", "state"}, n.Name, state)
+			}
+		}
+		if n.CPUPct != nil && *n.CPUPct >= 0 {
+			gauge(&result, "xui_node_cpu_percent", "Remote node CPU utilization percent.", *n.CPUPct, labels, n.Name)
+		}
+		if n.MemPct != nil && *n.MemPct >= 0 {
+			gauge(&result, "xui_node_memory_percent", "Remote node memory utilization percent.", *n.MemPct, labels, n.Name)
+		}
+		if n.UptimeSecs != nil {
+			gauge(&result, "xui_node_uptime_seconds", "Remote node uptime in seconds.", float64(*n.UptimeSecs), labels, n.Name)
+		}
+		if n.PanelVersion != "" || n.XrayVersion != "" {
+			gauge(&result, "xui_node_info", "Remote node version metadata.", 1, []string{"node", "xray_version", "panel_version"}, n.Name, n.XrayVersion, n.PanelVersion)
+		}
+	}
+	return result
+}
+
+func inboundStatusMetrics(inbounds []*InboundStatus, nodesByID map[int]string) samples {
 	var result samples
 	for _, in := range inbounds {
-		gauge(&result, "xui_inbound_enabled", "Whether inbound is administratively enabled in the panel.", number(in.Enable), []string{"inbound"}, in.Tag)
+		nodeName := "local"
+		if in.NodeID != nil && *in.NodeID != 0 {
+			if name, ok := nodesByID[*in.NodeID]; ok && name != "" {
+				nodeName = name
+			} else {
+				nodeName = fmt.Sprintf("node-%d", *in.NodeID)
+			}
+		}
+		remark := in.Remark
+		if remark == "" {
+			remark = in.Tag
+		}
+		gauge(&result, "xui_inbound_enabled", "Whether inbound is administratively enabled in the panel.", number(in.Enable), []string{"inbound", "remark", "node"}, in.Tag, remark, nodeName)
 	}
 	return result
 }

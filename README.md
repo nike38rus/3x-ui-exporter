@@ -77,7 +77,7 @@ flowchart LR
 
     subgraph "Upstream Sources"
         direction TB
-        Exp -->|"Parallel API (HTTP)\n/panel/api/xray/\n/panel/api/server/status\n/panel/api/inbounds/list\n/panel/api/clients/onlines"| Panel["3x-ui Panel\n(Config, Status & Onlines)"]
+        Exp -->|"Parallel API (HTTP)\n/panel/api/xray/\n/panel/api/server/status\n/panel/api/inbounds/list\n/panel/api/nodes/list\n/panel/api/clients/onlines"| Panel["3x-ui Panel\n(Config, Status & Nodes)"]
         Exp -->|"Single HTTP Request\n/debug/vars (expvars)"| Expvars["Xray Core Expvars\n(Traffic, Mem/GC, Observatory)"]
         Exp -->|"Concurrent gRPC\nHandlerService\nRoutingService"| Core["Xray Core gRPC\n(Outbounds & Balancers)"]
     end
@@ -87,7 +87,7 @@ flowchart LR
 
 | Source | Protocol & Endpoint | Purpose & Retrieved Data |
 | --- | --- | --- |
-| **`api`** | HTTP REST `POST /panel/api/xray/`<br>`GET /panel/api/server/status`<br>`GET /panel/api/inbounds/list`<br>`POST /panel/api/clients/onlines` | Discovers balancer rules, selector prefixes, subscription outbounds, panel version, Xray version, process state, open TCP/UDP sockets, inbound administrative states, and online clients count. |
+| **`api`** | HTTP REST `POST /panel/api/xray/`<br>`GET /panel/api/server/status`<br>`GET /panel/api/inbounds/list`<br>`GET /panel/api/nodes/list`<br>`POST /panel/api/clients/onlines` | Discovers balancer rules, selector prefixes, subscription outbounds, panel version, Xray version, process state, open TCP/UDP sockets, inbound administrative states, node cluster health, and online clients count. |
 | **`expvars`** | HTTP `GET /debug/vars` | Fetches inbound/outbound traffic counters, memory/GC stats, and observatory probe/RTT metrics in **one** roundtrip. |
 | **`grpc`** | gRPC `ListOutbounds`<br>`GetBalancerInfo` | Inspects live runtime outbound inventory and queries active balancer selection/override targets concurrently. |
 | **`exporter`** | Internal runtime diagnostics | Emits scrape success, collection timing per source, and exporter build version. |
@@ -223,9 +223,9 @@ Diagnostics describe the collection process itself. All three source series are 
 | `xui_exporter_scrape_duration_seconds` | Gauge | `source` (`api`, `expvars`, `grpc`) | Elapsed wall-clock time spent querying this source in the current scrape. |
 | `xui_exporter_build_info` | Gauge | `version` | Always `1`. Identifies the running exporter version. |
 
-### Panel and Xray Status
+### Panel, Node Cluster, and Inbound Status
 
-Derived from 3x-ui REST API (`GET /panel/api/server/status`, `POST /panel/api/clients/onlines`, `GET /panel/api/inbounds/list`).
+Derived from 3x-ui REST API (`GET /panel/api/server/status`, `POST /panel/api/clients/onlines`, `GET /panel/api/inbounds/list`, `GET /panel/api/nodes/list`).
 
 | Metric | Type | Labels | Description |
 | --- | --- | --- | --- |
@@ -234,7 +234,14 @@ Derived from 3x-ui REST API (`GET /panel/api/server/status`, `POST /panel/api/cl
 | `xui_xray_state` | Gauge | `state` (`running`, `stop`, `error`) | `1` for the active state, `0` for inactive states. |
 | `xui_open_sockets` | Gauge | `protocol` (`tcp`, `udp`) | Current open network sockets reported by the panel environment. |
 | `xui_online_clients` | Gauge | — | Current active client sessions reported by panel. |
-| `xui_inbound_enabled` | Gauge | `inbound` | `1` if inbound is administratively enabled in the panel; `0` if disabled. |
+| `xui_inbound_enabled` | Gauge | `inbound`, `remark`, `node` | `1` if inbound is administratively enabled in the panel; `0` if disabled. Enriched with inbound remark and node name (`local` for master panel). |
+| `xui_node_online` | Gauge | `node` | `1` if remote node is reported online by master panel heartbeat; `0` if offline. |
+| `xui_node_latency_seconds` | Gauge | `node` | Round-trip latency between master panel and remote node in seconds. |
+| `xui_node_xray_state` | Gauge | `node`, `state` (`running`, `stop`, `error`) | Remote node Xray core state captured during heartbeat. |
+| `xui_node_cpu_percent` | Gauge | `node` | Remote node CPU utilization percent. |
+| `xui_node_memory_percent` | Gauge | `node` | Remote node memory utilization percent. |
+| `xui_node_uptime_seconds` | Gauge | `node` | Remote node uptime in seconds. |
+| `xui_node_info` | Gauge | `node`, `xray_version`, `panel_version` | Always `1`. Remote node software version metadata. |
 
 ### Traffic Statistics
 
@@ -422,7 +429,7 @@ Xray's `GetBalancerInfo` exposes candidate pools, not actual connection logs, fo
   - Total collection time is bounded by $\max(T_{api}, T_{expvars}, T_{grpc})$.
   - Independent sources survive sibling failures.
 - Normal request budget:
-  - 4 panel API requests (`POST /panel/api/xray/`, `GET /panel/api/server/status`, `GET /panel/api/inbounds/list`, `POST /panel/api/clients/onlines`)
+  - 5 panel API requests (`POST /panel/api/xray/`, `GET /panel/api/server/status`, `GET /panel/api/inbounds/list`, `GET /panel/api/nodes/list`, `POST /panel/api/clients/onlines`)
   - 1 expvars HTTP request (`GET /debug/vars`)
   - 1 `ListOutbounds` gRPC call + $N$ parallel `GetBalancerInfo` calls (where $N$ is the count of configured balancers).
 

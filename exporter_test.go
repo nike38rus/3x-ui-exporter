@@ -403,7 +403,7 @@ func TestInboundEnabledMetric(t *testing.T) {
 	eWith := &Exporter{Panel: fakePanelWithInbounds{fakePanel: fakePanel{cfg: &Config{}}, inbounds: inbs}, Timeout: time.Second}
 	mWith := eWith.scrape(context.Background())
 	valsWith := sampleValues(t, mWith, "xui_inbound_enabled")
-	if len(valsWith) != 2 || valsWith["inbound=vless-in;"] != 1 || valsWith["inbound=vmess-in;"] != 0 {
+	if len(valsWith) != 2 || valsWith["inbound=vless-in;node=local;remark=vless-in;"] != 1 || valsWith["inbound=vmess-in;node=local;remark=vmess-in;"] != 0 {
 		t.Fatalf("unexpected inbounds metric: %v", valsWith)
 	}
 	if sampleValues(t, mWith, "xui_exporter_scrape_success")["source=api;"] != 1 {
@@ -418,5 +418,61 @@ func TestInboundEnabledMetric(t *testing.T) {
 	}
 	if sampleValues(t, mErr, "xui_exporter_scrape_success")["source=api;"] != 0 {
 		t.Fatal("expected failed API scrape on inbounds error")
+	}
+}
+
+type fakePanelWithNodes struct {
+	fakePanel
+	nodes    []*NodeStatus
+	nodesErr error
+}
+
+func (f fakePanelWithNodes) Nodes(context.Context) ([]*NodeStatus, error) {
+	return f.nodes, f.nodesErr
+}
+
+type fakePanelFull struct {
+	fakePanel
+	inbounds []*InboundStatus
+	nodes    []*NodeStatus
+}
+
+func (f fakePanelFull) Inbounds(context.Context) ([]*InboundStatus, error) {
+	return f.inbounds, nil
+}
+
+func (f fakePanelFull) Nodes(context.Context) ([]*NodeStatus, error) {
+	return f.nodes, nil
+}
+
+func TestNodeMetricsAndInboundEnrichment(t *testing.T) {
+	nodeID := 3
+	nodes := []*NodeStatus{
+		{ID: 3, Name: "node-remote", Status: "online", LatencyMs: 50, XrayState: "running"},
+	}
+	inbs := []*InboundStatus{
+		{Tag: "n3-in", Remark: "vless-remote", NodeID: &nodeID, Enable: true},
+	}
+	eFull := &Exporter{
+		Panel:   fakePanelFull{fakePanel: fakePanel{cfg: &Config{}}, inbounds: inbs, nodes: nodes},
+		Timeout: time.Second,
+	}
+	m := eFull.scrape(context.Background())
+	inbVals := sampleValues(t, m, "xui_inbound_enabled")
+	if inbVals["inbound=n3-in;node=node-remote;remark=vless-remote;"] != 1 {
+		t.Fatalf("unexpected enriched inbound metric: %v", inbVals)
+	}
+	nodeVals := sampleValues(t, m, "xui_node_online")
+	if nodeVals["node=node-remote;"] != 1 {
+		t.Fatalf("unexpected node online metric: %v", nodeVals)
+	}
+
+	eErr := &Exporter{Panel: fakePanelWithNodes{fakePanel: fakePanel{cfg: &Config{}}, nodesErr: errors.New("nodes error")}, Timeout: time.Second}
+	mErr := eErr.scrape(context.Background())
+	if sampleValues(t, mErr, "xui_exporter_scrape_success")["source=api;"] != 0 {
+		t.Fatal("expected failed API scrape on nodes error")
+	}
+	if len(sampleValues(t, mErr, "xui_node_online")) != 0 {
+		t.Fatal("expected no node metrics on error")
 	}
 }

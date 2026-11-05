@@ -146,7 +146,7 @@ func TestPanelStatusRequestAndErrors(t *testing.T) {
 }
 
 func TestPanelRequestsIndependentAndBudget(t *testing.T) {
-	for _, failed := range []string{"", "settings", "status", "inbounds", "onlines"} {
+	for _, failed := range []string{"", "settings", "status", "inbounds", "nodes", "onlines"} {
 		t.Run(failed, func(t *testing.T) {
 			counts := map[string]int{}
 			var mu sync.Mutex
@@ -179,6 +179,12 @@ func TestPanelRequestsIndependentAndBudget(t *testing.T) {
 						return
 					}
 					_, _ = w.Write([]byte(`{"success":true,"obj":[{"tag":"inbound-443","enable":true},{"tag":"inbound-80","enable":false}]}`))
+				case "/panel/api/nodes/list":
+					if failed == "nodes" {
+						w.WriteHeader(503)
+						return
+					}
+					_, _ = w.Write([]byte(`{"success":true,"obj":[{"id":1,"name":"node-1","status":"online"}]}`))
 				case "/debug/vars":
 					_, _ = w.Write([]byte(`{"stats":{"outbound":{"A":{"uplink":1}}}}`))
 				default:
@@ -213,6 +219,13 @@ func TestPanelRequestsIndependentAndBudget(t *testing.T) {
 			if len(sampleValues(t, m, "xui_inbound_enabled")) != wantInbounds {
 				t.Fatal("inbound data lost or synthesized")
 			}
+			wantNodes := 1
+			if failed == "nodes" {
+				wantNodes = 0
+			}
+			if len(sampleValues(t, m, "xui_node_online")) != wantNodes {
+				t.Fatal("node data lost or synthesized")
+			}
 			if len(sampleValues(t, m, "xui_outbound_traffic_bytes_total")) != 1 {
 				t.Fatal("independent traffic lost")
 			}
@@ -221,7 +234,7 @@ func TestPanelRequestsIndependentAndBudget(t *testing.T) {
 			}
 			mu.Lock()
 			defer mu.Unlock()
-			if counts["/panel/api/xray/"] != 1 || counts["/panel/api/server/status"] != 1 || counts["/panel/api/clients/onlines"] != 1 || counts["/panel/api/inbounds/list"] != 1 || counts["/debug/vars"] != 1 {
+			if counts["/panel/api/xray/"] != 1 || counts["/panel/api/server/status"] != 1 || counts["/panel/api/clients/onlines"] != 1 || counts["/panel/api/inbounds/list"] != 1 || counts["/panel/api/nodes/list"] != 1 || counts["/debug/vars"] != 1 {
 				t.Fatal(counts)
 			}
 			want := 1
@@ -248,6 +261,8 @@ func TestStatusUsesSharedDeadlineAndDoesNotRetainOldData(t *testing.T) {
 		case "/panel/api/clients/onlines":
 			_, _ = w.Write([]byte(`{"success":true,"obj":[]}`))
 		case "/panel/api/inbounds/list":
+			_, _ = w.Write([]byte(`{"success":true,"obj":[]}`))
+		case "/panel/api/nodes/list":
 			_, _ = w.Write([]byte(`{"success":true,"obj":[]}`))
 		case "/panel/api/server/status":
 			switch current {
@@ -286,22 +301,209 @@ func TestStatusUsesSharedDeadlineAndDoesNotRetainOldData(t *testing.T) {
 	}
 }
 
-func TestInboundsDecodesAndMetrics(t *testing.T) {
+func TestPanelNodes(t *testing.T) {
 	for _, tc := range []struct {
-		name    string
-		raw     string
-		wantErr bool
-		want    map[string]float64
+		name string
+		body string
+		code int
+		want int
+		fail bool
+	}{
+		{"active nodes", `{"success":true,"obj":[{"id":1,"name":"node1","status":"online"},{"id":2,"name":"node2","status":"offline"}]}`, 200, 2, false},
+		{"empty list", `{"success":true,"obj":[]}`, 200, 0, false},
+		{"invalid json", `{"success":true,"obj":"not an array"}`, 200, 0, true},
+		{"server error", `server down`, 500, 0, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != http.MethodGet || r.URL.Path != "/panel/api/nodes/list" {
+					t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
+				}
+				w.WriteHeader(tc.code)
+				_, _ = w.Write([]byte(tc.body))
+			}))
+			defer srv.Close()
+			p := &Panel{URL: srv.URL, Token: "token", Client: srv.Client()}
+			got, err := p.Nodes(context.Background())
+			if (err != nil) != tc.fail {
+				t.Fatalf("err=%v, fail=%v", err, tc.fail)
+			}
+			if len(got) != tc.want {
+				t.Fatalf("got=%d, want=%d", len(got), tc.want)
+			}
+		})
+	}
+}
+
+func TestNodesDecodesAndMetrics(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		raw        string
+		wantErr    bool
+		wantOnline map[string]float64
+		wantLat    map[string]float64
+		wantState  map[string]float64
+		wantCPU    map[string]float64
+		wantMem    map[string]float64
+		wantUptime map[string]float64
+		wantInfo   map[string]float64
 	}{
 		{
-			name: "active and disabled",
+			name: "full node stats",
+			raw: `[
+				{
+					"id": 1,
+					"name": "node-us",
+					"status": "online",
+					"latencyMs": 45,
+					"xrayState": "running",
+					"cpuPct": 15.5,
+					"memPct": 42.1,
+					"uptimeSecs": 86400,
+					"panelVersion": "3.10.2",
+					"xrayVersion": "26.10.10"
+				},
+				{
+					"id": 2,
+					"name": "node-eu",
+					"status": "offline",
+					"latencyMs": -1,
+					"xrayState": "stop"
+				}
+			]`,
+			wantOnline: map[string]float64{"node=node-us;": 1, "node=node-eu;": 0},
+			wantLat:    map[string]float64{"node=node-us;": 0.045},
+			wantState: map[string]float64{
+				"node=node-us;state=running;": 1,
+				"node=node-us;state=stop;":    0,
+				"node=node-us;state=error;":   0,
+				"node=node-eu;state=running;": 0,
+				"node=node-eu;state=stop;":    1,
+				"node=node-eu;state=error;":   0,
+			},
+			wantCPU:    map[string]float64{"node=node-us;": 15.5},
+			wantMem:    map[string]float64{"node=node-us;": 42.1},
+			wantUptime: map[string]float64{"node=node-us;": 86400},
+			wantInfo:   map[string]float64{"node=node-us;panel_version=3.10.2;xray_version=26.10.10;": 1},
+		},
+		{
+			name:       "empty nodes",
+			raw:        `[]`,
+			wantOnline: map[string]float64{},
+		},
+		{
+			name:    "missing id",
+			raw:     `[{"name":"n1"}]`,
+			wantErr: true,
+		},
+		{
+			name:    "missing name",
+			raw:     `[{"id":1}]`,
+			wantErr: true,
+		},
+		{
+			name:    "empty name",
+			raw:     `[{"id":1,"name":"  "}]`,
+			wantErr: true,
+		},
+		{
+			name:    "duplicate id",
+			raw:     `[{"id":1,"name":"n1"},{"id":1,"name":"n2"}]`,
+			wantErr: true,
+		},
+		{
+			name:    "duplicate name",
+			raw:     `[{"id":1,"name":"n1"},{"id":2,"name":"n1"}]`,
+			wantErr: true,
+		},
+		{
+			name:    "not array",
+			raw:     `{}`,
+			wantErr: true,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			nodes, err := decodeNodes(json.RawMessage(tc.raw))
+			if (err != nil) != tc.wantErr {
+				t.Fatalf("err=%v, wantErr=%v", err, tc.wantErr)
+			}
+			if tc.wantErr {
+				return
+			}
+			m := nodeMetrics(nodes)
+			checkMetric := func(metricName string, want map[string]float64) {
+				vals := sampleValues(t, m, metricName)
+				if len(vals) != len(want) {
+					t.Fatalf("%s: got %v, want %v", metricName, vals, want)
+				}
+				for k, v := range want {
+					if vals[k] != v {
+						t.Fatalf("%s key %s: got %v, want %v", metricName, k, vals[k], v)
+					}
+				}
+			}
+			if tc.wantOnline != nil {
+				checkMetric("xui_node_online", tc.wantOnline)
+			}
+			if tc.wantLat != nil {
+				checkMetric("xui_node_latency_seconds", tc.wantLat)
+			}
+			if tc.wantState != nil {
+				checkMetric("xui_node_xray_state", tc.wantState)
+			}
+			if tc.wantCPU != nil {
+				checkMetric("xui_node_cpu_percent", tc.wantCPU)
+			}
+			if tc.wantMem != nil {
+				checkMetric("xui_node_memory_percent", tc.wantMem)
+			}
+			if tc.wantUptime != nil {
+				checkMetric("xui_node_uptime_seconds", tc.wantUptime)
+			}
+			if tc.wantInfo != nil {
+				checkMetric("xui_node_info", tc.wantInfo)
+			}
+		})
+	}
+}
+
+func TestInboundsDecodesAndMetrics(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		raw       string
+		nodesByID map[int]string
+		wantErr   bool
+		want      map[string]float64
+	}{
+		{
+			name: "active and disabled with default tags and local node",
 			raw:  `[{"tag":"vless-443","enable":true},{"tag":"vmess-80","enable":false}]`,
-			want: map[string]float64{"inbound=vless-443;": 1, "inbound=vmess-80;": 0},
+			want: map[string]float64{
+				"inbound=vless-443;node=local;remark=vless-443;": 1,
+				"inbound=vmess-80;node=local;remark=vmess-80;":   0,
+			},
+		},
+		{
+			name: "with remarks and node mappings",
+			raw: `[
+				{"tag":"n3-in-49785-tcp","remark":"vless-raw-ch","nodeId":3,"enable":true},
+				{"tag":"n5-in-20338-udp","remark":"awg-unknown","nodeId":5,"enable":true},
+				{"tag":"tun-local","remark":"tun-local","nodeId":0,"enable":true}
+			]`,
+			nodesByID: map[int]string{3: "ishosting-ch"},
+			want: map[string]float64{
+				"inbound=n3-in-49785-tcp;node=ishosting-ch;remark=vless-raw-ch;": 1,
+				"inbound=n5-in-20338-udp;node=node-5;remark=awg-unknown;":        1,
+				"inbound=tun-local;node=local;remark=tun-local;":                 1,
+			},
 		},
 		{
 			name: "preserves tag literals with whitespace",
 			raw:  `[{"tag":" inbound-spaced ","enable":true},{"tag":"inbound-spaced","enable":false}]`,
-			want: map[string]float64{"inbound= inbound-spaced ;": 1, "inbound=inbound-spaced;": 0},
+			want: map[string]float64{
+				"inbound= inbound-spaced ;node=local;remark= inbound-spaced ;": 1,
+				"inbound=inbound-spaced;node=local;remark=inbound-spaced;":     0,
+			},
 		},
 		{
 			name: "empty array",
@@ -342,7 +544,7 @@ func TestInboundsDecodesAndMetrics(t *testing.T) {
 			if tc.wantErr {
 				return
 			}
-			m := inboundStatusMetrics(inbounds)
+			m := inboundStatusMetrics(inbounds, tc.nodesByID)
 			vals := sampleValues(t, m, "xui_inbound_enabled")
 			if len(vals) != len(tc.want) {
 				t.Fatalf("got %v, want %v", vals, tc.want)
