@@ -23,16 +23,17 @@ type PanelStatus struct {
 }
 
 type OnlineSource interface {
-	Onlines(context.Context) (int, error)
+	Onlines(context.Context) ([]string, error)
 }
 
 type InboundStatus struct {
-	Tag    string
-	Remark string
-	NodeID *int
-	Enable bool
-	Up     *int64
-	Down   *int64
+	Tag          string
+	Remark       string
+	NodeID       *int
+	Enable       bool
+	Up           *int64
+	Down         *int64
+	ClientEmails []string
 }
 
 type InboundSource interface {
@@ -65,10 +66,10 @@ func (p *Panel) Status(ctx context.Context) (*PanelStatus, error) {
 	return decodePanelStatus(raw)
 }
 
-func (p *Panel) Onlines(ctx context.Context) (int, error) {
+func (p *Panel) Onlines(ctx context.Context) ([]string, error) {
 	raw, err := p.object(ctx, http.MethodPost, "/panel/api/clients/onlines")
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	return decodeOnlines(raw)
 }
@@ -158,13 +159,17 @@ func decodeNodes(raw json.RawMessage) ([]*NodeStatus, error) {
 }
 
 func decodeInbounds(raw json.RawMessage) ([]*InboundStatus, error) {
+	type rawClientTraffic struct {
+		Email *string `json:"email"`
+	}
 	type rawInbound struct {
-		Tag    *string `json:"tag"`
-		Remark *string `json:"remark"`
-		NodeID *int    `json:"nodeId"`
-		Enable *bool   `json:"enable"`
-		Up     *int64  `json:"up"`
-		Down   *int64  `json:"down"`
+		Tag         *string            `json:"tag"`
+		Remark      *string            `json:"remark"`
+		NodeID      *int               `json:"nodeId"`
+		Enable      *bool              `json:"enable"`
+		Up          *int64             `json:"up"`
+		Down        *int64             `json:"down"`
+		ClientStats []rawClientTraffic `json:"clientStats"`
 	}
 	var list []rawInbound
 	if json.Unmarshal(raw, &list) != nil {
@@ -191,13 +196,23 @@ func decodeInbounds(raw json.RawMessage) ([]*InboundStatus, error) {
 		if item.Remark != nil {
 			remark = strings.TrimSpace(*item.Remark)
 		}
+		var emails []string
+		for _, c := range item.ClientStats {
+			if c.Email != nil {
+				e := strings.TrimSpace(*c.Email)
+				if e != "" {
+					emails = append(emails, e)
+				}
+			}
+		}
 		result = append(result, &InboundStatus{
-			Tag:    tag,
-			Remark: remark,
-			NodeID: item.NodeID,
-			Enable: *item.Enable,
-			Up:     item.Up,
-			Down:   item.Down,
+			Tag:          tag,
+			Remark:       remark,
+			NodeID:       item.NodeID,
+			Enable:       *item.Enable,
+			Up:           item.Up,
+			Down:         item.Down,
+			ClientEmails: emails,
 		})
 	}
 	sort.Slice(result, func(i, j int) bool {
@@ -265,12 +280,12 @@ func inboundStatusMetrics(inbounds []*InboundStatus, nodesByID map[int]string) s
 	return result
 }
 
-func decodeOnlines(raw json.RawMessage) (int, error) {
+func decodeOnlines(raw json.RawMessage) ([]string, error) {
 	var onlines []string
 	if json.Unmarshal(raw, &onlines) != nil {
-		return 0, errors.New("invalid onlines array")
+		return nil, errors.New("invalid onlines array")
 	}
-	return len(onlines), nil
+	return onlines, nil
 }
 
 func decodePanelStatus(raw json.RawMessage) (*PanelStatus, error) {

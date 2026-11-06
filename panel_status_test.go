@@ -107,8 +107,8 @@ func TestPanelOnlines(t *testing.T) {
 			if (err != nil) != tc.fail {
 				t.Fatalf("err=%v, fail=%v", err, tc.fail)
 			}
-			if got != tc.want {
-				t.Fatalf("got=%d, want=%d", got, tc.want)
+			if len(got) != tc.want {
+				t.Fatalf("got=%d, want=%d", len(got), tc.want)
 			}
 		})
 	}

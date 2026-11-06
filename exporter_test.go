@@ -355,16 +355,16 @@ func TestExporterProcessAndGoMetrics(t *testing.T) {
 
 type fakePanelWithOnlines struct {
 	fakePanel
-	onlines    int
+	onlines    []string
 	onlinesErr error
 }
 
-func (f fakePanelWithOnlines) Onlines(context.Context) (int, error) {
+func (f fakePanelWithOnlines) Onlines(context.Context) ([]string, error) {
 	return f.onlines, f.onlinesErr
 }
 
 func TestOnlineClientsMetric(t *testing.T) {
-	eWith := &Exporter{Panel: fakePanelWithOnlines{fakePanel: fakePanel{cfg: &Config{}}, onlines: 5}, Timeout: time.Second}
+	eWith := &Exporter{Panel: fakePanelWithOnlines{fakePanel: fakePanel{cfg: &Config{}}, onlines: []string{"a", "b", "c", "d", "e"}}, Timeout: time.Second}
 	mWith := eWith.scrape(context.Background())
 	valsWith := sampleValues(t, mWith, "xui_online_clients")
 	if len(valsWith) != 1 || valsWith[""] != 5 {
@@ -435,6 +435,7 @@ type fakePanelFull struct {
 	fakePanel
 	inbounds []*InboundStatus
 	nodes    []*NodeStatus
+	onlines  []string
 }
 
 func (f fakePanelFull) Inbounds(context.Context) ([]*InboundStatus, error) {
@@ -443,6 +444,10 @@ func (f fakePanelFull) Inbounds(context.Context) ([]*InboundStatus, error) {
 
 func (f fakePanelFull) Nodes(context.Context) ([]*NodeStatus, error) {
 	return f.nodes, nil
+}
+
+func (f fakePanelFull) Onlines(context.Context) ([]string, error) {
+	return f.onlines, nil
 }
 
 func TestNodeMetricsAndInboundEnrichment(t *testing.T) {
@@ -455,15 +460,24 @@ func TestNodeMetricsAndInboundEnrichment(t *testing.T) {
 	}
 	inbs := []*InboundStatus{
 		{Tag: "n3-in", Remark: "vless-remote", NodeID: &nodeID, Enable: true, Up: &up, Down: &down},
+		{Tag: "in-local", Remark: "tun-local", Enable: true, ClientEmails: []string{"local-user@test.com"}},
 	}
 	eFull := &Exporter{
-		Panel:   fakePanelFull{fakePanel: fakePanel{cfg: &Config{}}, inbounds: inbs, nodes: nodes},
+		Panel: fakePanelFull{
+			fakePanel: fakePanel{cfg: &Config{}},
+			inbounds:  inbs,
+			nodes:     nodes,
+			onlines:   []string{"local-user@test.com", "other@test.com"},
+		},
 		Timeout: time.Second,
 	}
 	m := eFull.scrape(context.Background())
 	inbVals := sampleValues(t, m, "xui_inbound_enabled")
 	if inbVals["inbound=n3-in;node=node-remote;remark=vless-remote;"] != 1 {
 		t.Fatalf("unexpected enriched inbound metric: %v", inbVals)
+	}
+	if inbVals["inbound=in-local;node=local;remark=tun-local;"] != 1 {
+		t.Fatalf("unexpected local inbound metric: %v", inbVals)
 	}
 	inbTraffic := sampleValues(t, m, "xui_inbound_bytes_total")
 	if inbTraffic["direction=uplink;inbound=n3-in;node=node-remote;remark=vless-remote;"] != 1048576 {
@@ -479,6 +493,9 @@ func TestNodeMetricsAndInboundEnrichment(t *testing.T) {
 	nodeOnlineClients := sampleValues(t, m, "xui_node_online_clients")
 	if nodeOnlineClients["node=node-remote;"] != 8 {
 		t.Fatalf("unexpected node online clients: %v", nodeOnlineClients)
+	}
+	if nodeOnlineClients["node=local;"] != 1 {
+		t.Fatalf("unexpected local online clients: %v", nodeOnlineClients)
 	}
 
 	eErr := &Exporter{Panel: fakePanelWithNodes{fakePanel: fakePanel{cfg: &Config{}}, nodesErr: errors.New("nodes error")}, Timeout: time.Second}

@@ -187,7 +187,7 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 		}
 		statusElapsed = time.Since(apiStart)
 	}()
-	var onlines int
+	var onlines []string
 	var onlinesErr error
 	var hasOnlines bool
 	if onlinesSrc, ok := e.Panel.(OnlineSource); ok {
@@ -314,7 +314,7 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 	result := append(traffic, balancer...)
 	result = append(result, panelStatusMetrics(status)...)
 	if hasOnlines {
-		gauge(&result, "xui_online_clients", "Current active clients online reported by panel.", float64(onlines), nil)
+		gauge(&result, "xui_online_clients", "Current active clients online reported by panel.", float64(len(onlines)), nil)
 	}
 	nodesByID := make(map[int]string)
 	if hasNodes {
@@ -327,6 +327,27 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 	}
 	if hasNodes {
 		result = append(result, nodeMetrics(nodes)...)
+	}
+	if hasInbounds && hasOnlines {
+		localEmails := make(map[string]bool)
+		for _, in := range inbounds {
+			if in.NodeID == nil || *in.NodeID == 0 {
+				for _, email := range in.ClientEmails {
+					localEmails[email] = true
+				}
+			}
+		}
+		onlineSet := make(map[string]bool, len(onlines))
+		for _, email := range onlines {
+			onlineSet[email] = true
+		}
+		localOnlineCount := 0
+		for email := range localEmails {
+			if onlineSet[email] {
+				localOnlineCount++
+			}
+		}
+		gauge(&result, "xui_node_online_clients", "Current active clients online connected to this node reported by panel.", float64(localOnlineCount), []string{"node"}, "local")
 	}
 	if data != nil {
 		result = append(result, data.Memory...)
