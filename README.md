@@ -87,7 +87,7 @@ flowchart LR
 
 | Source | Protocol & Endpoint | Purpose & Retrieved Data |
 | --- | --- | --- |
-| **`api`** | HTTP REST `POST /panel/api/xray/`<br>`GET /panel/api/server/status`<br>`GET /panel/api/inbounds/list`<br>`GET /panel/api/nodes/list`<br>`POST /panel/api/clients/onlines` | Discovers balancer rules, selector prefixes, subscription outbounds, panel version, Xray version, process state, open TCP/UDP sockets, inbound administrative states, node cluster health, and online clients count. |
+| **`api`** | HTTP REST `POST /panel/api/xray/`<br>`GET /panel/api/server/status`<br>`GET /panel/api/inbounds/list`<br>`GET /panel/api/nodes/list`<br>`POST /panel/api/clients/onlines` | Discovers balancer rules, selector prefixes, subscription outbounds, panel version, Xray version, process state, open TCP/UDP sockets, inbound administrative states, node cluster health, client account lifecycle states, and online clients count. |
 | **`expvars`** | HTTP `GET /debug/vars` | Fetches inbound/outbound traffic counters, memory/GC stats, and observatory probe/RTT metrics in **one** roundtrip. |
 | **`grpc`** | gRPC `ListOutbounds`<br>`GetBalancerInfo` | Inspects live runtime outbound inventory and queries active balancer selection/override targets concurrently. |
 | **`exporter`** | Internal runtime diagnostics | Emits scrape success, collection timing per source, and exporter build version. |
@@ -233,7 +233,8 @@ Derived from 3x-ui REST API (`GET /panel/api/server/status`, `POST /panel/api/cl
 | `xui_xray_info` | Gauge | `version` | Always `1`. Xray binary version reported by the panel. |
 | `xui_xray_state` | Gauge | `state` (`running`, `stop`, `error`) | `1` for the active state, `0` for inactive states. |
 | `xui_open_sockets` | Gauge | `protocol` (`tcp`, `udp`) | Current open network sockets reported by the panel environment. |
-| `xui_online_clients` | Gauge | — | Current active client sessions reported by panel. |
+| `xui_client_online` | Gauge | — | Current active client sessions across the cluster reported by panel. |
+| `xui_client_count` | Gauge | `state` (`active`, `disabled`, `expired`, `depleted`) | Total configured client accounts in the panel database by lifecycle state. |
 | `xui_inbound_enabled` | Gauge | `inbound`, `remark`, `node` | `1` if inbound is administratively enabled in the panel; `0` if disabled. Enriched with inbound remark and node name (`local` for master panel). |
 | `xui_inbound_bytes_total` | Counter | `inbound`, `remark`, `node`, `direction` (`uplink`, `downlink`) | Cumulative inbound traffic bytes across all nodes reported by the panel database. |
 | `xui_node_online` | Gauge | `node` | `1` if remote node is reported online by master panel heartbeat; `0` if offline. |
@@ -244,6 +245,13 @@ Derived from 3x-ui REST API (`GET /panel/api/server/status`, `POST /panel/api/cl
 | `xui_node_memory_percent` | Gauge | `node` | Remote node memory utilization percent. |
 | `xui_node_uptime_seconds` | Gauge | `node` | Remote node uptime in seconds. |
 | `xui_node_info` | Gauge | `node`, `xray_version`, `panel_version` | Always `1`. Remote node software version metadata. |
+
+> [!NOTE]
+> Client account states (`xui_client_count`) are mutually exclusive and deduplicated across inbounds:
+> - `active`: Account is administratively enabled, not expired, and traffic quota is not exhausted.
+> - `disabled`: Administratively disabled (`enable: false`).
+> - `expired`: Expiration timestamp elapsed (`expiryTime <= now`).
+> - `depleted`: Cumulative traffic meets or exceeds configured quota (`up + down >= total`).
 
 ### Traffic Statistics
 

@@ -135,11 +135,13 @@ Existing functional namespaces include:
 - `xui_outbound_*`
 - `xui_balancer_*`
 - `xui_observatory_*`
+- `xui_node_*`
+- `xui_client_*`
 - `xui_xray_*`
 - `xui_panel_*`
 - `xui_exporter_*`
 
-Service-wide metrics may use names directly under `xui_`, including `xui_open_sockets` and `xui_online_clients`. Do not introduce artificial namespace segments solely to fit this list.
+Service-wide metrics may use names directly under `xui_`, including `xui_open_sockets`. Do not introduce artificial namespace segments solely to fit this list.
 
 For socket protocol labels, use `protocol="tcp"` and `protocol="udp"`.
 

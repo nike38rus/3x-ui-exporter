@@ -314,7 +314,7 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 	result := append(traffic, balancer...)
 	result = append(result, panelStatusMetrics(status)...)
 	if hasOnlines {
-		gauge(&result, "xui_online_clients", "Current active clients online reported by panel.", float64(len(onlines)), nil)
+		gauge(&result, "xui_client_online", "Current active client sessions across the cluster reported by panel.", float64(len(onlines)), nil)
 	}
 	nodesByID := make(map[int]string)
 	if hasNodes {
@@ -324,6 +324,7 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 	}
 	if hasInbounds {
 		result = append(result, inboundStatusMetrics(inbounds, nodesByID)...)
+		result = append(result, clientCountMetrics(inbounds, time.Now().UnixMilli())...)
 	}
 	if hasNodes {
 		result = append(result, nodeMetrics(nodes)...)

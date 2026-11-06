@@ -26,6 +26,15 @@ type OnlineSource interface {
 	Onlines(context.Context) ([]string, error)
 }
 
+type ClientStatus struct {
+	Email      string
+	Enable     bool
+	Up         int64
+	Down       int64
+	ExpiryTime int64
+	Total      int64
+}
+
 type InboundStatus struct {
 	Tag          string
 	Remark       string
@@ -34,6 +43,7 @@ type InboundStatus struct {
 	Up           *int64
 	Down         *int64
 	ClientEmails []string
+	Clients      []*ClientStatus
 }
 
 type InboundSource interface {
@@ -160,7 +170,12 @@ func decodeNodes(raw json.RawMessage) ([]*NodeStatus, error) {
 
 func decodeInbounds(raw json.RawMessage) ([]*InboundStatus, error) {
 	type rawClientTraffic struct {
-		Email *string `json:"email"`
+		Email      *string `json:"email"`
+		Enable     *bool   `json:"enable"`
+		Up         *int64  `json:"up"`
+		Down       *int64  `json:"down"`
+		ExpiryTime *int64  `json:"expiryTime"`
+		Total      *int64  `json:"total"`
 	}
 	type rawInbound struct {
 		Tag         *string            `json:"tag"`
@@ -197,11 +212,41 @@ func decodeInbounds(raw json.RawMessage) ([]*InboundStatus, error) {
 			remark = strings.TrimSpace(*item.Remark)
 		}
 		var emails []string
+		var clients []*ClientStatus
 		for _, c := range item.ClientStats {
+			if c.Up != nil && *c.Up < 0 {
+				return nil, errors.New("negative client up traffic")
+			}
+			if c.Down != nil && *c.Down < 0 {
+				return nil, errors.New("negative client down traffic")
+			}
+			if c.Total != nil && *c.Total < 0 {
+				return nil, errors.New("negative client total traffic")
+			}
 			if c.Email != nil {
 				e := strings.TrimSpace(*c.Email)
 				if e != "" {
 					emails = append(emails, e)
+					cs := &ClientStatus{
+						Email:  e,
+						Enable: true,
+					}
+					if c.Enable != nil {
+						cs.Enable = *c.Enable
+					}
+					if c.Up != nil {
+						cs.Up = *c.Up
+					}
+					if c.Down != nil {
+						cs.Down = *c.Down
+					}
+					if c.ExpiryTime != nil {
+						cs.ExpiryTime = *c.ExpiryTime
+					}
+					if c.Total != nil {
+						cs.Total = *c.Total
+					}
+					clients = append(clients, cs)
 				}
 			}
 		}
@@ -213,12 +258,84 @@ func decodeInbounds(raw json.RawMessage) ([]*InboundStatus, error) {
 			Up:           item.Up,
 			Down:         item.Down,
 			ClientEmails: emails,
+			Clients:      clients,
 		})
 	}
 	sort.Slice(result, func(i, j int) bool {
 		return result[i].Tag < result[j].Tag
 	})
 	return result, nil
+}
+
+func clientCountMetrics(inbounds []*InboundStatus, nowMillis int64) samples {
+	type clientState struct {
+		enable     bool
+		up         int64
+		down       int64
+		expiryTime int64
+		total      int64
+	}
+	uniqueClients := make(map[string]clientState)
+	for _, in := range inbounds {
+		for _, c := range in.Clients {
+			if c == nil || c.Email == "" {
+				continue
+			}
+			if existing, exists := uniqueClients[c.Email]; exists {
+				if !c.Enable {
+					existing.enable = false
+				}
+				if c.Up > existing.up {
+					existing.up = c.Up
+				}
+				if c.Down > existing.down {
+					existing.down = c.Down
+				}
+				if c.Total > existing.total {
+					existing.total = c.Total
+				}
+				if c.ExpiryTime > existing.expiryTime {
+					existing.expiryTime = c.ExpiryTime
+				}
+				uniqueClients[c.Email] = existing
+			} else {
+				uniqueClients[c.Email] = clientState{
+					enable:     c.Enable,
+					up:         c.Up,
+					down:       c.Down,
+					expiryTime: c.ExpiryTime,
+					total:      c.Total,
+				}
+			}
+		}
+	}
+
+	counts := map[string]int{
+		"active":   0,
+		"depleted": 0,
+		"disabled": 0,
+		"expired":  0,
+	}
+
+	for _, c := range uniqueClients {
+		switch {
+		case !c.enable:
+			counts["disabled"]++
+		case c.expiryTime > 0 && c.expiryTime <= nowMillis:
+			counts["expired"]++
+		case c.total > 0 && (c.up+c.down) >= c.total:
+			counts["depleted"]++
+		default:
+			counts["active"]++
+		}
+	}
+
+	var result samples
+	states := []string{"active", "depleted", "disabled", "expired"}
+	for _, state := range states {
+		gauge(&result, "xui_client_count", "Total configured client accounts in the panel database by lifecycle state.", float64(counts[state]), []string{"state"}, state)
+	}
+	return result
 }
 
 func nodeMetrics(nodes []*NodeStatus) samples {

@@ -209,7 +209,7 @@ func TestPanelRequestsIndependentAndBudget(t *testing.T) {
 			if failed == "onlines" {
 				wantOnlines = 0
 			}
-			if len(sampleValues(t, m, "xui_online_clients")) != wantOnlines {
+			if len(sampleValues(t, m, "xui_client_online")) != wantOnlines {
 				t.Fatal("online clients data lost or synthesized")
 			}
 			wantInbounds := 2
@@ -218,6 +218,13 @@ func TestPanelRequestsIndependentAndBudget(t *testing.T) {
 			}
 			if len(sampleValues(t, m, "xui_inbound_enabled")) != wantInbounds {
 				t.Fatal("inbound data lost or synthesized")
+			}
+			wantClients := 4
+			if failed == "inbounds" {
+				wantClients = 0
+			}
+			if len(sampleValues(t, m, "xui_client_count")) != wantClients {
+				t.Fatal("client count data lost or synthesized")
 			}
 			wantNodes := 1
 			if failed == "nodes" {
@@ -567,6 +574,21 @@ func TestInboundsDecodesAndMetrics(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name:    "negative client up traffic",
+			raw:     `[{"tag":"inb","enable":true,"clientStats":[{"email":"a@b.com","up":-10}]}]`,
+			wantErr: true,
+		},
+		{
+			name:    "negative client down traffic",
+			raw:     `[{"tag":"inb","enable":true,"clientStats":[{"email":"a@b.com","down":-10}]}]`,
+			wantErr: true,
+		},
+		{
+			name:    "negative client total traffic",
+			raw:     `[{"tag":"inb","enable":true,"clientStats":[{"email":"a@b.com","total":-10}]}]`,
+			wantErr: true,
+		},
+		{
 			name:    "not array",
 			raw:     `{}`,
 			wantErr: true,
@@ -603,4 +625,78 @@ func TestInboundsDecodesAndMetrics(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestClientCountMetrics(t *testing.T) {
+	now := int64(1_700_000_000_000) // reference fixed timestamp
+
+	t.Run("empty inbounds emits all zeros", func(t *testing.T) {
+		m := clientCountMetrics(nil, now)
+		vals := sampleValues(t, m, "xui_client_count")
+		if len(vals) != 4 {
+			t.Fatalf("expected 4 state samples, got %v", vals)
+		}
+		for state, want := range map[string]float64{
+			"state=active;":   0,
+			"state=disabled;": 0,
+			"state=expired;":  0,
+			"state=depleted;": 0,
+		} {
+			if vals[state] != want {
+				t.Errorf("%s: got %v, want %v", state, vals[state], want)
+			}
+		}
+	})
+
+	t.Run("deduplication and distinct states", func(t *testing.T) {
+		inbounds := []*InboundStatus{
+			{
+				Tag: "in-1",
+				Clients: []*ClientStatus{
+					{Email: "active1@test.com", Enable: true, Total: 1000, Up: 100, Down: 200, ExpiryTime: now + 50000},
+					{Email: "disabled@test.com", Enable: false, Total: 0, Up: 0, Down: 0, ExpiryTime: 0},
+					{Email: "expired@test.com", Enable: true, Total: 0, Up: 10, Down: 10, ExpiryTime: now - 1000},
+					{Email: "depleted@test.com", Enable: true, Total: 500, Up: 300, Down: 250, ExpiryTime: now + 10000},
+					// Duplicate across inbounds: active1 also on in-1 with identical email
+					{Email: "active1@test.com", Enable: true, Total: 1000, Up: 100, Down: 200, ExpiryTime: now + 50000},
+				},
+			},
+			{
+				Tag: "in-2",
+				Clients: []*ClientStatus{
+					// Duplicate across in-2: active1 again on another inbound
+					{Email: "active1@test.com", Enable: true, Total: 1000, Up: 100, Down: 200, ExpiryTime: now + 50000},
+					// Active client with 0 total and 0 expiry (unlimited)
+					{Email: "unlimited@test.com", Enable: true, Total: 0, Up: 5000, Down: 5000, ExpiryTime: 0},
+					// Client with both expired and depleted: should be categorized as expired
+					{Email: "both@test.com", Enable: true, Total: 100, Up: 100, Down: 100, ExpiryTime: now - 500},
+				},
+			},
+		}
+
+		m := clientCountMetrics(inbounds, now)
+		vals := sampleValues(t, m, "xui_client_count")
+		if len(vals) != 4 {
+			t.Fatalf("expected 4 state samples, got %v", vals)
+		}
+		// Total unique clients:
+		// active1: active
+		// unlimited: active
+		// disabled: disabled
+		// expired: expired
+		// both: expired
+		// depleted: depleted
+		// Total unique = 6 (active: 2, disabled: 1, expired: 2, depleted: 1)
+		expected := map[string]float64{
+			"state=active;":   2,
+			"state=disabled;": 1,
+			"state=expired;":  2,
+			"state=depleted;": 1,
+		}
+		for state, want := range expected {
+			if vals[state] != want {
+				t.Errorf("%s: got %v, want %v", state, vals[state], want)
+			}
+		}
+	})
 }

@@ -363,10 +363,10 @@ func (f fakePanelWithOnlines) Onlines(context.Context) ([]string, error) {
 	return f.onlines, f.onlinesErr
 }
 
-func TestOnlineClientsMetric(t *testing.T) {
+func TestClientOnlineMetric(t *testing.T) {
 	eWith := &Exporter{Panel: fakePanelWithOnlines{fakePanel: fakePanel{cfg: &Config{}}, onlines: []string{"a", "b", "c", "d", "e"}}, Timeout: time.Second}
 	mWith := eWith.scrape(context.Background())
-	valsWith := sampleValues(t, mWith, "xui_online_clients")
+	valsWith := sampleValues(t, mWith, "xui_client_online")
 	if len(valsWith) != 1 || valsWith[""] != 5 {
 		t.Fatalf("expected 5 online clients, got %v", valsWith)
 	}
@@ -376,7 +376,7 @@ func TestOnlineClientsMetric(t *testing.T) {
 
 	eErr := &Exporter{Panel: fakePanelWithOnlines{fakePanel: fakePanel{cfg: &Config{}}, onlinesErr: errors.New("fail")}, Timeout: time.Second}
 	mErr := eErr.scrape(context.Background())
-	valsErr := sampleValues(t, mErr, "xui_online_clients")
+	valsErr := sampleValues(t, mErr, "xui_client_online")
 	if len(valsErr) != 0 {
 		t.Fatalf("expected no online clients on error, got %v", valsErr)
 	}
@@ -397,14 +397,32 @@ func (f fakePanelWithInbounds) Inbounds(context.Context) ([]*InboundStatus, erro
 
 func TestInboundEnabledMetric(t *testing.T) {
 	inbs := []*InboundStatus{
-		{Tag: "vless-in", Enable: true},
-		{Tag: "vmess-in", Enable: false},
+		{
+			Tag:    "vless-in",
+			Enable: true,
+			Clients: []*ClientStatus{
+				{Email: "active@x.com", Enable: true},
+				{Email: "disabled@x.com", Enable: false},
+			},
+		},
+		{
+			Tag:    "vmess-in",
+			Enable: false,
+			Clients: []*ClientStatus{
+				{Email: "expired@x.com", Enable: true, ExpiryTime: 1000}, // expired in past
+				{Email: "depleted@x.com", Enable: true, Total: 100, Up: 50, Down: 50},
+			},
+		},
 	}
 	eWith := &Exporter{Panel: fakePanelWithInbounds{fakePanel: fakePanel{cfg: &Config{}}, inbounds: inbs}, Timeout: time.Second}
 	mWith := eWith.scrape(context.Background())
 	valsWith := sampleValues(t, mWith, "xui_inbound_enabled")
 	if len(valsWith) != 2 || valsWith["inbound=vless-in;node=local;remark=vless-in;"] != 1 || valsWith["inbound=vmess-in;node=local;remark=vmess-in;"] != 0 {
 		t.Fatalf("unexpected inbounds metric: %v", valsWith)
+	}
+	clientCounts := sampleValues(t, mWith, "xui_client_count")
+	if len(clientCounts) != 4 || clientCounts["state=active;"] != 1 || clientCounts["state=disabled;"] != 1 || clientCounts["state=expired;"] != 1 || clientCounts["state=depleted;"] != 1 {
+		t.Fatalf("unexpected client count metrics: %v", clientCounts)
 	}
 	if sampleValues(t, mWith, "xui_exporter_scrape_success")["source=api;"] != 1 {
 		t.Fatal("expected successful API scrape")
@@ -415,6 +433,9 @@ func TestInboundEnabledMetric(t *testing.T) {
 	valsErr := sampleValues(t, mErr, "xui_inbound_enabled")
 	if len(valsErr) != 0 {
 		t.Fatalf("expected no inbounds metric on error, got %v", valsErr)
+	}
+	if len(sampleValues(t, mErr, "xui_client_count")) != 0 {
+		t.Fatalf("expected no client count metric on inbounds error")
 	}
 	if sampleValues(t, mErr, "xui_exporter_scrape_success")["source=api;"] != 0 {
 		t.Fatal("expected failed API scrape on inbounds error")
