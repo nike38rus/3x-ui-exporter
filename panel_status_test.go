@@ -337,16 +337,17 @@ func TestPanelNodes(t *testing.T) {
 
 func TestNodesDecodesAndMetrics(t *testing.T) {
 	for _, tc := range []struct {
-		name       string
-		raw        string
-		wantErr    bool
-		wantOnline map[string]float64
-		wantLat    map[string]float64
-		wantState  map[string]float64
-		wantCPU    map[string]float64
-		wantMem    map[string]float64
-		wantUptime map[string]float64
-		wantInfo   map[string]float64
+		name        string
+		raw         string
+		wantErr     bool
+		wantOnline  map[string]float64
+		wantLat     map[string]float64
+		wantState   map[string]float64
+		wantCPU     map[string]float64
+		wantMem     map[string]float64
+		wantUptime  map[string]float64
+		wantInfo    map[string]float64
+		wantClients map[string]float64
 	}{
 		{
 			name: "full node stats",
@@ -361,7 +362,8 @@ func TestNodesDecodesAndMetrics(t *testing.T) {
 					"memPct": 42.1,
 					"uptimeSecs": 86400,
 					"panelVersion": "3.10.2",
-					"xrayVersion": "26.10.10"
+					"xrayVersion": "26.10.10",
+					"onlineCount": 7
 				},
 				{
 					"id": 2,
@@ -371,7 +373,8 @@ func TestNodesDecodesAndMetrics(t *testing.T) {
 					"xrayState": "stop",
 					"cpuPct": 0,
 					"memPct": 0,
-					"uptimeSecs": 0
+					"uptimeSecs": 0,
+					"onlineCount": 3
 				}
 			]`,
 			wantOnline: map[string]float64{"node=node-us;": 1, "node=node-eu;": 0},
@@ -384,10 +387,11 @@ func TestNodesDecodesAndMetrics(t *testing.T) {
 				"node=node-eu;state=stop;":    1,
 				"node=node-eu;state=error;":   0,
 			},
-			wantCPU:    map[string]float64{"node=node-us;": 15.5},
-			wantMem:    map[string]float64{"node=node-us;": 42.1},
-			wantUptime: map[string]float64{"node=node-us;": 86400},
-			wantInfo:   map[string]float64{"node=node-us;panel_version=3.10.2;xray_version=26.10.10;": 1},
+			wantCPU:     map[string]float64{"node=node-us;": 15.5},
+			wantMem:     map[string]float64{"node=node-us;": 42.1},
+			wantUptime:  map[string]float64{"node=node-us;": 86400},
+			wantInfo:    map[string]float64{"node=node-us;panel_version=3.10.2;xray_version=26.10.10;": 1},
+			wantClients: map[string]float64{"node=node-us;": 7},
 		},
 		{
 			name:       "empty nodes",
@@ -417,6 +421,11 @@ func TestNodesDecodesAndMetrics(t *testing.T) {
 		{
 			name:    "duplicate name",
 			raw:     `[{"id":1,"name":"n1"},{"id":2,"name":"n1"}]`,
+			wantErr: true,
+		},
+		{
+			name:    "negative online clients",
+			raw:     `[{"id":1,"name":"n1","onlineCount":-1}]`,
 			wantErr: true,
 		},
 		{
@@ -466,6 +475,9 @@ func TestNodesDecodesAndMetrics(t *testing.T) {
 			if tc.wantInfo != nil {
 				checkMetric("xui_node_info", tc.wantInfo)
 			}
+			if tc.wantClients != nil {
+				checkMetric("xui_node_online_clients", tc.wantClients)
+			}
 		})
 	}
 }
@@ -477,20 +489,25 @@ func TestInboundsDecodesAndMetrics(t *testing.T) {
 		nodesByID map[int]string
 		wantErr   bool
 		want      map[string]float64
+		wantBytes map[string]float64
 	}{
 		{
 			name: "active and disabled with default tags and local node",
-			raw:  `[{"tag":"vless-443","enable":true},{"tag":"vmess-80","enable":false}]`,
+			raw:  `[{"tag":"vless-443","enable":true,"up":100,"down":200},{"tag":"vmess-80","enable":false}]`,
 			want: map[string]float64{
 				"inbound=vless-443;node=local;remark=vless-443;": 1,
 				"inbound=vmess-80;node=local;remark=vmess-80;":   0,
 			},
+			wantBytes: map[string]float64{
+				"direction=uplink;inbound=vless-443;node=local;remark=vless-443;":   100,
+				"direction=downlink;inbound=vless-443;node=local;remark=vless-443;": 200,
+			},
 		},
 		{
-			name: "with remarks and node mappings",
+			name: "with remarks and node mappings and traffic",
 			raw: `[
-				{"tag":"n3-in-49785-tcp","remark":"vless-raw-ch","nodeId":3,"enable":true},
-				{"tag":"n5-in-20338-udp","remark":"awg-unknown","nodeId":5,"enable":true},
+				{"tag":"n3-in-49785-tcp","remark":"vless-raw-ch","nodeId":3,"enable":true,"up":1048576,"down":52428800},
+				{"tag":"n5-in-20338-udp","remark":"awg-unknown","nodeId":5,"enable":true,"up":0,"down":0},
 				{"tag":"tun-local","remark":"tun-local","nodeId":0,"enable":true}
 			]`,
 			nodesByID: map[int]string{3: "ishosting-ch"},
@@ -498,6 +515,12 @@ func TestInboundsDecodesAndMetrics(t *testing.T) {
 				"inbound=n3-in-49785-tcp;node=ishosting-ch;remark=vless-raw-ch;": 1,
 				"inbound=n5-in-20338-udp;node=node-5;remark=awg-unknown;":        1,
 				"inbound=tun-local;node=local;remark=tun-local;":                 1,
+			},
+			wantBytes: map[string]float64{
+				"direction=uplink;inbound=n3-in-49785-tcp;node=ishosting-ch;remark=vless-raw-ch;":   1048576,
+				"direction=downlink;inbound=n3-in-49785-tcp;node=ishosting-ch;remark=vless-raw-ch;": 52428800,
+				"direction=uplink;inbound=n5-in-20338-udp;node=node-5;remark=awg-unknown;":          0,
+				"direction=downlink;inbound=n5-in-20338-udp;node=node-5;remark=awg-unknown;":        0,
 			},
 		},
 		{
@@ -534,6 +557,16 @@ func TestInboundsDecodesAndMetrics(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name:    "negative up traffic",
+			raw:     `[{"tag":"inb","enable":true,"up":-10}]`,
+			wantErr: true,
+		},
+		{
+			name:    "negative down traffic",
+			raw:     `[{"tag":"inb","enable":true,"down":-5}]`,
+			wantErr: true,
+		},
+		{
 			name:    "not array",
 			raw:     `{}`,
 			wantErr: true,
@@ -555,6 +588,17 @@ func TestInboundsDecodesAndMetrics(t *testing.T) {
 			for k, v := range tc.want {
 				if vals[k] != v {
 					t.Fatalf("key %s: got %v, want %v", k, vals[k], v)
+				}
+			}
+			if tc.wantBytes != nil {
+				byteVals := sampleValues(t, m, "xui_inbound_bytes_total")
+				if len(byteVals) != len(tc.wantBytes) {
+					t.Fatalf("got %v, want %v", byteVals, tc.wantBytes)
+				}
+				for k, v := range tc.wantBytes {
+					if byteVals[k] != v {
+						t.Fatalf("bytes key %s: got %v, want %v", k, byteVals[k], v)
+					}
 				}
 			}
 		})

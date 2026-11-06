@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // PanelStatus is the panel's snapshot, not a direct core health check.
@@ -29,6 +31,8 @@ type InboundStatus struct {
 	Remark string
 	NodeID *int
 	Enable bool
+	Up     *int64
+	Down   *int64
 }
 
 type InboundSource interface {
@@ -46,6 +50,7 @@ type NodeStatus struct {
 	UptimeSecs   *uint64
 	PanelVersion string
 	XrayVersion  string
+	OnlineCount  *int
 }
 
 type NodeSource interface {
@@ -96,6 +101,7 @@ func decodeNodes(raw json.RawMessage) ([]*NodeStatus, error) {
 		UptimeSecs   *uint64  `json:"uptimeSecs"`
 		PanelVersion *string  `json:"panelVersion"`
 		XrayVersion  *string  `json:"xrayVersion"`
+		OnlineCount  *int     `json:"onlineCount"`
 	}
 	var list []rawNode
 	if json.Unmarshal(raw, &list) != nil {
@@ -112,14 +118,18 @@ func decodeNodes(raw json.RawMessage) ([]*NodeStatus, error) {
 		if name == "" || seenID[*item.ID] || seenName[name] {
 			return nil, errors.New("empty, invalid or duplicate node")
 		}
+		if item.OnlineCount != nil && *item.OnlineCount < 0 {
+			return nil, errors.New("negative node online clients")
+		}
 		seenID[*item.ID] = true
 		seenName[name] = true
 
 		s := &NodeStatus{
-			ID:     *item.ID,
-			Name:   name,
-			CPUPct: item.CPUPct,
-			MemPct: item.MemPct,
+			ID:          *item.ID,
+			Name:        name,
+			CPUPct:      item.CPUPct,
+			MemPct:      item.MemPct,
+			OnlineCount: item.OnlineCount,
 		}
 		if item.Status != nil {
 			s.Status = strings.TrimSpace(*item.Status)
@@ -153,6 +163,8 @@ func decodeInbounds(raw json.RawMessage) ([]*InboundStatus, error) {
 		Remark *string `json:"remark"`
 		NodeID *int    `json:"nodeId"`
 		Enable *bool   `json:"enable"`
+		Up     *int64  `json:"up"`
+		Down   *int64  `json:"down"`
 	}
 	var list []rawInbound
 	if json.Unmarshal(raw, &list) != nil {
@@ -168,6 +180,12 @@ func decodeInbounds(raw json.RawMessage) ([]*InboundStatus, error) {
 		if strings.TrimSpace(tag) == "" || seen[tag] {
 			return nil, errors.New("empty or duplicate inbound tag")
 		}
+		if item.Up != nil && *item.Up < 0 {
+			return nil, errors.New("negative inbound up traffic")
+		}
+		if item.Down != nil && *item.Down < 0 {
+			return nil, errors.New("negative inbound down traffic")
+		}
 		seen[tag] = true
 		remark := ""
 		if item.Remark != nil {
@@ -178,6 +196,8 @@ func decodeInbounds(raw json.RawMessage) ([]*InboundStatus, error) {
 			Remark: remark,
 			NodeID: item.NodeID,
 			Enable: *item.Enable,
+			Up:     item.Up,
+			Down:   item.Down,
 		})
 	}
 	sort.Slice(result, func(i, j int) bool {
@@ -209,6 +229,9 @@ func nodeMetrics(nodes []*NodeStatus) samples {
 		if isOnline && n.UptimeSecs != nil {
 			gauge(&result, "xui_node_uptime_seconds", "Remote node uptime in seconds.", float64(*n.UptimeSecs), labels, n.Name)
 		}
+		if isOnline && n.OnlineCount != nil && *n.OnlineCount >= 0 {
+			gauge(&result, "xui_node_online_clients", "Current active clients online connected to this node reported by panel.", float64(*n.OnlineCount), labels, n.Name)
+		}
 		if isOnline && (n.PanelVersion != "" || n.XrayVersion != "") {
 			gauge(&result, "xui_node_info", "Remote node version metadata.", 1, []string{"node", "xray_version", "panel_version"}, n.Name, n.XrayVersion, n.PanelVersion)
 		}
@@ -232,6 +255,12 @@ func inboundStatusMetrics(inbounds []*InboundStatus, nodesByID map[int]string) s
 			remark = in.Tag
 		}
 		gauge(&result, "xui_inbound_enabled", "Whether inbound is administratively enabled in the panel.", number(in.Enable), []string{"inbound", "remark", "node"}, in.Tag, remark, nodeName)
+		if in.Up != nil && *in.Up >= 0 {
+			result.add("xui_inbound_bytes_total", "Cumulative inbound traffic bytes reported by panel; direction is relative to the proxied connection.", prometheus.CounterValue, float64(*in.Up), []string{"inbound", "remark", "node", "direction"}, in.Tag, remark, nodeName, "uplink")
+		}
+		if in.Down != nil && *in.Down >= 0 {
+			result.add("xui_inbound_bytes_total", "Cumulative inbound traffic bytes reported by panel; direction is relative to the proxied connection.", prometheus.CounterValue, float64(*in.Down), []string{"inbound", "remark", "node", "direction"}, in.Tag, remark, nodeName, "downlink")
+		}
 	}
 	return result
 }

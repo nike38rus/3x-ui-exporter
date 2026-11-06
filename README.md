@@ -235,7 +235,9 @@ Derived from 3x-ui REST API (`GET /panel/api/server/status`, `POST /panel/api/cl
 | `xui_open_sockets` | Gauge | `protocol` (`tcp`, `udp`) | Current open network sockets reported by the panel environment. |
 | `xui_online_clients` | Gauge | — | Current active client sessions reported by panel. |
 | `xui_inbound_enabled` | Gauge | `inbound`, `remark`, `node` | `1` if inbound is administratively enabled in the panel; `0` if disabled. Enriched with inbound remark and node name (`local` for master panel). |
+| `xui_inbound_bytes_total` | Counter | `inbound`, `remark`, `node`, `direction` (`uplink`, `downlink`) | Cumulative inbound traffic bytes across all nodes reported by the panel database. |
 | `xui_node_online` | Gauge | `node` | `1` if remote node is reported online by master panel heartbeat; `0` if offline. |
+| `xui_node_online_clients` | Gauge | `node` | Current active clients online connected to this node reported by master panel heartbeat. |
 | `xui_node_latency_seconds` | Gauge | `node` | Round-trip latency between master panel and remote node in seconds. |
 | `xui_node_xray_state` | Gauge | `node`, `state` (`running`, `stop`, `error`) | Remote node Xray core state captured during heartbeat. |
 | `xui_node_cpu_percent` | Gauge | `node` | Remote node CPU utilization percent. |

@@ -447,11 +447,14 @@ func (f fakePanelFull) Nodes(context.Context) ([]*NodeStatus, error) {
 
 func TestNodeMetricsAndInboundEnrichment(t *testing.T) {
 	nodeID := 3
+	up := int64(1048576)
+	down := int64(20971520)
+	onlineCount := 8
 	nodes := []*NodeStatus{
-		{ID: 3, Name: "node-remote", Status: "online", LatencyMs: 50, XrayState: "running"},
+		{ID: 3, Name: "node-remote", Status: "online", LatencyMs: 50, XrayState: "running", OnlineCount: &onlineCount},
 	}
 	inbs := []*InboundStatus{
-		{Tag: "n3-in", Remark: "vless-remote", NodeID: &nodeID, Enable: true},
+		{Tag: "n3-in", Remark: "vless-remote", NodeID: &nodeID, Enable: true, Up: &up, Down: &down},
 	}
 	eFull := &Exporter{
 		Panel:   fakePanelFull{fakePanel: fakePanel{cfg: &Config{}}, inbounds: inbs, nodes: nodes},
@@ -462,9 +465,20 @@ func TestNodeMetricsAndInboundEnrichment(t *testing.T) {
 	if inbVals["inbound=n3-in;node=node-remote;remark=vless-remote;"] != 1 {
 		t.Fatalf("unexpected enriched inbound metric: %v", inbVals)
 	}
+	inbTraffic := sampleValues(t, m, "xui_inbound_bytes_total")
+	if inbTraffic["direction=uplink;inbound=n3-in;node=node-remote;remark=vless-remote;"] != 1048576 {
+		t.Fatalf("unexpected inbound uplink traffic: %v", inbTraffic)
+	}
+	if inbTraffic["direction=downlink;inbound=n3-in;node=node-remote;remark=vless-remote;"] != 20971520 {
+		t.Fatalf("unexpected inbound downlink traffic: %v", inbTraffic)
+	}
 	nodeVals := sampleValues(t, m, "xui_node_online")
 	if nodeVals["node=node-remote;"] != 1 {
 		t.Fatalf("unexpected node online metric: %v", nodeVals)
+	}
+	nodeOnlineClients := sampleValues(t, m, "xui_node_online_clients")
+	if nodeOnlineClients["node=node-remote;"] != 8 {
+		t.Fatalf("unexpected node online clients: %v", nodeOnlineClients)
 	}
 
 	eErr := &Exporter{Panel: fakePanelWithNodes{fakePanel: fakePanel{cfg: &Config{}}, nodesErr: errors.New("nodes error")}, Timeout: time.Second}
