@@ -3,7 +3,7 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "3x-ui-exporter",
-    "generation": 48,
+    "generation": 49,
     "creationTimestamp": "2026-10-14T17:05:36Z",
     "labels": {},
     "annotations": {}
@@ -3870,16 +3870,6 @@
                             }
                           ]
                         }
-                      },
-                      {
-                        "id": "links",
-                        "value": [
-                          {
-                            "targetBlank": false,
-                            "title": "Open details",
-                            "url": "/d/${__dashboard.uid}/?viewPanel=panel-25&from=${__from}&to=${__to}&${__all_variables}"
-                          }
-                        ]
                       }
                     ]
                   },
@@ -3910,16 +3900,6 @@
                             }
                           ]
                         }
-                      },
-                      {
-                        "id": "links",
-                        "value": [
-                          {
-                            "targetBlank": false,
-                            "title": "Open details",
-                            "url": "/d/${__dashboard.uid}/?viewPanel=panel-25&from=${__from}&to=${__to}&${__all_variables}"
-                          }
-                        ]
                       }
                     ]
                   },
@@ -3950,16 +3930,6 @@
                             }
                           ]
                         }
-                      },
-                      {
-                        "id": "links",
-                        "value": [
-                          {
-                            "targetBlank": false,
-                            "title": "Open details",
-                            "url": "/d/${__dashboard.uid}/?viewPanel=panel-17&from=${__from}&to=${__to}&${__all_variables}"
-                          }
-                        ]
                       }
                     ]
                   },
@@ -3991,16 +3961,6 @@
                             }
                           ]
                         }
-                      },
-                      {
-                        "id": "links",
-                        "value": [
-                          {
-                            "targetBlank": false,
-                            "title": "Open details",
-                            "url": "/d/${__dashboard.uid}/?viewPanel=panel-17&from=${__from}&to=${__to}&${__all_variables}"
-                          }
-                        ]
                       }
                     ]
                   }
@@ -4684,16 +4644,6 @@
                             }
                           ]
                         }
-                      },
-                      {
-                        "id": "links",
-                        "value": [
-                          {
-                            "targetBlank": false,
-                            "title": "Open details",
-                            "url": "/d/${__dashboard.uid}/?viewPanel=panel-1&from=${__from}&to=${__to}&${__all_variables}"
-                          }
-                        ]
                       }
                     ]
                   },
@@ -4724,16 +4674,6 @@
                             }
                           ]
                         }
-                      },
-                      {
-                        "id": "links",
-                        "value": [
-                          {
-                            "targetBlank": false,
-                            "title": "Open details",
-                            "url": "/d/${__dashboard.uid}/?viewPanel=panel-1&from=${__from}&to=${__to}&${__all_variables}"
-                          }
-                        ]
                       }
                     ]
                   },
@@ -4764,16 +4704,6 @@
                             }
                           ]
                         }
-                      },
-                      {
-                        "id": "links",
-                        "value": [
-                          {
-                            "targetBlank": false,
-                            "title": "Open details",
-                            "url": "/d/${__dashboard.uid}/?viewPanel=panel-1&from=${__from}&to=${__to}&${__all_variables}"
-                          }
-                        ]
                       }
                     ]
                   }
@@ -6126,7 +6056,12 @@
           "id": 61,
           "title": "Online clients",
           "description": "Current active client sessions reported by the panel",
-          "links": [],
+          "links": [
+            {
+              "title": "Clients statuses",
+              "url": "/d/${__dashboard.uid}/?viewPanel=panel-71&${__all_variables}"
+            }
+          ],
           "data": {
             "kind": "QueryGroup",
             "spec": {
@@ -6141,7 +6076,7 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "xui_online_clients{job=\"xui-exporter\",instance=\"${instance}\"}",
+                        "expr": "xui_client_online{job=\"xui-exporter\",instance=\"${instance}\"}",
                         "instant": true,
                         "legendFormat": "Clients",
                         "range": false
@@ -7502,6 +7437,243 @@
           }
         }
       },
+      "panel-71": {
+        "kind": "Panel",
+        "spec": {
+          "id": 71,
+          "title": "Status",
+          "description": "Configured client accounts in 3x-ui database by lifecycle state",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "exemplar": false,
+                        "expr": "xui_client_online{job=\"xui-exporter\",instance=\"${instance}\"}",
+                        "instant": true,
+                        "legendFormat": "online",
+                        "range": false
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "prometheus-1",
+                        "grafana.app/export-datasource-name": "prometheus-infra"
+                      }
+                    },
+                    "refId": "B",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "exemplar": false,
+                        "expr": "xui_client_count{job=\"xui-exporter\",instance=\"${instance}\"}",
+                        "instant": true,
+                        "legendFormat": "{{state}}",
+                        "range": false
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "prometheus-1",
+                        "grafana.app/export-datasource-name": "prometheus-infra"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "bargauge",
+            "version": "13.3.0",
+            "spec": {
+              "options": {
+                "displayMode": "gradient",
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": false
+                },
+                "maxVizHeight": 32,
+                "minVizHeight": 16,
+                "minVizWidth": 8,
+                "namePlacement": "left",
+                "orientation": "horizontal",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showUnfilled": true,
+                "sizing": "auto",
+                "textMode": "auto",
+                "valueMode": "color"
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "decimals": 0,
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "fixed",
+                    "fixedColor": "green"
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-72": {
+        "kind": "Panel",
+        "spec": {
+          "id": 72,
+          "title": "Sessions",
+          "description": "Concurrent active client sessions over time",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "xui_client_online{job=\"xui-exporter\",instance=\"${instance}\"}",
+                        "legendFormat": "Online clients",
+                        "range": true
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "prometheus-1",
+                        "grafana.app/export-datasource-name": "prometheus-infra"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "timeseries",
+            "version": "13.3.0",
+            "spec": {
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": false
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "single",
+                  "sort": "none"
+                }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "short",
+                  "decimals": 0,
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      },
+                      {
+                        "value": 80,
+                        "color": "red"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "fixed",
+                    "fixedColor": "blue"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
       "panel-9": {
         "kind": "Panel",
         "spec": {
@@ -7801,6 +7973,46 @@
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-44"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "kind": "RowsLayoutRow",
+            "spec": {
+              "title": "Clients",
+              "collapse": true,
+              "layout": {
+                "kind": "GridLayout",
+                "spec": {
+                  "items": [
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 12,
+                        "height": 8,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-71"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 12,
+                        "y": 0,
+                        "width": 12,
+                        "height": 8,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-72"
                         }
                       }
                     }

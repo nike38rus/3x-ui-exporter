@@ -86,7 +86,7 @@
         "x": 0,
         "y": 0
       },
-      "id": 71,
+      "id": 73,
       "title": "Overview",
       "type": "row"
     },
@@ -521,6 +521,12 @@
         "y": 1
       },
       "id": 61,
+      "links": [
+        {
+          "title": "Clients statuses",
+          "url": "/d/${__dashboard.uid}/?viewPanel=panel-71&${__all_variables}"
+        }
+      ],
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -548,7 +554,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "xui_online_clients{job=\"xui-exporter\",instance=\"${instance}\"}",
+          "expr": "xui_client_online{job=\"xui-exporter\",instance=\"${instance}\"}",
           "instant": true,
           "legendFormat": "Clients",
           "range": false,
@@ -773,16 +779,6 @@
                     }
                   ]
                 }
-              },
-              {
-                "id": "links",
-                "value": [
-                  {
-                    "targetBlank": false,
-                    "title": "Open details",
-                    "url": "/d/${__dashboard.uid}/?viewPanel=panel-25&from=${__from}&to=${__to}&${__all_variables}"
-                  }
-                ]
               }
             ]
           },
@@ -813,16 +809,6 @@
                     }
                   ]
                 }
-              },
-              {
-                "id": "links",
-                "value": [
-                  {
-                    "targetBlank": false,
-                    "title": "Open details",
-                    "url": "/d/${__dashboard.uid}/?viewPanel=panel-25&from=${__from}&to=${__to}&${__all_variables}"
-                  }
-                ]
               }
             ]
           },
@@ -853,16 +839,6 @@
                     }
                   ]
                 }
-              },
-              {
-                "id": "links",
-                "value": [
-                  {
-                    "targetBlank": false,
-                    "title": "Open details",
-                    "url": "/d/${__dashboard.uid}/?viewPanel=panel-17&from=${__from}&to=${__to}&${__all_variables}"
-                  }
-                ]
               }
             ]
           },
@@ -894,16 +870,6 @@
                     }
                   ]
                 }
-              },
-              {
-                "id": "links",
-                "value": [
-                  {
-                    "targetBlank": false,
-                    "title": "Open details",
-                    "url": "/d/${__dashboard.uid}/?viewPanel=panel-17&from=${__from}&to=${__to}&${__all_variables}"
-                  }
-                ]
               }
             ]
           }
@@ -1283,16 +1249,6 @@
                     }
                   ]
                 }
-              },
-              {
-                "id": "links",
-                "value": [
-                  {
-                    "targetBlank": false,
-                    "title": "Open details",
-                    "url": "/d/${__dashboard.uid}/?viewPanel=panel-1&from=${__from}&to=${__to}&${__all_variables}"
-                  }
-                ]
               }
             ]
           },
@@ -1323,16 +1279,6 @@
                     }
                   ]
                 }
-              },
-              {
-                "id": "links",
-                "value": [
-                  {
-                    "targetBlank": false,
-                    "title": "Open details",
-                    "url": "/d/${__dashboard.uid}/?viewPanel=panel-1&from=${__from}&to=${__to}&${__all_variables}"
-                  }
-                ]
               }
             ]
           },
@@ -1363,16 +1309,6 @@
                     }
                   ]
                 }
-              },
-              {
-                "id": "links",
-                "value": [
-                  {
-                    "targetBlank": false,
-                    "title": "Open details",
-                    "url": "/d/${__dashboard.uid}/?viewPanel=panel-1&from=${__from}&to=${__to}&${__all_variables}"
-                  }
-                ]
               }
             ]
           }
@@ -2017,7 +1953,211 @@
         "x": 0,
         "y": 20
       },
-      "id": 72,
+      "id": 74,
+      "panels": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "description": "Configured client accounts in 3x-ui database by lifecycle state",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "fixedColor": "green",
+                "mode": "fixed"
+              },
+              "decimals": 0,
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              }
+            }
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 21
+          },
+          "id": 71,
+          "options": {
+            "displayMode": "gradient",
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": false
+            },
+            "maxVizHeight": 32,
+            "minVizHeight": 16,
+            "minVizWidth": 8,
+            "namePlacement": "left",
+            "orientation": "horizontal",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showUnfilled": true,
+            "sizing": "auto",
+            "textMode": "auto",
+            "valueMode": "color"
+          },
+          "pluginVersion": "13.3.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "xui_client_online{job=\"xui-exporter\",instance=\"${instance}\"}",
+              "instant": true,
+              "legendFormat": "online",
+              "range": false,
+              "refId": "B"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "xui_client_count{job=\"xui-exporter\",instance=\"${instance}\"}",
+              "instant": true,
+              "legendFormat": "{{state}}",
+              "range": false,
+              "refId": "A"
+            }
+          ],
+          "title": "Status",
+          "type": "bargauge"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "description": "Concurrent active client sessions over time",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "fixedColor": "blue",
+                "mode": "fixed"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "showValues": false,
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "decimals": 0,
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "short"
+            }
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 21
+          },
+          "id": 72,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": false
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "13.3.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "expr": "xui_client_online{job=\"xui-exporter\",instance=\"${instance}\"}",
+              "legendFormat": "Online clients",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Sessions",
+          "type": "timeseries"
+        }
+      ],
+      "title": "Clients",
+      "type": "row"
+    },
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 21
+      },
+      "id": 75,
       "panels": [
         {
           "datasource": {
@@ -2084,7 +2224,7 @@
             "h": 8,
             "w": 24,
             "x": 0,
-            "y": 21
+            "y": 22
           },
           "id": 12,
           "options": {
@@ -2150,7 +2290,7 @@
             "h": 7,
             "w": 12,
             "x": 0,
-            "y": 29
+            "y": 30
           },
           "id": 63,
           "options": {
@@ -2251,7 +2391,7 @@
             "h": 7,
             "w": 12,
             "x": 12,
-            "y": 29
+            "y": 30
           },
           "id": 62,
           "options": {
@@ -2297,9 +2437,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 21
+        "y": 22
       },
-      "id": 73,
+      "id": 76,
       "panels": [
         {
           "datasource": {
@@ -2362,7 +2502,7 @@
             "h": 8,
             "w": 24,
             "x": 0,
-            "y": 22
+            "y": 23
           },
           "id": 9,
           "options": {
@@ -2427,7 +2567,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 30
+            "y": 31
           },
           "id": 10,
           "options": {
@@ -2500,7 +2640,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 30
+            "y": 31
           },
           "id": 11,
           "options": {
@@ -2570,9 +2710,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 22
+        "y": 23
       },
-      "id": 74,
+      "id": 77,
       "panels": [
         {
           "datasource": {
@@ -2635,7 +2775,7 @@
             "h": 10,
             "w": 12,
             "x": 0,
-            "y": 23
+            "y": 24
           },
           "id": 1,
           "interval": "5s",
@@ -2881,7 +3021,7 @@
             "h": 10,
             "w": 12,
             "x": 12,
-            "y": 23
+            "y": 24
           },
           "id": 4,
           "options": {
@@ -3161,7 +3301,7 @@
             "h": 10,
             "w": 12,
             "x": 0,
-            "y": 33
+            "y": 34
           },
           "id": 5,
           "options": {
@@ -3415,7 +3555,7 @@
             "h": 10,
             "w": 12,
             "x": 12,
-            "y": 33
+            "y": 34
           },
           "id": 6,
           "options": {
@@ -3616,7 +3756,7 @@
             "h": 9,
             "w": 12,
             "x": 0,
-            "y": 43
+            "y": 44
           },
           "id": 2,
           "interval": "5s",
@@ -3719,7 +3859,7 @@
             "h": 9,
             "w": 12,
             "x": 12,
-            "y": 43
+            "y": 44
           },
           "id": 3,
           "interval": "5s",
@@ -3827,7 +3967,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 52
+            "y": 53
           },
           "id": 27,
           "interval": "5s",
@@ -3945,7 +4085,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 52
+            "y": 53
           },
           "id": 28,
           "interval": "5s",
@@ -3994,9 +4134,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 23
+        "y": 24
       },
-      "id": 75,
+      "id": 78,
       "panels": [
         {
           "datasource": {
@@ -4027,7 +4167,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 24
+            "y": 25
           },
           "id": 16,
           "interval": "10s",
@@ -4143,7 +4283,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 24
+            "y": 25
           },
           "id": 15,
           "interval": "1m",
@@ -4238,7 +4378,7 @@
             "h": 7,
             "w": 24,
             "x": 0,
-            "y": 32
+            "y": 33
           },
           "id": 17,
           "interval": "5s",
@@ -4340,7 +4480,7 @@
             "h": 6,
             "w": 12,
             "x": 0,
-            "y": 39
+            "y": 40
           },
           "id": 25,
           "interval": "5s",
@@ -4445,7 +4585,7 @@
             "h": 6,
             "w": 12,
             "x": 12,
-            "y": 39
+            "y": 40
           },
           "id": 26,
           "interval": "5s",
@@ -4494,9 +4634,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 24
+        "y": 25
       },
-      "id": 76,
+      "id": 79,
       "panels": [
         {
           "datasource": {
@@ -4564,7 +4704,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 25
+            "y": 26
           },
           "id": 29,
           "interval": "5s",
@@ -4680,7 +4820,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 25
+            "y": 26
           },
           "id": 30,
           "interval": "5s",
@@ -4785,7 +4925,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 33
+            "y": 34
           },
           "id": 31,
           "interval": "5s",
@@ -4889,7 +5029,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 33
+            "y": 34
           },
           "id": 32,
           "interval": "5s",
@@ -5007,7 +5147,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 41
+            "y": 42
           },
           "id": 33,
           "interval": "5s",
@@ -5113,7 +5253,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 41
+            "y": 42
           },
           "id": 34,
           "interval": "5s",
@@ -5163,9 +5303,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 25
+        "y": 26
       },
-      "id": 77,
+      "id": 80,
       "panels": [
         {
           "datasource": {
@@ -5222,7 +5362,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 26
+            "y": 27
           },
           "id": 64,
           "options": {
@@ -5324,7 +5464,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 26
+            "y": 27
           },
           "id": 66,
           "options": {
@@ -5517,7 +5657,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 34
+            "y": 35
           },
           "id": 67,
           "options": {
@@ -5760,7 +5900,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 34
+            "y": 35
           },
           "id": 68,
           "options": {
@@ -5871,7 +6011,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 42
+            "y": 43
           },
           "id": 69,
           "options": {
@@ -5938,7 +6078,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 42
+            "y": 43
           },
           "id": 70,
           "options": {
@@ -5995,9 +6135,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 26
+        "y": 27
       },
-      "id": 78,
+      "id": 81,
       "panels": [
         {
           "datasource": {
@@ -6059,7 +6199,7 @@
             "h": 4,
             "w": 24,
             "x": 0,
-            "y": 27
+            "y": 28
           },
           "id": 23,
           "interval": "5s",
@@ -6185,7 +6325,7 @@
             "h": 5,
             "w": 24,
             "x": 0,
-            "y": 31
+            "y": 32
           },
           "id": 24,
           "interval": "5s",
@@ -6314,7 +6454,7 @@
             "h": 6,
             "w": 12,
             "x": 0,
-            "y": 36
+            "y": 37
           },
           "id": 58,
           "interval": "5s",
@@ -6449,7 +6589,7 @@
             "h": 6,
             "w": 12,
             "x": 12,
-            "y": 36
+            "y": 37
           },
           "id": 59,
           "interval": "5s",
@@ -6560,6 +6700,6 @@
   "timezone": "browser",
   "title": "3x-ui",
   "uid": "3x-ui-exporter",
-  "version": 48,
+  "version": 49,
   "weekStart": ""
 }
