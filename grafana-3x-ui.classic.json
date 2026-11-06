@@ -86,7 +86,7 @@
         "x": 0,
         "y": 0
       },
-      "id": 73,
+      "id": 74,
       "title": "Overview",
       "type": "row"
     },
@@ -1187,7 +1187,7 @@
           "refId": "C"
         }
       ],
-      "title": "Balancers · Availability and attention",
+      "title": "Balancers availability and attention",
       "type": "timeseries"
     },
     {
@@ -1609,7 +1609,7 @@
           "refId": "C"
         }
       ],
-      "title": "Observed outbounds · Health history",
+      "title": "Observed outbounds health history",
       "type": "timeseries"
     },
     {
@@ -1942,7 +1942,7 @@
           "refId": "B"
         }
       ],
-      "title": "Total traffic · Download / Upload",
+      "title": "Total traffic Download / Upload",
       "type": "timeseries"
     },
     {
@@ -1953,7 +1953,7 @@
         "x": 0,
         "y": 20
       },
-      "id": 74,
+      "id": 75,
       "panels": [
         {
           "datasource": {
@@ -2157,7 +2157,7 @@
         "x": 0,
         "y": 21
       },
-      "id": 75,
+      "id": 76,
       "panels": [
         {
           "datasource": {
@@ -2439,7 +2439,7 @@
         "x": 0,
         "y": 22
       },
-      "id": 76,
+      "id": 77,
       "panels": [
         {
           "datasource": {
@@ -2496,7 +2496,34 @@
                 ]
               },
               "unit": "bps"
-            }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "others",
+                  "scope": "series"
+                },
+                "properties": [
+                  {
+                    "id": "custom.lineStyle",
+                    "value": {
+                      "dash": [
+                        10,
+                        10
+                      ],
+                      "fill": "dash"
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed"
+                    }
+                  }
+                ]
+              }
+            ]
           },
           "gridPos": {
             "h": 8,
@@ -2513,12 +2540,15 @@
                 "mean"
               ],
               "displayMode": "table",
-              "enableFacetedFilter": true,
+              "enableFacetedFilter": false,
+              "overflow": "ellipsis",
               "placement": "right",
-              "showLegend": true
+              "showLegend": true,
+              "sortBy": "Max",
+              "sortDesc": true
             },
             "tooltip": {
-              "hideZeros": false,
+              "hideZeros": true,
               "mode": "multi",
               "sort": "desc"
             }
@@ -2531,11 +2561,35 @@
                 "uid": "${DS_PROMETHEUS-INFRA}"
               },
               "editorMode": "code",
-              "expr": "8 * sum by (instance,outbound) (rate(xui_outbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__rate_interval]))",
+              "expr": "8 * sum by (outbound) (rate(xui_outbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",outbound=\"direct\"}[$__rate_interval]))",
+              "interval": "5s",
+              "legendFormat": "{{outbound}}",
+              "range": true,
+              "refId": "C"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "expr": "8 * (\n  sum by (outbound) (rate(xui_outbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__rate_interval]))\n  and on (outbound)\n  topk(6, (sum by (outbound) (increase(xui_outbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range]))) > 10 * 1024 * 1024)\n)",
               "interval": "5s",
               "legendFormat": "{{outbound}}",
               "range": true,
               "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "expr": "8 * clamp_min(\n  sum(rate(xui_outbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__rate_interval]))\n  -\n  sum(\n    sum by (outbound) (rate(xui_outbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__rate_interval]))\n    and on (outbound)\n    topk(6, (sum by (outbound) (increase(xui_outbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range]))) > 10 * 1024 * 1024)\n  ),\n  0\n)",
+              "interval": "5s",
+              "legendFormat": "others",
+              "range": true,
+              "refId": "B"
             }
           ],
           "title": "Outbound throughput",
@@ -2605,11 +2659,37 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "sort_desc(sum by (instance,outbound) (increase(xui_outbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range])))",
+              "expr": "sum by (outbound) (increase(xui_outbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",outbound=\"direct\"}[$__range]))",
+              "instant": true,
+              "legendFormat": "{{outbound}}",
+              "range": false,
+              "refId": "C"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "topk(6, (sum by (outbound) (\n  increase(xui_outbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range])\n)) > 10 * 1024 * 1024)",
               "instant": true,
               "legendFormat": "{{outbound}}",
               "range": false,
               "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "label_replace(\n  clamp_min(\n    sum(increase(xui_outbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range]))\n    -\n    sum(topk(6, (sum by (outbound) (increase(xui_outbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range]))) > 10 * 1024 * 1024)),\n    0\n  ) > 0,\n  \"outbound\", \"others\", \"\", \"\"\n)",
+              "instant": true,
+              "legendFormat": "others",
+              "range": false,
+              "refId": "B"
             }
           ],
           "title": "Traffic distribution",
@@ -2712,8 +2792,108 @@
         "x": 0,
         "y": 23
       },
-      "id": 77,
+      "id": 78,
       "panels": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "description": "A selected target or fallback resolves to a runtime outbound. Structural availability, not a test of internet access.",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "fixed"
+              },
+              "custom": {
+                "axisPlacement": "hidden",
+                "fillOpacity": 100,
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineWidth": 0,
+                "spanNulls": false
+              },
+              "mappings": [
+                {
+                  "options": {
+                    "0": {
+                      "color": "red",
+                      "index": 0,
+                      "text": "Unavailable"
+                    },
+                    "1": {
+                      "color": "green",
+                      "index": 1,
+                      "text": "Available"
+                    }
+                  },
+                  "type": "value"
+                }
+              ],
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "short"
+            }
+          },
+          "gridPos": {
+            "h": 2,
+            "w": 24,
+            "x": 0,
+            "y": 24
+          },
+          "id": 25,
+          "interval": "5s",
+          "maxDataPoints": 5000,
+          "options": {
+            "alignValue": "left",
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": false
+            },
+            "mergeValues": true,
+            "rowHeight": 0.9,
+            "showValue": "never",
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "13.3.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "expr": "xui_balancer_outbound_available{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\"}",
+              "instant": false,
+              "legendFormat": "{{balancer}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Balancer availability",
+          "type": "state-timeline"
+        },
         {
           "datasource": {
             "type": "prometheus",
@@ -2727,7 +2907,6 @@
               },
               "custom": {
                 "axisPlacement": "auto",
-                "axisWidth": 240,
                 "fillOpacity": 70,
                 "hideFrom": {
                   "legend": false,
@@ -2772,10 +2951,10 @@
             }
           },
           "gridPos": {
-            "h": 10,
-            "w": 12,
+            "h": 6,
+            "w": 24,
             "x": 0,
-            "y": 24
+            "y": 26
           },
           "id": 1,
           "interval": "5s",
@@ -2804,7 +2983,7 @@
                 "uid": "${DS_PROMETHEUS-INFRA}"
               },
               "editorMode": "code",
-              "expr": "(xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"} == bool 0)))\nor (xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"} * 2)",
+              "expr": "(\n  (\n    xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"}\n    * (1 + (xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\"} == bool 0))\n  )\n  or (xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * 2)\n)\nand on (outbound)\nmax by (outbound) (\n  xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
               "interval": "5s",
               "legendFormat": "{{outbound}}",
               "range": true,
@@ -2814,1330 +2993,6 @@
           "title": "Outbound health",
           "type": "state-timeline"
         },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS-INFRA}"
-          },
-          "description": "DOWN: Xray alive=0. DEGRADED: burst window contains failed probes. UP: alive with no failed probes; ordinary observatory exposes only alive. Missing data stays missing.",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "custom": {
-                "align": "auto",
-                "cellOptions": {
-                  "type": "auto"
-                },
-                "filterable": false,
-                "footer": {
-                  "reducers": []
-                },
-                "inspect": false,
-                "minWidth": 100,
-                "wrapHeaderText": true,
-                "wrapText": false
-              },
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": 0
-                  }
-                ]
-              }
-            },
-            "overrides": [
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "Health",
-                  "scope": "series"
-                },
-                "properties": [
-                  {
-                    "id": "mappings",
-                    "value": [
-                      {
-                        "options": {
-                          "0": {
-                            "color": "red",
-                            "index": 0,
-                            "text": "DOWN"
-                          },
-                          "1": {
-                            "color": "yellow",
-                            "index": 1,
-                            "text": "DEGRADED"
-                          },
-                          "2": {
-                            "color": "green",
-                            "index": 2,
-                            "text": "UP"
-                          }
-                        },
-                        "type": "value"
-                      }
-                    ]
-                  },
-                  {
-                    "id": "custom.cellOptions",
-                    "value": {
-                      "type": "color-text"
-                    }
-                  },
-                  {
-                    "id": "custom.width",
-                    "value": 110
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "RTT",
-                  "scope": "series"
-                },
-                "properties": [
-                  {
-                    "id": "unit",
-                    "value": "s"
-                  },
-                  {
-                    "id": "thresholds",
-                    "value": {
-                      "mode": "absolute",
-                      "steps": [
-                        {
-                          "color": "text",
-                          "value": 0
-                        },
-                        {
-                          "color": "red",
-                          "value": 0.6
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "id": "custom.cellOptions",
-                    "value": {
-                      "type": "color-text"
-                    }
-                  },
-                  {
-                    "id": "custom.width",
-                    "value": 110
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "Deviation",
-                  "scope": "series"
-                },
-                "properties": [
-                  {
-                    "id": "unit",
-                    "value": "s"
-                  },
-                  {
-                    "id": "custom.width",
-                    "value": 110
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "Failed",
-                  "scope": "series"
-                },
-                "properties": [
-                  {
-                    "id": "thresholds",
-                    "value": {
-                      "mode": "absolute",
-                      "steps": [
-                        {
-                          "color": "text",
-                          "value": 0
-                        },
-                        {
-                          "color": "yellow",
-                          "value": 1
-                        },
-                        {
-                          "color": "red",
-                          "value": 3
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "id": "custom.cellOptions",
-                    "value": {
-                      "type": "color-text"
-                    }
-                  },
-                  {
-                    "id": "custom.width",
-                    "value": 55
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "Outbound",
-                  "scope": "series"
-                },
-                "properties": [
-                  {
-                    "id": "custom.width",
-                    "value": 240
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "Probes",
-                  "scope": "series"
-                },
-                "properties": [
-                  {
-                    "id": "custom.width",
-                    "value": 55
-                  }
-                ]
-              }
-            ]
-          },
-          "gridPos": {
-            "h": 10,
-            "w": 12,
-            "x": 12,
-            "y": 24
-          },
-          "id": 4,
-          "options": {
-            "cellHeight": "sm",
-            "frameIndex": 0,
-            "frozenColumns": {
-              "left": 1
-            },
-            "showHeader": true,
-            "zebraStriping": false
-          },
-          "pluginVersion": "13.3.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
-              },
-              "editorMode": "code",
-              "exemplar": false,
-              "expr": "(xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"} == bool 0)))\nor (xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"} * 2)",
-              "format": "table",
-              "instant": true,
-              "legendFormat": "Health",
-              "range": false,
-              "refId": "A"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
-              },
-              "editorMode": "code",
-              "exemplar": false,
-              "expr": "xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"} or xui_observatory_outbound_delay_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}",
-              "format": "table",
-              "instant": true,
-              "legendFormat": "RTT",
-              "range": false,
-              "refId": "B"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
-              },
-              "editorMode": "code",
-              "exemplar": false,
-              "expr": "xui_observatory_outbound_rtt_deviation_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}",
-              "format": "table",
-              "instant": true,
-              "legendFormat": "Deviation",
-              "range": false,
-              "refId": "C"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
-              },
-              "editorMode": "code",
-              "exemplar": false,
-              "expr": "xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}",
-              "format": "table",
-              "instant": true,
-              "legendFormat": "Failed",
-              "range": false,
-              "refId": "D"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
-              },
-              "editorMode": "code",
-              "exemplar": false,
-              "expr": "xui_observatory_outbound_probe_samples{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}",
-              "format": "table",
-              "instant": true,
-              "legendFormat": "Probes",
-              "range": false,
-              "refId": "E"
-            }
-          ],
-          "title": "Current outbound health",
-          "transformations": [
-            {
-              "id": "joinByField",
-              "options": {
-                "byField": "outbound",
-                "mode": "outer"
-              }
-            },
-            {
-              "id": "organize",
-              "options": {
-                "excludeByName": {
-                  "Time 1": true,
-                  "Time 2": true,
-                  "Time 3": true,
-                  "Time 4": true,
-                  "Time 5": true,
-                  "__name__ 1": true,
-                  "__name__ 2": true,
-                  "__name__ 3": true,
-                  "__name__ 4": true,
-                  "instance 1": true,
-                  "instance 2": true,
-                  "instance 3": true,
-                  "instance 4": true,
-                  "instance 5": true,
-                  "job 1": true,
-                  "job 2": true,
-                  "job 3": true,
-                  "job 4": true
-                },
-                "includeByName": {},
-                "indexByName": {
-                  "Time 1": 6,
-                  "Time 2": 7,
-                  "Time 3": 11,
-                  "Time 4": 15,
-                  "Time 5": 19,
-                  "Value #A": 1,
-                  "Value #B": 2,
-                  "Value #C": 3,
-                  "Value #D": 4,
-                  "Value #E": 5,
-                  "__name__ 1": 8,
-                  "__name__ 2": 12,
-                  "__name__ 3": 16,
-                  "__name__ 4": 20,
-                  "instance 1": 9,
-                  "instance 2": 13,
-                  "instance 3": 17,
-                  "instance 4": 21,
-                  "job 1": 10,
-                  "job 2": 14,
-                  "job 3": 18,
-                  "job 4": 22,
-                  "outbound": 0
-                },
-                "renameByName": {
-                  "Value #A": "Health",
-                  "Value #B": "RTT",
-                  "Value #C": "Deviation",
-                  "Value #D": "Failed",
-                  "Value #E": "Probes",
-                  "outbound": "Outbound"
-                }
-              }
-            }
-          ],
-          "type": "table"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS-INFRA}"
-          },
-          "description": "P50/P95 are percentiles of observed window means, not individual HTTP requests. Probe success is a sample-weighted estimate over overlapping observation windows, not a count of unique probes.",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "custom": {
-                "align": "auto",
-                "cellOptions": {
-                  "type": "auto"
-                },
-                "filterable": false,
-                "footer": {
-                  "reducers": []
-                },
-                "inspect": false,
-                "minWidth": 100,
-                "styleField": "Outbound",
-                "wrapHeaderText": false,
-                "wrapText": false
-              },
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": 0
-                  }
-                ]
-              }
-            },
-            "overrides": [
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "Xray alive time",
-                  "scope": "series"
-                },
-                "properties": [
-                  {
-                    "id": "unit",
-                    "value": "percentunit"
-                  },
-                  {
-                    "id": "custom.width",
-                    "value": 110
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "Probe success",
-                  "scope": "series"
-                },
-                "properties": [
-                  {
-                    "id": "unit",
-                    "value": "percentunit"
-                  },
-                  {
-                    "id": "custom.width",
-                    "value": 110
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "P50 RTT",
-                  "scope": "series"
-                },
-                "properties": [
-                  {
-                    "id": "unit",
-                    "value": "s"
-                  },
-                  {
-                    "id": "custom.width",
-                    "value": 110
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "P95 RTT",
-                  "scope": "series"
-                },
-                "properties": [
-                  {
-                    "id": "unit",
-                    "value": "s"
-                  },
-                  {
-                    "id": "custom.width",
-                    "value": 110
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "Outbound",
-                  "scope": "series"
-                },
-                "properties": [
-                  {
-                    "id": "custom.width",
-                    "value": 240
-                  }
-                ]
-              }
-            ]
-          },
-          "gridPos": {
-            "h": 10,
-            "w": 12,
-            "x": 0,
-            "y": 34
-          },
-          "id": 5,
-          "options": {
-            "cellHeight": "sm",
-            "frameIndex": 0,
-            "frozenColumns": {
-              "left": 1
-            },
-            "showHeader": true,
-            "zebraStriping": false
-          },
-          "pluginVersion": "13.3.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
-              },
-              "editorMode": "code",
-              "exemplar": false,
-              "expr": "avg_over_time(\n  xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range]\n)",
-              "format": "table",
-              "instant": true,
-              "legendFormat": "Xray alive time",
-              "range": false,
-              "refId": "A"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
-              },
-              "editorMode": "code",
-              "exemplar": false,
-              "expr": "1 -\n(\n  sum_over_time(xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range])\n  /\n  sum_over_time(xui_observatory_outbound_probe_samples{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range])\n)",
-              "format": "table",
-              "instant": true,
-              "legendFormat": "Probe success",
-              "range": false,
-              "refId": "B"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
-              },
-              "editorMode": "code",
-              "exemplar": false,
-              "expr": "quantile_over_time(\n  0.50,\n  xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range]\n)",
-              "format": "table",
-              "instant": true,
-              "legendFormat": "P50 RTT",
-              "range": false,
-              "refId": "C"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
-              },
-              "editorMode": "code",
-              "exemplar": false,
-              "expr": "quantile_over_time(\n  0.95,\n  xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range]\n)",
-              "format": "table",
-              "instant": true,
-              "legendFormat": "P95 RTT",
-              "range": false,
-              "refId": "D"
-            }
-          ],
-          "title": "Outbound quality metrics",
-          "transformations": [
-            {
-              "id": "joinByField",
-              "options": {
-                "byField": "outbound",
-                "mode": "outer"
-              }
-            },
-            {
-              "id": "organize",
-              "options": {
-                "excludeByName": {
-                  "Time 1": true,
-                  "Time 2": true,
-                  "Time 3": true,
-                  "Time 4": true,
-                  "instance 1": true,
-                  "instance 2": true,
-                  "instance 3": true,
-                  "instance 4": true,
-                  "job 1": true,
-                  "job 2": true,
-                  "job 3": true,
-                  "job 4": true
-                },
-                "includeByName": {},
-                "indexByName": {},
-                "renameByName": {
-                  "Value #A": "Xray alive time",
-                  "Value #B": "Probe success",
-                  "Value #C": "P50 RTT",
-                  "Value #D": "P95 RTT",
-                  "outbound": "Outbound"
-                }
-              }
-            }
-          ],
-          "type": "table"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS-INFRA}"
-          },
-          "description": "Dashboard heuristic, not the score used by Xray leastLoad. Burst-only reliability inputs are absent for ordinary observatory. No missing values are filled with zero.",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "custom": {
-                "align": "auto",
-                "cellOptions": {
-                  "type": "auto"
-                },
-                "footer": {
-                  "reducers": []
-                },
-                "inspect": false,
-                "wrapHeaderText": true
-              },
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": 0
-                  }
-                ]
-              }
-            },
-            "overrides": [
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "outbound",
-                  "scope": "series"
-                },
-                "properties": [
-                  {
-                    "id": "custom.width",
-                    "value": 240
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "Quality",
-                  "scope": "series"
-                },
-                "properties": [
-                  {
-                    "id": "custom.width",
-                    "value": 110
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "Reliability",
-                  "scope": "series"
-                },
-                "properties": [
-                  {
-                    "id": "custom.width",
-                    "value": 110
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "RTT stability",
-                  "scope": "series"
-                },
-                "properties": [
-                  {
-                    "id": "custom.width",
-                    "value": 110
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "Latency",
-                  "scope": "series"
-                },
-                "properties": [
-                  {
-                    "id": "custom.width",
-                    "value": 110
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "Quality",
-                  "scope": "series"
-                },
-                "properties": [
-                  {
-                    "id": "custom.cellOptions",
-                    "value": {
-                      "type": "color-text"
-                    }
-                  },
-                  {
-                    "id": "thresholds",
-                    "value": {
-                      "mode": "absolute",
-                      "steps": [
-                        {
-                          "color": "red",
-                          "value": 0
-                        },
-                        {
-                          "color": "orange",
-                          "value": 60
-                        },
-                        {
-                          "color": "yellow",
-                          "value": 80
-                        },
-                        {
-                          "color": "green",
-                          "value": 90
-                        }
-                      ]
-                    }
-                  }
-                ]
-              }
-            ]
-          },
-          "gridPos": {
-            "h": 10,
-            "w": 12,
-            "x": 12,
-            "y": 34
-          },
-          "id": 6,
-          "options": {
-            "cellHeight": "sm",
-            "frozenColumns": {
-              "left": 1
-            },
-            "showHeader": true,
-            "sortBy": [
-              {
-                "desc": true,
-                "displayName": "Quality"
-              }
-            ],
-            "zebraStriping": false
-          },
-          "pluginVersion": "13.3.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
-              },
-              "editorMode": "code",
-              "exemplar": false,
-              "expr": "100 *\nexp(\n  -10 *\n  (\n    sum_over_time(xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range])\n    /\n    sum_over_time(xui_observatory_outbound_probe_samples{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range])\n  )\n)",
-              "format": "table",
-              "instant": true,
-              "legendFormat": "__auto",
-              "range": false,
-              "refId": "R"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
-              },
-              "editorMode": "code",
-              "exemplar": false,
-              "expr": "100 *\nexp(\n  -2 *\n  (\n    quantile_over_time(\n      0.95,\n      xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range]\n    )\n    -\n    quantile_over_time(\n      0.50,\n      xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range]\n    )\n  )\n)",
-              "format": "table",
-              "instant": true,
-              "legendFormat": "__auto",
-              "range": false,
-              "refId": "S"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
-              },
-              "editorMode": "code",
-              "exemplar": false,
-              "expr": "clamp(\n  130 -\n  100 *\n  quantile_over_time(\n    0.50,\n    xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range]\n  ),\n  0,\n  100\n)",
-              "format": "table",
-              "instant": true,
-              "legendFormat": "__auto",
-              "range": false,
-              "refId": "L"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
-              },
-              "editorMode": "code",
-              "exemplar": false,
-              "expr": "100 * exp(\n  -5 * (sum_over_time(xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range]) / sum_over_time(xui_observatory_outbound_probe_samples{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range]))\n  - 0.6 * (quantile_over_time(0.95, xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range]) - quantile_over_time(0.50, xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range]))\n) * (clamp(130 - 100 * quantile_over_time(0.50, xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range]), 0, 100) / 100) ^ 0.20",
-              "format": "table",
-              "instant": true,
-              "legendFormat": "__auto",
-              "range": false,
-              "refId": "Q"
-            }
-          ],
-          "title": "Outbound quality score",
-          "transformations": [
-            {
-              "id": "joinByField",
-              "options": {
-                "byField": "outbound",
-                "mode": "outer"
-              }
-            },
-            {
-              "id": "organize",
-              "options": {
-                "excludeByName": {
-                  "Time 1": true,
-                  "Time 2": true,
-                  "Time 3": true,
-                  "Time 4": true,
-                  "instance 1": true,
-                  "instance 2": true,
-                  "instance 3": true,
-                  "instance 4": true,
-                  "job 1": true,
-                  "job 2": true,
-                  "job 3": true,
-                  "job 4": true
-                },
-                "includeByName": {},
-                "indexByName": {
-                  "Time 1": 2,
-                  "Time 2": 6,
-                  "Time 3": 10,
-                  "Time 4": 14,
-                  "Value #L": 13,
-                  "Value #Q": 1,
-                  "Value #R": 5,
-                  "Value #S": 9,
-                  "instance 1": 3,
-                  "instance 2": 7,
-                  "instance 3": 11,
-                  "instance 4": 15,
-                  "job 1": 4,
-                  "job 2": 8,
-                  "job 3": 12,
-                  "job 4": 16,
-                  "outbound": 0
-                },
-                "orderByMode": "manual",
-                "renameByName": {
-                  "Value #L": "Latency",
-                  "Value #Q": "Quality",
-                  "Value #R": "Reliability",
-                  "Value #S": "RTT stability"
-                }
-              }
-            }
-          ],
-          "type": "table"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS-INFRA}"
-          },
-          "description": "Burst: mean RTT of successful samples in the observation window. Ordinary observatory: last successful delay. Seconds; no fabricated values on failure.",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisBorderShow": false,
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "barWidthFactor": 0.6,
-                "drawStyle": "line",
-                "fillOpacity": 10,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "insertNulls": false,
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "never",
-                "showValues": false,
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "dashed"
-                }
-              },
-              "min": 0,
-              "noValue": "0",
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": 0
-                  },
-                  {
-                    "color": "red",
-                    "value": 0.6
-                  }
-                ]
-              },
-              "unit": "s"
-            }
-          },
-          "gridPos": {
-            "h": 9,
-            "w": 12,
-            "x": 0,
-            "y": 44
-          },
-          "id": 2,
-          "interval": "5s",
-          "maxDataPoints": 5000,
-          "options": {
-            "legend": {
-              "calcs": [
-                "last",
-                "mean",
-                "max"
-              ],
-              "displayMode": "table",
-              "placement": "right",
-              "showLegend": false,
-              "sortBy": "Mean",
-              "sortDesc": false
-            },
-            "tooltip": {
-              "hideZeros": false,
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "pluginVersion": "13.3.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
-              },
-              "editorMode": "code",
-              "expr": "xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"} or xui_observatory_outbound_delay_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}",
-              "interval": "5s",
-              "legendFormat": "{{outbound}}",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "Outbound latency",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS-INFRA}"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisBorderShow": false,
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "barWidthFactor": 0.6,
-                "drawStyle": "line",
-                "fillOpacity": 10,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "insertNulls": false,
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "never",
-                "showValues": false,
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "dashed"
-                }
-              },
-              "min": 0,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": 0
-                  }
-                ]
-              },
-              "unit": "s"
-            }
-          },
-          "gridPos": {
-            "h": 9,
-            "w": 12,
-            "x": 12,
-            "y": 44
-          },
-          "id": 3,
-          "interval": "5s",
-          "maxDataPoints": 5000,
-          "options": {
-            "legend": {
-              "calcs": [
-                "last",
-                "mean",
-                "max"
-              ],
-              "displayMode": "table",
-              "placement": "right",
-              "showLegend": false,
-              "sortBy": "Mean",
-              "sortDesc": false
-            },
-            "tooltip": {
-              "hideZeros": false,
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "pluginVersion": "13.3.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
-              },
-              "editorMode": "code",
-              "expr": "xui_observatory_outbound_rtt_deviation_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}",
-              "interval": "5s",
-              "legendFormat": "{{outbound}}",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "Outbound latency deviation",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS-INFRA}"
-          },
-          "description": "Minimum and maximum successful RTT in the current burst window. Not available for ordinary observatory.",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisBorderShow": false,
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "barWidthFactor": 0.6,
-                "drawStyle": "line",
-                "fillOpacity": 10,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "insertNulls": false,
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "never",
-                "showValues": false,
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "min": 0,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": 0
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "s"
-            }
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 53
-          },
-          "id": 27,
-          "interval": "5s",
-          "maxDataPoints": 5000,
-          "options": {
-            "legend": {
-              "calcs": [
-                "lastNotNull",
-                "max"
-              ],
-              "displayMode": "table",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "hideZeros": false,
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "pluginVersion": "13.3.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
-              },
-              "editorMode": "code",
-              "expr": "xui_observatory_outbound_rtt_min_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}",
-              "instant": false,
-              "legendFormat": "{{outbound}} · min",
-              "range": true,
-              "refId": "A"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
-              },
-              "editorMode": "code",
-              "expr": "xui_observatory_outbound_rtt_max_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}",
-              "instant": false,
-              "legendFormat": "{{outbound}} · max",
-              "range": true,
-              "refId": "B"
-            }
-          ],
-          "title": "Burst RTT range",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS-INFRA}"
-          },
-          "description": "Failed fraction in the current burst window, not a cumulative counter. Empty measurements remain absent.",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisBorderShow": false,
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "barWidthFactor": 0.6,
-                "drawStyle": "line",
-                "fillOpacity": 10,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "insertNulls": false,
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "never",
-                "showValues": false,
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "max": 1,
-              "min": 0,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": 0
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "percentunit"
-            }
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 53
-          },
-          "id": 28,
-          "interval": "5s",
-          "maxDataPoints": 5000,
-          "options": {
-            "legend": {
-              "calcs": [
-                "lastNotNull",
-                "max"
-              ],
-              "displayMode": "table",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "hideZeros": false,
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "pluginVersion": "13.3.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
-              },
-              "editorMode": "code",
-              "expr": "xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"} / xui_observatory_outbound_probe_samples{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}",
-              "instant": false,
-              "legendFormat": "{{outbound}}",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "Burst failed probes",
-          "type": "timeseries"
-        }
-      ],
-      "title": "Observatory",
-      "type": "row"
-    },
-    {
-      "collapsed": true,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 24
-      },
-      "id": 78,
-      "panels": [
         {
           "datasource": {
             "type": "prometheus",
@@ -4165,9 +3020,9 @@
           },
           "gridPos": {
             "h": 8,
-            "w": 12,
+            "w": 7,
             "x": 0,
-            "y": 25
+            "y": 32
           },
           "id": 16,
           "interval": "10s",
@@ -4208,15 +3063,138 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "sort_desc (\n  100 * avg_over_time(\n    xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\"}[$__range]\n  )\n)",
+              "expr": "sort_desc (\n  100 * avg_over_time(\n    xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\",role!~\"fallback|override\"}[$__range]\n  )\n)",
               "instant": true,
-              "legendFormat": "{{balancer}} | {{role}} | {{outbound}}",
+              "legendFormat": "{{outbound}}",
               "range": false,
               "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "sort_desc (\n  100 * avg_over_time(\n    xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\",role=~\"fallback|override\"}[$__range]\n  )\n)",
+              "instant": true,
+              "legendFormat": "{{balancer}} | {{role}}",
+              "range": false,
+              "refId": "B"
             }
           ],
           "title": "Outbound selected time",
           "type": "bargauge"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "description": "Primary target membership plus fallback and override activity. Fallback uses its configured outbound tag; override has no outbound tag. Gray means confirmed inactive; gaps mean unavailable or unknown data.",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "fixed"
+              },
+              "custom": {
+                "axisPlacement": "auto",
+                "fillOpacity": 100,
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineWidth": 0,
+                "spanNulls": false
+              },
+              "mappings": [
+                {
+                  "options": {
+                    "0": {
+                      "color": "#7f7f7f",
+                      "index": 0,
+                      "text": "Not selected"
+                    },
+                    "1": {
+                      "color": "green",
+                      "index": 1,
+                      "text": "Selected"
+                    }
+                  },
+                  "type": "value"
+                }
+              ],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              },
+              "unit": "short"
+            }
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 10,
+            "x": 7,
+            "y": 32
+          },
+          "id": 17,
+          "interval": "5s",
+          "maxDataPoints": 5000,
+          "options": {
+            "alignValue": "left",
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": false
+            },
+            "mergeValues": true,
+            "rowHeight": 0.9,
+            "showValue": "never",
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "13.3.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\",role!~\"fallback|override\"}",
+              "instant": false,
+              "interval": "5s",
+              "legendFormat": "{{outbound}}",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "expr": "xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\",role=~\"fallback|override\"}",
+              "instant": false,
+              "interval": "5s",
+              "legendFormat": "{{role}}",
+              "range": true,
+              "refId": "B"
+            }
+          ],
+          "title": "Selected outbounds",
+          "type": "state-timeline"
         },
         {
           "datasource": {
@@ -4281,9 +3259,9 @@
           },
           "gridPos": {
             "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 25
+            "w": 7,
+            "x": 17,
+            "y": 32
           },
           "id": 15,
           "interval": "1m",
@@ -4327,41 +3305,22 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
-          "description": "Primary target membership plus fallback and override activity. Fallback uses its configured outbound tag; override has no outbound tag. Gray means confirmed inactive; gaps mean unavailable or unknown data.",
+          "description": "Consolidated runtime health, network latency, jitter, probe reliability, and overall quality score for outbounds in the selected balancer.",
           "fieldConfig": {
             "defaults": {
               "color": {
-                "mode": "fixed"
+                "mode": "thresholds"
               },
               "custom": {
-                "axisPlacement": "auto",
-                "fillOpacity": 100,
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
+                "align": "auto",
+                "cellOptions": {
+                  "type": "auto"
                 },
-                "insertNulls": false,
-                "lineWidth": 0,
-                "spanNulls": false
+                "footer": {
+                  "reducers": []
+                },
+                "inspect": false
               },
-              "mappings": [
-                {
-                  "options": {
-                    "0": {
-                      "color": "#7f7f7f",
-                      "index": 0,
-                      "text": "Not selected"
-                    },
-                    "1": {
-                      "color": "green",
-                      "index": 1,
-                      "text": "Selected"
-                    }
-                  },
-                  "type": "value"
-                }
-              ],
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -4370,34 +3329,184 @@
                     "value": 0
                   }
                 ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Quality",
+                  "scope": "series"
+                },
+                "properties": [
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-text"
+                    }
+                  },
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "red",
+                          "value": 0
+                        },
+                        {
+                          "color": "orange",
+                          "value": 40
+                        },
+                        {
+                          "color": "yellow",
+                          "value": 70
+                        },
+                        {
+                          "color": "green",
+                          "value": 90
+                        }
+                      ]
+                    }
+                  }
+                ]
               },
-              "unit": "short"
-            }
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Health",
+                  "scope": "series"
+                },
+                "properties": [
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-text"
+                    }
+                  },
+                  {
+                    "id": "mappings",
+                    "value": [
+                      {
+                        "options": {
+                          "0": {
+                            "color": "red",
+                            "index": 0,
+                            "text": "DOWN"
+                          },
+                          "1": {
+                            "color": "yellow",
+                            "index": 1,
+                            "text": "DEGRADED"
+                          },
+                          "2": {
+                            "color": "green",
+                            "index": 2,
+                            "text": "UP"
+                          }
+                        },
+                        "type": "value"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Deviation",
+                  "scope": "series"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "s"
+                  },
+                  {
+                    "id": "decimals",
+                    "value": 0
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Probe success",
+                  "scope": "series"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "percentunit"
+                  },
+                  {
+                    "id": "decimals",
+                    "value": 1
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Alive time",
+                  "scope": "series"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "percentunit"
+                  },
+                  {
+                    "id": "decimals",
+                    "value": 1
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": "/RTT/",
+                  "scope": "series"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "s"
+                  },
+                  {
+                    "id": "decimals",
+                    "value": 0
+                  }
+                ]
+              }
+            ]
           },
           "gridPos": {
-            "h": 7,
+            "h": 8,
             "w": 24,
             "x": 0,
-            "y": 33
+            "y": 40
           },
-          "id": 17,
-          "interval": "5s",
-          "maxDataPoints": 5000,
+          "id": 73,
           "options": {
-            "alignValue": "left",
-            "legend": {
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": false
+            "cellHeight": "sm",
+            "footer": {
+              "countRows": false,
+              "fields": "",
+              "reducer": [
+                "sum"
+              ],
+              "show": false
             },
-            "mergeValues": true,
-            "rowHeight": 0.9,
-            "showValue": "never",
-            "tooltip": {
-              "hideZeros": false,
-              "mode": "multi",
-              "sort": "none"
-            }
+            "showHeader": true,
+            "sortBy": [
+              {
+                "desc": true,
+                "displayName": "Quality"
+              }
+            ],
+            "wrapHeaderText": false,
+            "zebraStriping": false
           },
           "pluginVersion": "13.3.0",
           "targets": [
@@ -4408,123 +3517,198 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\"}",
-              "instant": false,
-              "interval": "5s",
-              "legendFormat": "{{balancer}} | {{role}} | {{outbound}}",
-              "range": true,
+              "expr": "(100 * exp(\n  -5 * (sum_over_time(xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\"}[$__range]) / sum_over_time(xui_observatory_outbound_probe_samples{job=\"xui-exporter\",instance=\"${instance}\"}[$__range]))\n  - 0.6 * (quantile_over_time(0.95, xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\"}[$__range]) - quantile_over_time(0.50, xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\"}[$__range]))\n) * (clamp(130 - 100 * quantile_over_time(0.50, xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\"}[$__range]), 0, 100) / 100) ^ 0.20)\nand on (outbound) max by (outbound) (\n  xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
+              "format": "table",
+              "instant": true,
+              "range": false,
               "refId": "A"
-            }
-          ],
-          "title": "Selected outbounds",
-          "type": "state-timeline"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS-INFRA}"
-          },
-          "description": "A selected target or fallback resolves to a runtime outbound. Structural availability, not a test of internet access.",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "fixed"
-              },
-              "custom": {
-                "axisPlacement": "auto",
-                "fillOpacity": 100,
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "insertNulls": false,
-                "lineWidth": 0,
-                "spanNulls": false
-              },
-              "mappings": [
-                {
-                  "options": {
-                    "0": {
-                      "color": "red",
-                      "index": 0,
-                      "text": "Unavailable"
-                    },
-                    "1": {
-                      "color": "green",
-                      "index": 1,
-                      "text": "Available"
-                    }
-                  },
-                  "type": "value"
-                }
-              ],
-              "min": 0,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": 0
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "short"
-            }
-          },
-          "gridPos": {
-            "h": 6,
-            "w": 12,
-            "x": 0,
-            "y": 40
-          },
-          "id": 25,
-          "interval": "5s",
-          "maxDataPoints": 5000,
-          "options": {
-            "alignValue": "left",
-            "legend": {
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": false
             },
-            "mergeValues": true,
-            "rowHeight": 0.9,
-            "showValue": "never",
-            "tooltip": {
-              "hideZeros": false,
-              "mode": "single",
-              "sort": "none"
-            }
-          },
-          "pluginVersion": "13.3.0",
-          "targets": [
             {
               "datasource": {
                 "type": "prometheus",
                 "uid": "${DS_PROMETHEUS-INFRA}"
               },
               "editorMode": "code",
-              "expr": "xui_balancer_outbound_available{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\"}",
-              "instant": false,
-              "legendFormat": "{{balancer}}",
-              "range": true,
-              "refId": "A"
+              "exemplar": false,
+              "expr": "((xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\"} == bool 0)))\nor (xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * 2))\nand on (outbound) max by (outbound) (\n  xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
+              "format": "table",
+              "instant": true,
+              "range": false,
+              "refId": "B"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "(xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\"} or xui_observatory_outbound_delay_seconds{job=\"xui-exporter\",instance=\"${instance}\"})\nand on (outbound) max by (outbound) (\n  xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
+              "format": "table",
+              "instant": true,
+              "range": false,
+              "refId": "C"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "quantile_over_time(0.95, xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\"}[$__range])\nand on (outbound) max by (outbound) (\n  xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
+              "format": "table",
+              "instant": true,
+              "range": false,
+              "refId": "D"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "xui_observatory_outbound_rtt_deviation_seconds{job=\"xui-exporter\",instance=\"${instance}\"}\nand on (outbound) max by (outbound) (\n  xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
+              "format": "table",
+              "instant": true,
+              "range": false,
+              "refId": "E"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "(1 - (sum_over_time(xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\"}[$__range]) / sum_over_time(xui_observatory_outbound_probe_samples{job=\"xui-exporter\",instance=\"${instance}\"}[$__range])))\nand on (outbound) max by (outbound) (\n  xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
+              "format": "table",
+              "instant": true,
+              "range": false,
+              "refId": "F"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg_over_time(xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"}[$__range])\nand on (outbound) max by (outbound) (\n  xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
+              "format": "table",
+              "instant": true,
+              "range": false,
+              "refId": "G"
             }
           ],
-          "title": "Balancer outbound availability",
-          "type": "state-timeline"
+          "title": "Outbound quality & health",
+          "transformations": [
+            {
+              "id": "joinByField",
+              "options": {
+                "byField": "outbound",
+                "mode": "outer"
+              }
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "Time 1": true,
+                  "Time 2": true,
+                  "Time 3": true,
+                  "Time 4": true,
+                  "Time 5": true,
+                  "Time 6": true,
+                  "Time 7": true,
+                  "__name__ 1": true,
+                  "__name__ 2": true,
+                  "instance": true,
+                  "instance 1": true,
+                  "instance 2": true,
+                  "instance 3": true,
+                  "instance 4": true,
+                  "instance 5": true,
+                  "instance 6": true,
+                  "instance 7": true,
+                  "job": true,
+                  "job 1": true,
+                  "job 2": true,
+                  "job 3": true,
+                  "job 4": true,
+                  "job 5": true,
+                  "job 6": true,
+                  "job 7": true
+                },
+                "includeByName": {},
+                "indexByName": {
+                  "Time 1": 8,
+                  "Time 2": 11,
+                  "Time 3": 14,
+                  "Time 4": 18,
+                  "Time 5": 21,
+                  "Time 6": 25,
+                  "Time 7": 28,
+                  "Value #A": 2,
+                  "Value #B": 1,
+                  "Value #C": 5,
+                  "Value #D": 6,
+                  "Value #E": 7,
+                  "Value #F": 4,
+                  "Value #G": 3,
+                  "__name__ 1": 15,
+                  "__name__ 2": 22,
+                  "instance 1": 9,
+                  "instance 2": 12,
+                  "instance 3": 16,
+                  "instance 4": 19,
+                  "instance 5": 23,
+                  "instance 6": 26,
+                  "instance 7": 29,
+                  "job 1": 10,
+                  "job 2": 13,
+                  "job 3": 17,
+                  "job 4": 20,
+                  "job 5": 24,
+                  "job 6": 27,
+                  "job 7": 30,
+                  "outbound": 0
+                },
+                "renameByName": {
+                  "Value #A": "Quality",
+                  "Value #B": "Health",
+                  "Value #C": "Current RTT",
+                  "Value #D": "P95 RTT",
+                  "Value #E": "Deviation",
+                  "Value #F": "Probe success",
+                  "Value #G": "Alive time",
+                  "outbound": "Outbound"
+                }
+              }
+            },
+            {
+              "id": "sortBy",
+              "options": {
+                "fields": {},
+                "sort": [
+                  {
+                    "desc": true,
+                    "field": "Quality"
+                  }
+                ]
+              }
+            }
+          ],
+          "type": "table"
         },
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
-          "description": "Number of selected primary targets only. A successfully observed empty selection is zero; missing or unsupported selection data is absent. Fallback and override are excluded.",
+          "description": "Burst: mean RTT of successful samples in the observation window. Ordinary observatory: last successful delay. Seconds; no fabricated values on failure.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -4539,7 +3723,219 @@
                 "barAlignment": 0,
                 "barWidthFactor": 0.6,
                 "drawStyle": "line",
-                "fillOpacity": 10,
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "showValues": false,
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "dashed"
+                }
+              },
+              "min": 0,
+              "noValue": "0",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 0.6
+                  }
+                ]
+              },
+              "unit": "s"
+            }
+          },
+          "gridPos": {
+            "h": 9,
+            "w": 8,
+            "x": 0,
+            "y": 48
+          },
+          "id": 2,
+          "interval": "5s",
+          "maxDataPoints": 5000,
+          "options": {
+            "legend": {
+              "calcs": [
+                "last",
+                "mean",
+                "max"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": false,
+              "sortBy": "Mean",
+              "sortDesc": false
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "pluginVersion": "13.3.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "expr": "(\n  xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\"}\n  or xui_observatory_outbound_delay_seconds{job=\"xui-exporter\",instance=\"${instance}\"}\n)\nand on (outbound)\nmax by (outbound) (\n  xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
+              "interval": "5s",
+              "legendFormat": "{{outbound}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Outbound latency",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "showValues": false,
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "dashed"
+                }
+              },
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              },
+              "unit": "s"
+            }
+          },
+          "gridPos": {
+            "h": 9,
+            "w": 8,
+            "x": 8,
+            "y": 48
+          },
+          "id": 3,
+          "interval": "5s",
+          "maxDataPoints": 5000,
+          "options": {
+            "legend": {
+              "calcs": [
+                "last",
+                "mean",
+                "max"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": false,
+              "sortBy": "Mean",
+              "sortDesc": false
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "pluginVersion": "13.3.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "expr": "xui_observatory_outbound_rtt_deviation_seconds{job=\"xui-exporter\",instance=\"${instance}\"}\nand on (outbound)\nmax by (outbound) (\n  xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
+              "interval": "5s",
+              "legendFormat": "{{outbound}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Outbound latency deviation",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "description": "Failed fraction in the current burst window, not a cumulative counter. Empty measurements remain absent.",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 0,
                 "gradientMode": "none",
                 "hideFrom": {
                   "legend": false,
@@ -4564,6 +3960,7 @@
                   "mode": "off"
                 }
               },
+              "max": 1,
               "min": 0,
               "thresholds": {
                 "mode": "absolute",
@@ -4578,16 +3975,16 @@
                   }
                 ]
               },
-              "unit": "short"
+              "unit": "percentunit"
             }
           },
           "gridPos": {
-            "h": 6,
-            "w": 12,
-            "x": 12,
-            "y": 40
+            "h": 9,
+            "w": 8,
+            "x": 16,
+            "y": 48
           },
-          "id": 26,
+          "id": 28,
           "interval": "5s",
           "maxDataPoints": 5000,
           "options": {
@@ -4598,7 +3995,7 @@
               ],
               "displayMode": "table",
               "placement": "bottom",
-              "showLegend": true
+              "showLegend": false
             },
             "tooltip": {
               "hideZeros": false,
@@ -4614,18 +4011,19 @@
                 "uid": "${DS_PROMETHEUS-INFRA}"
               },
               "editorMode": "code",
-              "expr": "sum by(instance,balancer) (xui_balancer_outbound_selected{role=\"primary\",job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\"})",
+              "expr": "(\n  xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\"}\n  / xui_observatory_outbound_probe_samples{job=\"xui-exporter\",instance=\"${instance}\"}\n)\nand on (outbound)\nmax by (outbound) (\n  xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
               "instant": false,
-              "legendFormat": "{{balancer}}",
+              "legendFormat": "{{outbound}}",
               "range": true,
               "refId": "A"
             }
           ],
-          "title": "Selected target count",
+          "title": "Burst failed probes",
           "type": "timeseries"
         }
       ],
-      "title": "Balancers",
+      "repeat": "balancer",
+      "title": "Balancers & Observatory - $balancer",
       "type": "row"
     },
     {
@@ -4634,7 +4032,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 25
+        "y": 24
       },
       "id": 79,
       "panels": [
@@ -4658,7 +4056,7 @@
                 "barAlignment": 0,
                 "barWidthFactor": 0.6,
                 "drawStyle": "line",
-                "fillOpacity": 10,
+                "fillOpacity": 0,
                 "gradientMode": "none",
                 "hideFrom": {
                   "legend": false,
@@ -4704,7 +4102,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 26
+            "y": 25
           },
           "id": 29,
           "interval": "5s",
@@ -4820,7 +4218,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 26
+            "y": 25
           },
           "id": 30,
           "interval": "5s",
@@ -4925,7 +4323,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 34
+            "y": 33
           },
           "id": 31,
           "interval": "5s",
@@ -4983,7 +4381,7 @@
                 "barAlignment": 0,
                 "barWidthFactor": 0.6,
                 "drawStyle": "line",
-                "fillOpacity": 10,
+                "fillOpacity": 0,
                 "gradientMode": "none",
                 "hideFrom": {
                   "legend": false,
@@ -5029,7 +4427,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 34
+            "y": 33
           },
           "id": 32,
           "interval": "5s",
@@ -5147,7 +4545,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 42
+            "y": 41
           },
           "id": 33,
           "interval": "5s",
@@ -5253,7 +4651,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 42
+            "y": 41
           },
           "id": 34,
           "interval": "5s",
@@ -5303,7 +4701,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 26
+        "y": 25
       },
       "id": 80,
       "panels": [
@@ -5362,7 +4760,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 27
+            "y": 26
           },
           "id": 64,
           "options": {
@@ -5418,7 +4816,7 @@
                 "barAlignment": 0,
                 "barWidthFactor": 0.6,
                 "drawStyle": "line",
-                "fillOpacity": 10,
+                "fillOpacity": 0,
                 "gradientMode": "none",
                 "hideFrom": {
                   "legend": false,
@@ -5464,7 +4862,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 27
+            "y": 26
           },
           "id": 66,
           "options": {
@@ -5657,7 +5055,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 35
+            "y": 34
           },
           "id": 67,
           "options": {
@@ -5841,7 +5239,7 @@
                 "barAlignment": 0,
                 "barWidthFactor": 0.6,
                 "drawStyle": "line",
-                "fillOpacity": 10,
+                "fillOpacity": 0,
                 "gradientMode": "none",
                 "hideFrom": {
                   "legend": false,
@@ -5900,7 +5298,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 35
+            "y": 34
           },
           "id": 68,
           "options": {
@@ -5925,7 +5323,7 @@
               },
               "editorMode": "code",
               "expr": "xui_node_cpu_percent{job=\"xui-exporter\",instance=\"${instance}\"}",
-              "legendFormat": "{{node}} · CPU",
+              "legendFormat": "{{node}} - CPU",
               "range": true,
               "refId": "A"
             },
@@ -5937,7 +5335,7 @@
               "editorMode": "code",
               "expr": "xui_node_memory_percent{job=\"xui-exporter\",instance=\"${instance}\"}",
               "instant": false,
-              "legendFormat": "{{node}} · RAM",
+              "legendFormat": "{{node}} - RAM",
               "range": true,
               "refId": "B"
             }
@@ -6011,7 +5409,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 43
+            "y": 42
           },
           "id": 69,
           "options": {
@@ -6078,7 +5476,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 43
+            "y": 42
           },
           "id": 70,
           "options": {
@@ -6135,7 +5533,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 27
+        "y": 26
       },
       "id": 81,
       "panels": [
@@ -6199,7 +5597,7 @@
             "h": 4,
             "w": 24,
             "x": 0,
-            "y": 28
+            "y": 27
           },
           "id": 23,
           "interval": "5s",
@@ -6325,7 +5723,7 @@
             "h": 5,
             "w": 24,
             "x": 0,
-            "y": 32
+            "y": 31
           },
           "id": 24,
           "interval": "5s",
@@ -6408,7 +5806,7 @@
                 "barAlignment": 0,
                 "barWidthFactor": 0.6,
                 "drawStyle": "line",
-                "fillOpacity": 15,
+                "fillOpacity": 0,
                 "gradientMode": "none",
                 "hideFrom": {
                   "legend": false,
@@ -6454,7 +5852,7 @@
             "h": 6,
             "w": 12,
             "x": 0,
-            "y": 37
+            "y": 36
           },
           "id": 58,
           "interval": "5s",
@@ -6525,7 +5923,7 @@
                 "barAlignment": 0,
                 "barWidthFactor": 0.6,
                 "drawStyle": "line",
-                "fillOpacity": 15,
+                "fillOpacity": 0,
                 "gradientMode": "none",
                 "hideFrom": {
                   "legend": false,
@@ -6589,7 +5987,7 @@
             "h": 6,
             "w": 12,
             "x": 12,
-            "y": 37
+            "y": 36
           },
           "id": 59,
           "interval": "5s",
@@ -6676,6 +6074,29 @@
         "regexApplyTo": "value",
         "sort": 1,
         "type": "query"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {},
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS-INFRA}"
+        },
+        "definition": "label_values(xui_balancer_outbound_available{instance=\"$instance\"},balancer)",
+        "hide": 2,
+        "includeAll": true,
+        "multi": true,
+        "name": "balancer",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(xui_balancer_outbound_available{instance=\"$instance\"},balancer)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "regexApplyTo": "value",
+        "type": "query"
       }
     ]
   },
@@ -6698,8 +6119,8 @@
     ]
   },
   "timezone": "browser",
-  "title": "3x-ui",
-  "uid": "3x-ui-exporter",
-  "version": 49,
+  "title": "3x-ui-classic",
+  "uid": "3x-ui-exporter-classic",
+  "version": 4,
   "weekStart": ""
 }

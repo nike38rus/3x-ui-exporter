@@ -301,7 +301,7 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 		defer func() { grpcDuration = time.Since(start) }()
 		outbounds, states, err := e.readGRPC(ctx, cfg)
 		grpcErr = err
-		if err == nil && cfg != nil {
+		if outbounds != nil && cfg != nil {
 			balancer, balancerErr = buildBalancerMetrics(cfg, outbounds, states)
 		}
 	}()
@@ -389,7 +389,7 @@ func (e *Exporter) readGRPC(ctx context.Context, cfg *Config) (map[string]bool, 
 			b := cfg.Routing.Balancers[0]
 			state, err := e.Core.Balancer(ctx, b.Tag)
 			if err != nil {
-				return nil, nil, err
+				return outbounds, states, err
 			}
 			states[b.Tag] = state
 		} else {
@@ -414,7 +414,7 @@ func (e *Exporter) readGRPC(ctx context.Context, cfg *Config) (map[string]bool, 
 			}
 			bWg.Wait()
 			if firstErr != nil {
-				return nil, nil, firstErr
+				return outbounds, states, firstErr
 			}
 		}
 	}
@@ -423,21 +423,25 @@ func (e *Exporter) readGRPC(ctx context.Context, cfg *Config) (map[string]bool, 
 
 func (e *Exporter) balancerMetrics(ctx context.Context, cfg *Config) (samples, error) {
 	outbounds, states, err := e.readGRPC(ctx, cfg)
-	if err != nil || cfg == nil {
+	if outbounds == nil || cfg == nil {
 		return nil, err
 	}
-	return buildBalancerMetrics(cfg, outbounds, states)
+	res, bErr := buildBalancerMetrics(cfg, outbounds, states)
+	return res, errors.Join(err, bErr)
 }
 
 func buildBalancerMetrics(cfg *Config, outbounds map[string]bool, states map[string]*BalancerState) (samples, error) {
 	var result samples
 	for _, b := range cfg.Routing.Balancers {
+		state, known := states[b.Tag]
+		if !known {
+			continue
+		}
 		available, err := resolveAvailable(b.Tag, cfg, states, outbounds, map[string]bool{})
 		if err != nil {
 			return nil, err
 		}
 		gauge(&result, "xui_balancer_outbound_available", "Whether a selected target or fallback resolves to an existing runtime outbound; not a health guarantee.", number(available), []string{"balancer"}, b.Tag)
-		state := states[b.Tag]
 		if state == nil {
 			continue
 		}

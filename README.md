@@ -316,44 +316,35 @@ Derived from Xray expvars (`memstats`). Measures the memory footprint of the pro
 ## Grafana Dashboard
 
 The repository includes pre-built, production-tested Grafana dashboards:
-- **`grafana-3x-ui.classic.json`**: Standard classic dashboard format (recommended for most installations).
-- **`grafana-3x-ui.v2.json`**: Exported for Grafana resource schema v2.
+- **`grafana-3x-ui.v2.json`**: Modern dashboard using Grafana resource schema v2 (recommended, requires Grafana 11+).
+- **`grafana-3x-ui.classic.json`**: Classic dashboard format (deprecated; will not be supported in future major releases).
 
 ### Overview Dashboard
 
 The default view surfaces Xray state, versions, target health, balancer modes, observed outbound health, and aggregate throughput:
 
-![Dashboard Overview](docs/images/overview.jpg)
+![Dashboard Overview](docs/images/overview.png)
 
 <details>
 <summary>Click to view detailed section screenshots</summary>
 
-#### Balancer Selection History
-![Balancers](docs/images/balancers.jpg)
+#### Clients
+![Clients](docs/images/clients.png)
 
-#### Balancer Availability
-![Balancer Availability](docs/images/balancer-availability.jpg)
+#### Outbounds
+![Outbounds](docs/images/outbounds.png)
 
-#### Observatory Health
-![Observatory Health](docs/images/observatory.jpg)
-
-#### Observatory Latency & Burst Probes
-![Observatory Probes](docs/images/observatory-probes.jpg)
-
-#### Inbound Throughput
-![Inbounds](docs/images/inbounds.jpg)
-
-#### Outbound Throughput
-![Outbounds](docs/images/outbounds.jpg)
+#### Balancers & Observatory
+![Balancers & Observatory](docs/images/balancers.png)
 
 #### Connected Nodes
-![Connected Nodes](docs/images/panel-state.jpg)
+![Connected Nodes](docs/images/nodes.png)
 
-#### Garbage Collection
-![Xray GC](docs/images/xray-gc.jpg)
+#### Xray Runtime
+![Xray Runtime](docs/images/xray.png)
 
 #### Exporter Diagnostics
-![Exporter Diagnostics](docs/images/exporter-stats.jpg)
+![Exporter Diagnostics](docs/images/exporter.png)
 
 </details>
 

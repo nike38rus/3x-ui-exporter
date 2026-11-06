@@ -440,6 +440,27 @@ func TestNodesDecodesAndMetrics(t *testing.T) {
 			raw:     `{}`,
 			wantErr: true,
 		},
+		{
+			name:    "null array",
+			raw:     `null`,
+			wantErr: true,
+		},
+		{
+			name:    "missing status",
+			raw:     `[{"id":1,"name":"n1"}]`,
+			wantErr: true,
+		},
+		{
+			name:    "empty status",
+			raw:     `[{"id":1,"name":"n1","status":"  "}]`,
+			wantErr: true,
+		},
+		{
+			name:       "unknown status omitted",
+			raw:        `[{"id":1,"name":"n1","status":"degraded"}]`,
+			wantErr:    false,
+			wantOnline: map[string]float64{},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			nodes, err := decodeNodes(json.RawMessage(tc.raw))
@@ -593,6 +614,11 @@ func TestInboundsDecodesAndMetrics(t *testing.T) {
 			raw:     `{}`,
 			wantErr: true,
 		},
+		{
+			name:    "null array",
+			raw:     `null`,
+			wantErr: true,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			inbounds, err := decodeInbounds(json.RawMessage(tc.raw))
@@ -699,4 +725,29 @@ func TestClientCountMetrics(t *testing.T) {
 			}
 		}
 	})
+}
+
+func TestDecodeOnlines(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		raw     string
+		wantErr bool
+		wantLen int
+	}{
+		{"valid list", `["user1@test.com","user2@test.com"]`, false, 2},
+		{"empty list", `[]`, false, 0},
+		{"null value", `null`, true, 0},
+		{"not array", `{"key":"val"}`, true, 0},
+		{"invalid json", `{invalid`, true, 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			res, err := decodeOnlines(json.RawMessage(tc.raw))
+			if (err != nil) != tc.wantErr {
+				t.Fatalf("decodeOnlines(%s): err=%v, wantErr=%v", tc.raw, err, tc.wantErr)
+			}
+			if !tc.wantErr && len(res) != tc.wantLen {
+				t.Fatalf("decodeOnlines(%s): got len %d, want %d", tc.raw, len(res), tc.wantLen)
+			}
+		})
+	}
 }

@@ -339,6 +339,57 @@ func TestSelectionRolesCollectionFailure(t *testing.T) {
 	}
 }
 
+type partialFailCore struct {
+	tags    map[string]bool
+	states  map[string]*BalancerState
+	failTag string
+}
+
+func (c *partialFailCore) Outbounds(ctx context.Context) (map[string]bool, error) {
+	return c.tags, nil
+}
+func (c *partialFailCore) Balancer(ctx context.Context, tag string) (*BalancerState, error) {
+	if tag == c.failTag {
+		return nil, errors.New("balancer RPC failed")
+	}
+	return c.states[tag], nil
+}
+
+func TestPartialBalancerFailurePreservesSuccessfulMeasurements(t *testing.T) {
+	cfg := configuration(t, `{"routing":{"balancers":[
+		{"tag":"lb-ok","selector":["A"],"strategy":{"type":"leastLoad"}},
+		{"tag":"lb-err","selector":["B"],"strategy":{"type":"leastLoad"}}
+	]}}`)
+	core := &partialFailCore{
+		tags:    map[string]bool{"A": true, "B": true},
+		states:  map[string]*BalancerState{"lb-ok": {Targets: map[string]bool{"A": true}}},
+		failTag: "lb-err",
+	}
+	e := &Exporter{Core: core}
+	m, err := e.balancerMetrics(context.Background(), cfg)
+	if err == nil {
+		t.Fatal("expected error from failed balancer RPC")
+	}
+	avail := sampleValues(t, m, "xui_balancer_outbound_available")
+	if len(avail) != 1 || avail["balancer=lb-ok;"] != 1 {
+		t.Fatalf("expected lb-ok available metric to be preserved, got: %v", avail)
+	}
+	sel := sampleValues(t, m, "xui_balancer_outbound_selected")
+	if len(sel) == 0 || sel["balancer=lb-ok;outbound=A;role=primary;"] != 1 {
+		t.Fatalf("expected lb-ok selected metrics to be preserved, got: %v", sel)
+	}
+	for k := range avail {
+		if strings.Contains(k, "lb-err") {
+			t.Fatalf("failed balancer must not emit available metric: %v", avail)
+		}
+	}
+	for k := range sel {
+		if strings.Contains(k, "lb-err") {
+			t.Fatalf("failed balancer must not emit selected metric: %v", sel)
+		}
+	}
+}
+
 func TestExporterProcessAndGoMetrics(t *testing.T) {
 	e := &Exporter{Panel: fakePanel{cfg: &Config{}}, Timeout: time.Second}
 	h := e.Handler()

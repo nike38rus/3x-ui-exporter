@@ -115,7 +115,7 @@ func decodeNodes(raw json.RawMessage) ([]*NodeStatus, error) {
 		OnlineCount  *int     `json:"onlineCount"`
 	}
 	var list []rawNode
-	if json.Unmarshal(raw, &list) != nil {
+	if json.Unmarshal(raw, &list) != nil || list == nil {
 		return nil, errors.New("invalid nodes array")
 	}
 	seenID := map[int]bool{}
@@ -132,18 +132,19 @@ func decodeNodes(raw json.RawMessage) ([]*NodeStatus, error) {
 		if item.OnlineCount != nil && *item.OnlineCount < 0 {
 			return nil, errors.New("negative node online clients")
 		}
+		if item.Status == nil || strings.TrimSpace(*item.Status) == "" {
+			return nil, errors.New("empty, invalid or missing node status")
+		}
 		seenID[*item.ID] = true
 		seenName[name] = true
 
 		s := &NodeStatus{
 			ID:          *item.ID,
 			Name:        name,
+			Status:      strings.TrimSpace(*item.Status),
 			CPUPct:      item.CPUPct,
 			MemPct:      item.MemPct,
 			OnlineCount: item.OnlineCount,
-		}
-		if item.Status != nil {
-			s.Status = strings.TrimSpace(*item.Status)
 		}
 		if item.LatencyMs != nil {
 			s.LatencyMs = *item.LatencyMs
@@ -187,7 +188,7 @@ func decodeInbounds(raw json.RawMessage) ([]*InboundStatus, error) {
 		ClientStats []rawClientTraffic `json:"clientStats"`
 	}
 	var list []rawInbound
-	if json.Unmarshal(raw, &list) != nil {
+	if json.Unmarshal(raw, &list) != nil || list == nil {
 		return nil, errors.New("invalid inbounds array")
 	}
 	seen := map[string]bool{}
@@ -342,8 +343,12 @@ func nodeMetrics(nodes []*NodeStatus) samples {
 	var result samples
 	for _, n := range nodes {
 		labels := []string{"node"}
+		if n.Status == "online" {
+			gauge(&result, "xui_node_online", "Whether node is reported online by master panel heartbeat.", 1, labels, n.Name)
+		} else if n.Status == "offline" {
+			gauge(&result, "xui_node_online", "Whether node is reported online by master panel heartbeat.", 0, labels, n.Name)
+		}
 		isOnline := n.Status == "online"
-		gauge(&result, "xui_node_online", "Whether node is reported online by master panel heartbeat.", number(isOnline), labels, n.Name)
 		if isOnline && n.LatencyMs >= 0 {
 			gauge(&result, "xui_node_latency_seconds", "Round-trip latency between master panel and node in seconds.", float64(n.LatencyMs)/1000, labels, n.Name)
 		}
@@ -399,7 +404,7 @@ func inboundStatusMetrics(inbounds []*InboundStatus, nodesByID map[int]string) s
 
 func decodeOnlines(raw json.RawMessage) ([]string, error) {
 	var onlines []string
-	if json.Unmarshal(raw, &onlines) != nil {
+	if json.Unmarshal(raw, &onlines) != nil || onlines == nil {
 		return nil, errors.New("invalid onlines array")
 	}
 	return onlines, nil
