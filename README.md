@@ -338,8 +338,8 @@ The default view surfaces Xray state, versions, target health, balancer modes, o
 #### Outbound Throughput
 ![Outbounds](docs/images/outbounds.jpg)
 
-#### Panel State & Memory
-![Panel State](docs/images/panel-state.jpg)
+#### Connected Nodes
+![Connected Nodes](docs/images/panel-state.jpg)
 
 #### Garbage Collection
 ![Xray GC](docs/images/xray-gc.jpg)

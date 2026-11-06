@@ -86,8 +86,7 @@
         "x": 0,
         "y": 0
       },
-      "id": 62,
-      "panels": [],
+      "id": 71,
       "title": "Overview",
       "type": "row"
     },
@@ -99,25 +98,25 @@
       "description": "Process state reported by the panel, not a connectivity probe. Only the active state is displayed. Missing or unknown state remains No data.",
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
+          "color": {
+            "fixedColor": "blue",
+            "mode": "fixed"
+          },
+          "noValue": "No data",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "value": 0,
-                "color": "green"
+                "color": "green",
+                "value": 0
               },
               {
-                "value": 80,
-                "color": "red"
+                "color": "red",
+                "value": 80
               }
             ]
           },
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "blue"
-          },
-          "noValue": "No data"
+          "unit": "short"
         },
         "overrides": [
           {
@@ -174,7 +173,8 @@
         "y": 1
       },
       "id": 38,
-      "links": [],
+      "interval": "5s",
+      "maxDataPoints": 5000,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -197,8 +197,6 @@
         "wideLayout": true
       },
       "pluginVersion": "13.3.0",
-      "title": "Xray state",
-      "type": "stat",
       "targets": [
         {
           "datasource": {
@@ -208,11 +206,13 @@
           "editorMode": "code",
           "expr": "xui_xray_state{job=\"xui-exporter\",instance=\"${instance}\"} == 1 and on(instance,job) (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"api\"} == 1) and on(instance,job) (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
           "instant": true,
+          "legendFormat": "{{state}}",
           "range": false,
-          "refId": "A",
-          "legendFormat": "{{state}}"
+          "refId": "A"
         }
-      ]
+      ],
+      "title": "Xray state",
+      "type": "stat"
     },
     {
       "datasource": {
@@ -222,43 +222,43 @@
       "description": "Whether Prometheus can scrape the exporter; independent of upstream collection success.",
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
           "decimals": 0,
-          "min": 0,
           "mappings": [
             {
-              "type": "value",
               "options": {
                 "0": {
-                  "text": "DOWN",
                   "color": "red",
-                  "index": 0
+                  "index": 0,
+                  "text": "DOWN"
                 },
                 "1": {
-                  "text": "UP",
                   "color": "green",
-                  "index": 1
+                  "index": 1,
+                  "text": "UP"
                 }
-              }
+              },
+              "type": "value"
             }
           ],
+          "min": 0,
+          "noValue": "No data",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "value": 0,
-                "color": "green"
+                "color": "green",
+                "value": 0
               },
               {
-                "value": 1,
-                "color": "red"
+                "color": "red",
+                "value": 1
               }
             ]
           },
-          "color": {
-            "mode": "thresholds"
-          },
-          "noValue": "No data"
+          "unit": "short"
         },
         "overrides": []
       },
@@ -269,7 +269,8 @@
         "y": 1
       },
       "id": 39,
-      "links": [],
+      "interval": "5s",
+      "maxDataPoints": 5000,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -292,8 +293,6 @@
         "wideLayout": false
       },
       "pluginVersion": "13.3.0",
-      "title": "Prometheus target",
-      "type": "stat",
       "targets": [
         {
           "datasource": {
@@ -303,11 +302,13 @@
           "editorMode": "code",
           "expr": "up{job=\"xui-exporter\",instance=\"${instance}\"}",
           "instant": true,
+          "legendFormat": "Target",
           "range": false,
-          "refId": "A",
-          "legendFormat": "Target"
+          "refId": "A"
         }
-      ]
+      ],
+      "title": "Prometheus target",
+      "type": "stat"
     },
     {
       "datasource": {
@@ -317,27 +318,27 @@
       "description": "Successful / present sources. Numeric value is the success fraction, used for color. With the upcoming exporter all three source rows are always present. Older exporters may expose fewer sources. No data when the target is down. API: settings/status; gRPC: runtime outbounds/balancers; expvars: traffic, memory/GC and observation.",
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
           "decimals": 0,
-          "min": 0,
           "max": 1,
+          "min": 0,
+          "noValue": "No data",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "value": 0,
-                "color": "red"
+                "color": "red",
+                "value": 0
               },
               {
-                "value": 1,
-                "color": "green"
+                "color": "green",
+                "value": 1
               }
             ]
           },
-          "color": {
-            "mode": "thresholds"
-          },
-          "noValue": "No data"
+          "unit": "short"
         },
         "overrides": []
       },
@@ -348,13 +349,15 @@
         "y": 1
       },
       "id": 40,
+      "interval": "5s",
       "links": [
         {
+          "targetBlank": false,
           "title": "Collection history",
-          "url": "/d/${__dashboard.uid}/?viewPanel=panel-23&${__all_variables}",
-          "targetBlank": false
+          "url": "/d/${__dashboard.uid}/?viewPanel=panel-23&${__all_variables}"
         }
       ],
+      "maxDataPoints": 5000,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -377,8 +380,6 @@
         "wideLayout": false
       },
       "pluginVersion": "13.3.0",
-      "title": "Metrics sources",
-      "type": "stat",
       "targets": [
         {
           "datasource": {
@@ -388,11 +389,13 @@
           "editorMode": "code",
           "expr": "(sum(xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\"}) / count(xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\"}))\n* on() group_left(summary)\nlabel_join(\n  count_values(\"healthy\", sum(xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\"}))\n  * on() group_left(total)\n  count_values(\"total\", count(xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\"})),\n  \"summary\", \"/\", \"healthy\", \"total\"\n)\nand on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
           "instant": true,
+          "legendFormat": "{{summary}}",
           "range": false,
-          "refId": "A",
-          "legendFormat": "{{summary}}"
+          "refId": "A"
         }
-      ]
+      ],
+      "title": "Metrics sources",
+      "type": "stat"
     },
     {
       "datasource": {
@@ -402,27 +405,27 @@
       "description": "Online / total remote cluster nodes. Based on master panel heartbeat status. Numeric value is the availability fraction used for color. No data when no remote nodes are configured or panel API is unreachable.",
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
           "decimals": 0,
-          "min": 0,
           "max": 1,
+          "min": 0,
+          "noValue": "No data",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "value": 0,
-                "color": "red"
+                "color": "red",
+                "value": 0
               },
               {
-                "value": 1,
-                "color": "green"
+                "color": "green",
+                "value": 1
               }
             ]
           },
-          "color": {
-            "mode": "thresholds"
-          },
-          "noValue": "No data"
+          "unit": "short"
         },
         "overrides": []
       },
@@ -433,12 +436,14 @@
         "y": 1
       },
       "id": 65,
+      "interval": "5s",
       "links": [
         {
           "title": "Availability history",
           "url": "/d/${__dashboard.uid}/?viewPanel=panel-64&${__all_variables}"
         }
       ],
+      "maxDataPoints": 5000,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -461,8 +466,6 @@
         "wideLayout": false
       },
       "pluginVersion": "13.3.0",
-      "title": "Connected nodes",
-      "type": "stat",
       "targets": [
         {
           "datasource": {
@@ -472,11 +475,13 @@
           "editorMode": "code",
           "expr": "(sum(xui_node_online{job=\"xui-exporter\",instance=\"${instance}\"}) / count(xui_node_online{job=\"xui-exporter\",instance=\"${instance}\"}))\n* on() group_left(summary)\nlabel_join(\n  count_values(\"healthy\", sum(xui_node_online{job=\"xui-exporter\",instance=\"${instance}\"}))\n  * on() group_left(total)\n  count_values(\"total\", count(xui_node_online{job=\"xui-exporter\",instance=\"${instance}\"})),\n  \"summary\", \"/\", \"healthy\", \"total\"\n)\nand on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
           "instant": true,
+          "legendFormat": "{{summary}}",
           "range": false,
-          "refId": "A",
-          "legendFormat": "{{summary}}"
+          "refId": "A"
         }
-      ]
+      ],
+      "title": "Connected nodes",
+      "type": "stat"
     },
     {
       "datasource": {
@@ -486,26 +491,26 @@
       "description": "Current active client sessions reported by the panel",
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
+          "color": {
+            "fixedColor": "blue",
+            "mode": "fixed"
+          },
           "decimals": 0,
+          "noValue": "No data",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "value": 0,
-                "color": "green"
+                "color": "green",
+                "value": 0
               },
               {
-                "value": 80,
-                "color": "red"
+                "color": "red",
+                "value": 80
               }
             ]
           },
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "blue"
-          },
-          "noValue": "No data"
+          "unit": "short"
         },
         "overrides": []
       },
@@ -516,7 +521,6 @@
         "y": 1
       },
       "id": 61,
-      "links": [],
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -536,8 +540,6 @@
         "wideLayout": true
       },
       "pluginVersion": "13.3.0",
-      "title": "Online clients",
-      "type": "stat",
       "targets": [
         {
           "datasource": {
@@ -545,13 +547,16 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
+          "exemplar": false,
           "expr": "xui_online_clients{job=\"xui-exporter\",instance=\"${instance}\"}",
           "instant": true,
+          "legendFormat": "Clients",
           "range": false,
-          "refId": "A",
-          "legendFormat": "Clients"
+          "refId": "A"
         }
-      ]
+      ],
+      "title": "Online clients",
+      "type": "stat"
     },
     {
       "datasource": {
@@ -561,25 +566,25 @@
       "description": "Version reported by the running 3x-ui panel. Omitted if unavailable in this panel version.",
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
+          "color": {
+            "fixedColor": "blue",
+            "mode": "fixed"
+          },
+          "noValue": "No data",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "value": 0,
-                "color": "green"
+                "color": "green",
+                "value": 0
               },
               {
-                "value": 80,
-                "color": "red"
+                "color": "red",
+                "value": 80
               }
             ]
           },
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "blue"
-          },
-          "noValue": "No data"
+          "unit": "short"
         },
         "overrides": []
       },
@@ -590,7 +595,8 @@
         "y": 1
       },
       "id": 37,
-      "links": [],
+      "interval": "5s",
+      "maxDataPoints": 5000,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -613,8 +619,6 @@
         "wideLayout": true
       },
       "pluginVersion": "13.3.0",
-      "title": "Panel version",
-      "type": "stat",
       "targets": [
         {
           "datasource": {
@@ -624,11 +628,13 @@
           "editorMode": "code",
           "expr": "xui_panel_info{job=\"xui-exporter\",instance=\"${instance}\"}",
           "instant": true,
+          "legendFormat": "{{version}}",
           "range": false,
-          "refId": "A",
-          "legendFormat": "{{version}}"
+          "refId": "A"
         }
-      ]
+      ],
+      "title": "Panel version",
+      "type": "stat"
     },
     {
       "datasource": {
@@ -638,25 +644,25 @@
       "description": "Xray version reported by the panel status API. This does not independently attest the running binary.",
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
+          "color": {
+            "fixedColor": "blue",
+            "mode": "fixed"
+          },
+          "noValue": "No data",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "value": 0,
-                "color": "green"
+                "color": "green",
+                "value": 0
               },
               {
-                "value": 80,
-                "color": "red"
+                "color": "red",
+                "value": 80
               }
             ]
           },
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "blue"
-          },
-          "noValue": "No data"
+          "unit": "short"
         },
         "overrides": []
       },
@@ -667,7 +673,8 @@
         "y": 1
       },
       "id": 36,
-      "links": [],
+      "interval": "5s",
+      "maxDataPoints": 5000,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -690,8 +697,6 @@
         "wideLayout": true
       },
       "pluginVersion": "13.3.0",
-      "title": "Xray version",
-      "type": "stat",
       "targets": [
         {
           "datasource": {
@@ -701,11 +706,13 @@
           "editorMode": "code",
           "expr": "xui_xray_info{job=\"xui-exporter\",instance=\"${instance}\"}",
           "instant": true,
+          "legendFormat": "{{version}}",
           "range": false,
-          "refId": "A",
-          "legendFormat": "{{version}}"
+          "refId": "A"
         }
-      ]
+      ],
+      "title": "Xray version",
+      "type": "stat"
     },
     {
       "datasource": {
@@ -715,27 +722,27 @@
       "description": "Available: Balancers with a usable selected target or configured fallback according to the exporter. This is structural availability, not an end-to-end Internet probe. Includes balancers currently using fallback. Open availability history for detail.\n\nUnavailable: Balancers without an available selected target or usable fallback. A nonzero value calls for investigation. Open availability history.\n\nFallback: Balancers currently using their fallback. This can preserve service while primary selection is empty. A warning about operating mode, not necessarily an outage. Absent fallback metrics remain No data.\n\nOverride: Balancers currently using a manually overridden target. This is an operating mode, not automatically a failure. Open selected outbounds to identify the affected balancer.",
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
+          "color": {
+            "fixedColor": "green",
+            "mode": "fixed"
+          },
           "decimals": 0,
           "min": 0,
+          "noValue": "No data",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "value": 0,
-                "color": "green"
+                "color": "green",
+                "value": 0
               },
               {
-                "value": 1,
-                "color": "red"
+                "color": "red",
+                "value": 1
               }
             ]
           },
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "green"
-          },
-          "noValue": "No data"
+          "unit": "short"
         },
         "overrides": [
           {
@@ -909,18 +916,20 @@
         "y": 4
       },
       "id": 41,
+      "interval": "5s",
       "links": [
         {
+          "targetBlank": false,
           "title": "Availability history",
-          "url": "/d/${__dashboard.uid}/?viewPanel=panel-25&${__all_variables}",
-          "targetBlank": false
+          "url": "/d/${__dashboard.uid}/?viewPanel=panel-25&${__all_variables}"
         },
         {
+          "targetBlank": false,
           "title": "Selected outbounds",
-          "url": "/d/${__dashboard.uid}/?viewPanel=panel-17&${__all_variables}",
-          "targetBlank": false
+          "url": "/d/${__dashboard.uid}/?viewPanel=panel-17&${__all_variables}"
         }
       ],
+      "maxDataPoints": 5000,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -943,8 +952,6 @@
         "wideLayout": false
       },
       "pluginVersion": "13.3.0",
-      "title": "Balancers",
-      "type": "stat",
       "targets": [
         {
           "datasource": {
@@ -954,9 +961,9 @@
           "editorMode": "code",
           "expr": "sum(xui_balancer_outbound_available{job=\"xui-exporter\",instance=\"${instance}\"} == bool 1) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
           "instant": true,
+          "legendFormat": "Available",
           "range": false,
-          "refId": "A",
-          "legendFormat": "Available"
+          "refId": "A"
         },
         {
           "datasource": {
@@ -966,9 +973,9 @@
           "editorMode": "code",
           "expr": "sum(xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",role=\"fallback\"}) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
           "instant": true,
+          "legendFormat": "Fallback",
           "range": false,
-          "refId": "C",
-          "legendFormat": "Fallback"
+          "refId": "C"
         },
         {
           "datasource": {
@@ -978,9 +985,9 @@
           "editorMode": "code",
           "expr": "sum(xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",role=\"override\"}) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
           "instant": true,
+          "legendFormat": "Override",
           "range": false,
-          "refId": "D",
-          "legendFormat": "Override"
+          "refId": "D"
         },
         {
           "datasource": {
@@ -990,11 +997,13 @@
           "editorMode": "code",
           "expr": "sum(xui_balancer_outbound_available{job=\"xui-exporter\",instance=\"${instance}\"} == bool 0) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
           "instant": true,
+          "legendFormat": "Unavailable",
           "range": false,
-          "refId": "B",
-          "legendFormat": "Unavailable"
+          "refId": "B"
         }
-      ]
+      ],
+      "title": "Balancers",
+      "type": "stat"
     },
     {
       "datasource": {
@@ -1004,25 +1013,9 @@
       "description": "Above zero: available balancers, including those served by fallback. Below zero: unavailable balancers and active fallback, stacked as independent attention indicators. These are not a partition: an available balancer can also use fallback, so do not subtract the lower stack from the upper one. Override is shown separately in the summary. Counts describe sampled states, not replacement events or outage duration. Missing source data produces gaps. Open selected outbounds to identify the affected balancer.",
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "value": 0,
-                "color": "green"
-              },
-              {
-                "value": 80,
-                "color": "red"
-              }
-            ]
-          },
           "color": {
             "mode": "palette-classic"
           },
-          "noValue": "No data",
           "custom": {
             "axisBorderShow": false,
             "axisCenteredZero": true,
@@ -1056,7 +1049,23 @@
             "thresholdsStyle": {
               "mode": "off"
             }
-          }
+          },
+          "decimals": 0,
+          "noValue": "No data",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
         },
         "overrides": [
           {
@@ -1151,13 +1160,15 @@
         "y": 4
       },
       "id": 43,
+      "interval": "5s",
       "links": [
         {
+          "targetBlank": false,
           "title": "Identify balancer and selected role",
-          "url": "/d/${__dashboard.uid}/?viewPanel=panel-17&${__all_variables}",
-          "targetBlank": false
+          "url": "/d/${__dashboard.uid}/?viewPanel=panel-17&${__all_variables}"
         }
       ],
+      "maxDataPoints": 5000,
       "options": {
         "legend": {
           "calcs": [],
@@ -1172,8 +1183,6 @@
         }
       },
       "pluginVersion": "13.3.0",
-      "title": "Balancers \u00b7 Availability and attention",
-      "type": "timeseries",
       "targets": [
         {
           "datasource": {
@@ -1183,9 +1192,9 @@
           "editorMode": "code",
           "expr": "sum(xui_balancer_outbound_available{job=\"xui-exporter\",instance=\"${instance}\"} == bool 1) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
           "instant": false,
+          "legendFormat": "Available",
           "range": true,
-          "refId": "A",
-          "legendFormat": "Available"
+          "refId": "A"
         },
         {
           "datasource": {
@@ -1195,9 +1204,9 @@
           "editorMode": "code",
           "expr": "sum(xui_balancer_outbound_available{job=\"xui-exporter\",instance=\"${instance}\"} == bool 0) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
           "instant": false,
+          "legendFormat": "Unavailable",
           "range": true,
-          "refId": "B",
-          "legendFormat": "Unavailable"
+          "refId": "B"
         },
         {
           "datasource": {
@@ -1207,11 +1216,13 @@
           "editorMode": "code",
           "expr": "sum(xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",role=\"fallback\"}) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
           "instant": false,
+          "legendFormat": "Fallback active",
           "range": true,
-          "refId": "C",
-          "legendFormat": "Fallback active"
+          "refId": "C"
         }
-      ]
+      ],
+      "title": "Balancers · Availability and attention",
+      "type": "timeseries"
     },
     {
       "datasource": {
@@ -1221,27 +1232,27 @@
       "description": "UP: Observed outbounds that are alive and, when burst probe samples exist, have no failed samples. This is the observation population, not all configured outbounds.\n\nDEGRADED: Alive observed outbounds with failed samples in the current burst observation window. They can still carry traffic. Ordinary observatory does not provide this degradation detail.\n\nDOWN: Observed outbounds reported not alive. Open outbound health for tags and timing. An observation result does not by itself prove which traffic was affected.",
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
+          "color": {
+            "fixedColor": "green",
+            "mode": "fixed"
+          },
           "decimals": 0,
           "min": 0,
+          "noValue": "No data",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "value": 0,
-                "color": "green"
+                "color": "green",
+                "value": 0
               },
               {
-                "value": 1,
-                "color": "red"
+                "color": "red",
+                "value": 1
               }
             ]
           },
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "green"
-          },
-          "noValue": "No data"
+          "unit": "short"
         },
         "overrides": [
           {
@@ -1374,13 +1385,15 @@
         "y": 9
       },
       "id": 47,
+      "interval": "5s",
       "links": [
         {
+          "targetBlank": false,
           "title": "Open details",
-          "url": "/d/${__dashboard.uid}/?viewPanel=panel-1&${__all_variables}",
-          "targetBlank": false
+          "url": "/d/${__dashboard.uid}/?viewPanel=panel-1&${__all_variables}"
         }
       ],
+      "maxDataPoints": 5000,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -1403,8 +1416,6 @@
         "wideLayout": false
       },
       "pluginVersion": "13.3.0",
-      "title": "Observed outbounds",
-      "type": "stat",
       "targets": [
         {
           "datasource": {
@@ -1414,9 +1425,9 @@
           "editorMode": "code",
           "expr": "sum(((xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * 2)) == bool 2) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
           "instant": true,
+          "legendFormat": "UP",
           "range": false,
-          "refId": "A",
-          "legendFormat": "UP"
+          "refId": "A"
         },
         {
           "datasource": {
@@ -1426,9 +1437,9 @@
           "editorMode": "code",
           "expr": "sum(((xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * 2)) == bool 1) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
           "instant": true,
+          "legendFormat": "DEGRADED",
           "range": false,
-          "refId": "B",
-          "legendFormat": "DEGRADED"
+          "refId": "B"
         },
         {
           "datasource": {
@@ -1438,11 +1449,13 @@
           "editorMode": "code",
           "expr": "sum(((xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * 2)) == bool 0) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
           "instant": true,
+          "legendFormat": "DOWN",
           "range": false,
-          "refId": "C",
-          "legendFormat": "DOWN"
+          "refId": "C"
         }
-      ]
+      ],
+      "title": "Observed outbounds",
+      "type": "stat"
     },
     {
       "datasource": {
@@ -1452,25 +1465,9 @@
       "description": "Above zero: UP outbounds. Below zero: DEGRADED and DOWN, stacked. These three states partition the observed population at each sample; their absolute counts sum to the number of observed outbounds. DEGRADED requires burst probe samples. Missing observations or failed collection produce gaps, never healthy zeroes. Open outbound health to see tags, latency and quality.",
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "value": 0,
-                "color": "green"
-              },
-              {
-                "value": 80,
-                "color": "red"
-              }
-            ]
-          },
           "color": {
             "mode": "palette-classic"
           },
-          "noValue": "No data",
           "custom": {
             "axisBorderShow": false,
             "axisCenteredZero": true,
@@ -1504,7 +1501,23 @@
             "thresholdsStyle": {
               "mode": "off"
             }
-          }
+          },
+          "decimals": 0,
+          "noValue": "No data",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
         },
         "overrides": [
           {
@@ -1599,13 +1612,15 @@
         "y": 9
       },
       "id": 50,
+      "interval": "5s",
       "links": [
         {
+          "targetBlank": false,
           "title": "Identify outbound and inspect health",
-          "url": "/d/${__dashboard.uid}/?viewPanel=panel-1&${__all_variables}",
-          "targetBlank": false
+          "url": "/d/${__dashboard.uid}/?viewPanel=panel-1&${__all_variables}"
         }
       ],
+      "maxDataPoints": 5000,
       "options": {
         "legend": {
           "calcs": [],
@@ -1620,8 +1635,6 @@
         }
       },
       "pluginVersion": "13.3.0",
-      "title": "Observed outbounds \u00b7 Health history",
-      "type": "timeseries",
       "targets": [
         {
           "datasource": {
@@ -1631,9 +1644,9 @@
           "editorMode": "code",
           "expr": "sum(((xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * 2)) == bool 2) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
           "instant": false,
+          "legendFormat": "UP",
           "range": true,
-          "refId": "A",
-          "legendFormat": "UP"
+          "refId": "A"
         },
         {
           "datasource": {
@@ -1643,9 +1656,9 @@
           "editorMode": "code",
           "expr": "sum(((xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * 2)) == bool 1) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
           "instant": false,
+          "legendFormat": "DEGRADED",
           "range": true,
-          "refId": "B",
-          "legendFormat": "DEGRADED"
+          "refId": "B"
         },
         {
           "datasource": {
@@ -1655,11 +1668,13 @@
           "editorMode": "code",
           "expr": "sum(((xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * 2)) == bool 0) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
           "instant": false,
+          "legendFormat": "DOWN",
           "range": true,
-          "refId": "C",
-          "legendFormat": "DOWN"
+          "refId": "C"
         }
-      ]
+      ],
+      "title": "Observed outbounds · Health history",
+      "type": "timeseries"
     },
     {
       "datasource": {
@@ -1669,21 +1684,6 @@
       "description": "Current open network sockets reported by the panel environment",
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "value": 0,
-                "color": "green"
-              },
-              {
-                "value": 80,
-                "color": "red"
-              }
-            ]
-          },
           "color": {
             "mode": "palette-classic"
           },
@@ -1720,7 +1720,22 @@
             "thresholdsStyle": {
               "mode": "off"
             }
-          }
+          },
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
         },
         "overrides": []
       },
@@ -1731,7 +1746,6 @@
         "y": 14
       },
       "id": 60,
-      "links": [],
       "options": {
         "legend": {
           "calcs": [
@@ -1750,8 +1764,6 @@
         }
       },
       "pluginVersion": "13.3.0",
-      "title": "Connection stats",
-      "type": "timeseries",
       "targets": [
         {
           "datasource": {
@@ -1760,10 +1772,10 @@
           },
           "editorMode": "code",
           "expr": "xui_open_sockets{job=\"xui-exporter\",instance=\"${instance}\",protocol=\"tcp\"}",
-          "instant": false,
+          "interval": "5s",
+          "legendFormat": "TCP",
           "range": true,
-          "refId": "A",
-          "legendFormat": "TCP"
+          "refId": "A"
         },
         {
           "datasource": {
@@ -1773,11 +1785,14 @@
           "editorMode": "code",
           "expr": "xui_open_sockets{job=\"xui-exporter\",instance=\"${instance}\",protocol=\"udp\"}",
           "instant": false,
+          "interval": "5s",
+          "legendFormat": "UDP",
           "range": true,
-          "refId": "B",
-          "legendFormat": "UDP"
+          "refId": "B"
         }
-      ]
+      ],
+      "title": "Connection stats",
+      "type": "timeseries"
     },
     {
       "datasource": {
@@ -1787,24 +1802,9 @@
       "description": "Above zero: client download throughput (downlink rate into inbounds). Below zero: client upload throughput (uplink rate into inbounds). Stated in bits per second. Missing or disabled counters remain absent. Open detail views to inspect individual inbound channels.",
       "fieldConfig": {
         "defaults": {
-          "unit": "bps",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "value": 0,
-                "color": "green"
-              },
-              {
-                "value": 80,
-                "color": "red"
-              }
-            ]
-          },
           "color": {
             "mode": "palette-classic"
           },
-          "noValue": "No data",
           "custom": {
             "axisBorderShow": false,
             "axisCenteredZero": true,
@@ -1838,7 +1838,22 @@
             "thresholdsStyle": {
               "mode": "off"
             }
-          }
+          },
+          "noValue": "No data",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "bps"
         },
         "overrides": [
           {
@@ -1935,18 +1950,20 @@
         "y": 14
       },
       "id": 44,
+      "interval": "5s",
       "links": [
         {
+          "targetBlank": false,
           "title": "Inbound traffic details",
-          "url": "/d/${__dashboard.uid}/?viewPanel=panel-12&${__all_variables}",
-          "targetBlank": false
+          "url": "/d/${__dashboard.uid}/?viewPanel=panel-12&${__all_variables}"
         },
         {
+          "targetBlank": false,
           "title": "Outbound traffic details",
-          "url": "/d/${__dashboard.uid}/?viewPanel=panel-9&${__all_variables}",
-          "targetBlank": false
+          "url": "/d/${__dashboard.uid}/?viewPanel=panel-9&${__all_variables}"
         }
       ],
+      "maxDataPoints": 5000,
       "options": {
         "legend": {
           "calcs": [],
@@ -1961,8 +1978,6 @@
         }
       },
       "pluginVersion": "13.3.0",
-      "title": "Total traffic \u00b7 Download / Upload",
-      "type": "timeseries",
       "targets": [
         {
           "datasource": {
@@ -1972,9 +1987,10 @@
           "editorMode": "code",
           "expr": "8 * sum (rate(xui_inbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",direction=\"downlink\"}[$__rate_interval])) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
           "instant": false,
+          "interval": "5s",
+          "legendFormat": "Download",
           "range": true,
-          "refId": "A",
-          "legendFormat": "Download"
+          "refId": "A"
         },
         {
           "datasource": {
@@ -1984,11 +2000,14 @@
           "editorMode": "code",
           "expr": "8 * sum (rate(xui_inbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",direction=\"uplink\"}[$__rate_interval])) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
           "instant": false,
+          "interval": "5s",
+          "legendFormat": "Upload",
           "range": true,
-          "refId": "B",
-          "legendFormat": "Upload"
+          "refId": "B"
         }
-      ]
+      ],
+      "title": "Total traffic · Download / Upload",
+      "type": "timeseries"
     },
     {
       "collapsed": true,
@@ -1998,31 +2017,15 @@
         "x": 0,
         "y": 20
       },
-      "id": 65,
+      "id": 72,
       "panels": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
-          "description": "",
           "fieldConfig": {
             "defaults": {
-              "unit": "bps",
-              "min": 0,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "value": 0,
-                    "color": "green"
-                  },
-                  {
-                    "value": 80,
-                    "color": "red"
-                  }
-                ]
-              },
               "color": {
                 "mode": "palette-classic"
               },
@@ -2059,18 +2062,31 @@
                 "thresholdsStyle": {
                   "mode": "off"
                 }
-              }
-            },
-            "overrides": []
+              },
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "bps"
+            }
           },
           "gridPos": {
             "h": 8,
             "w": 24,
             "x": 0,
-            "y": 0
+            "y": 21
           },
           "id": 12,
-          "links": [],
           "options": {
             "legend": {
               "calcs": [
@@ -2090,8 +2106,6 @@
             }
           },
           "pluginVersion": "13.3.0",
-          "title": "Throughput",
-          "type": "timeseries",
           "targets": [
             {
               "datasource": {
@@ -2100,46 +2114,45 @@
               },
               "editorMode": "code",
               "expr": "8 * (\n  sum by (instance,inbound) (\n    rate(xui_inbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",inbound!~\"api|node_egress_.*\"}[$__rate_interval])\n  )\n  * on (instance,inbound) group_left(remark,node)\n  (0 * xui_inbound_enabled{job=\"xui-exporter\",instance=\"${instance}\"} + 1)\n)",
-              "instant": false,
+              "interval": "5s",
+              "legendFormat": "{{remark}}",
               "range": true,
-              "refId": "A",
-              "legendFormat": "{{remark}}"
+              "refId": "A"
             }
-          ]
+          ],
+          "title": "Throughput",
+          "type": "timeseries"
         },
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
-          "description": "",
           "fieldConfig": {
             "defaults": {
-              "unit": "decbytes",
+              "color": {
+                "mode": "thresholds"
+              },
+              "min": 0,
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
                   {
-                    "value": 0,
-                    "color": "green"
+                    "color": "green",
+                    "value": 0
                   }
                 ]
               },
-              "color": {
-                "mode": "thresholds"
-              },
-              "fieldMinMax": true
-            },
-            "overrides": []
+              "unit": "decbytes"
+            }
           },
           "gridPos": {
             "h": 7,
             "w": 12,
             "x": 0,
-            "y": 8
+            "y": 29
           },
           "id": 63,
-          "links": [],
           "options": {
             "displayMode": "basic",
             "legend": {
@@ -2166,8 +2179,6 @@
             "valueMode": "color"
           },
           "pluginVersion": "13.3.0",
-          "title": "Traffic distribution",
-          "type": "bargauge",
           "targets": [
             {
               "datasource": {
@@ -2175,48 +2186,24 @@
                 "uid": "${DS_PROMETHEUS-INFRA}"
               },
               "editorMode": "code",
+              "exemplar": false,
               "expr": "sort_desc(\n  sum by (instance,inbound) (\n    increase(xui_inbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",inbound!~\"api|node_egress_.*\"}[$__range])\n  )\n  * on (instance,inbound) group_left(remark,node)\n  (0 * xui_inbound_enabled{job=\"xui-exporter\",instance=\"${instance}\"} + 1)\n)",
               "instant": true,
+              "legendFormat": "{{remark}}",
               "range": false,
-              "refId": "A",
-              "legendFormat": "{{remark}}"
+              "refId": "A"
             }
-          ]
+          ],
+          "title": "Traffic distribution",
+          "type": "bargauge"
         },
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
-          "description": "",
           "fieldConfig": {
             "defaults": {
-              "mappings": [
-                {
-                  "type": "value",
-                  "options": {
-                    "0": {
-                      "text": "Disabled",
-                      "color": "red",
-                      "index": 1
-                    },
-                    "1": {
-                      "text": "Enabled",
-                      "color": "green",
-                      "index": 0
-                    }
-                  }
-                }
-              ],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "value": 0,
-                    "color": "green"
-                  }
-                ]
-              },
               "color": {
                 "mode": "fixed"
               },
@@ -2231,18 +2218,42 @@
                 "insertNulls": false,
                 "lineWidth": 0,
                 "spanNulls": false
+              },
+              "mappings": [
+                {
+                  "options": {
+                    "0": {
+                      "color": "red",
+                      "index": 1,
+                      "text": "Disabled"
+                    },
+                    "1": {
+                      "color": "green",
+                      "index": 0,
+                      "text": "Enabled"
+                    }
+                  },
+                  "type": "value"
+                }
+              ],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
               }
-            },
-            "overrides": []
+            }
           },
           "gridPos": {
             "h": 7,
             "w": 12,
             "x": 12,
-            "y": 8
+            "y": 29
           },
           "id": 62,
-          "links": [],
           "options": {
             "alignValue": "left",
             "legend": {
@@ -2260,8 +2271,6 @@
             }
           },
           "pluginVersion": "13.3.0",
-          "title": "Administrative state",
-          "type": "state-timeline",
           "targets": [
             {
               "datasource": {
@@ -2270,12 +2279,13 @@
               },
               "editorMode": "code",
               "expr": "xui_inbound_enabled{instance=\"$instance\",job=\"xui-exporter\",node=\"local\"}",
-              "instant": false,
+              "legendFormat": "{{remark}}",
               "range": true,
-              "refId": "A",
-              "legendFormat": "{{remark}}"
+              "refId": "A"
             }
-          ]
+          ],
+          "title": "Administrative state",
+          "type": "state-timeline"
         }
       ],
       "title": "Inbounds",
@@ -2289,27 +2299,15 @@
         "x": 0,
         "y": 21
       },
-      "id": 64,
+      "id": 73,
       "panels": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
-          "description": "",
           "fieldConfig": {
             "defaults": {
-              "unit": "bps",
-              "min": 0,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "value": 0,
-                    "color": "green"
-                  }
-                ]
-              },
               "color": {
                 "mode": "palette-classic"
               },
@@ -2346,18 +2344,27 @@
                 "thresholdsStyle": {
                   "mode": "off"
                 }
-              }
-            },
-            "overrides": []
+              },
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              },
+              "unit": "bps"
+            }
           },
           "gridPos": {
             "h": 8,
             "w": 24,
             "x": 0,
-            "y": 0
+            "y": 22
           },
           "id": 9,
-          "links": [],
           "options": {
             "legend": {
               "calcs": [
@@ -2377,8 +2384,6 @@
             }
           },
           "pluginVersion": "13.3.0",
-          "title": "Outbound throughput",
-          "type": "timeseries",
           "targets": [
             {
               "datasource": {
@@ -2387,45 +2392,44 @@
               },
               "editorMode": "code",
               "expr": "8 * sum by (instance,outbound) (rate(xui_outbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__rate_interval]))",
-              "instant": false,
+              "interval": "5s",
+              "legendFormat": "{{outbound}}",
               "range": true,
-              "refId": "A",
-              "legendFormat": "{{outbound}}"
+              "refId": "A"
             }
-          ]
+          ],
+          "title": "Outbound throughput",
+          "type": "timeseries"
         },
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
-          "description": "",
           "fieldConfig": {
             "defaults": {
-              "unit": "decbytes",
+              "color": {
+                "mode": "thresholds"
+              },
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
                   {
-                    "value": 0,
-                    "color": "green"
+                    "color": "green",
+                    "value": 0
                   }
                 ]
               },
-              "color": {
-                "mode": "thresholds"
-              }
-            },
-            "overrides": []
+              "unit": "decbytes"
+            }
           },
           "gridPos": {
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 8
+            "y": 30
           },
           "id": 10,
-          "links": [],
           "options": {
             "displayMode": "gradient",
             "legend": {
@@ -2453,8 +2457,6 @@
             "valueMode": "color"
           },
           "pluginVersion": "13.3.0",
-          "title": "Traffic distribution",
-          "type": "bargauge",
           "targets": [
             {
               "datasource": {
@@ -2462,26 +2464,27 @@
                 "uid": "${DS_PROMETHEUS-INFRA}"
               },
               "editorMode": "code",
+              "exemplar": false,
               "expr": "sort_desc(sum by (instance,outbound) (increase(xui_outbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range])))",
               "instant": true,
+              "legendFormat": "{{outbound}}",
               "range": false,
-              "refId": "A",
-              "legendFormat": "{{outbound}}"
+              "refId": "A"
             }
-          ]
+          ],
+          "title": "Traffic distribution",
+          "type": "bargauge"
         },
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
-          "description": "",
           "fieldConfig": {
             "defaults": {
-              "unit": "decbytes",
               "color": {
-                "mode": "palette-classic",
-                "fixedColor": "#73BF69"
+                "fixedColor": "#73BF69",
+                "mode": "palette-classic"
               },
               "custom": {
                 "hideFrom": {
@@ -2489,18 +2492,17 @@
                   "tooltip": false,
                   "viz": false
                 }
-              }
-            },
-            "overrides": []
+              },
+              "unit": "decbytes"
+            }
           },
           "gridPos": {
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 8
+            "y": 30
           },
           "id": 11,
-          "links": [],
           "options": {
             "legend": {
               "displayMode": "table",
@@ -2527,8 +2529,6 @@
             }
           },
           "pluginVersion": "13.3.0",
-          "title": "Traffic routing",
-          "type": "piechart",
           "targets": [
             {
               "datasource": {
@@ -2536,11 +2536,12 @@
                 "uid": "${DS_PROMETHEUS-INFRA}"
               },
               "editorMode": "code",
+              "exemplar": false,
               "expr": "sum(increase(xui_outbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range]))",
               "instant": true,
+              "legendFormat": "Proxy",
               "range": false,
-              "refId": "A",
-              "legendFormat": "Proxy"
+              "refId": "A"
             },
             {
               "datasource": {
@@ -2548,13 +2549,16 @@
                 "uid": "${DS_PROMETHEUS-INFRA}"
               },
               "editorMode": "code",
+              "exemplar": false,
               "expr": "sum(increase(xui_outbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",outbound=\"direct\"}[$__range]))",
               "instant": true,
+              "legendFormat": "Direct",
               "range": false,
-              "refId": "B",
-              "legendFormat": "Direct"
+              "refId": "B"
             }
-          ]
+          ],
+          "title": "Traffic routing",
+          "type": "piechart"
         }
       ],
       "title": "Outbounds",
@@ -2568,7 +2572,7 @@
         "x": 0,
         "y": 22
       },
-      "id": 63,
+      "id": 74,
       "panels": [
         {
           "datasource": {
@@ -2578,37 +2582,6 @@
           "description": "DOWN: Xray alive=0. DEGRADED: burst window contains failed probes. UP: alive with no failed probes; ordinary observatory exposes only alive. Missing data stays missing.",
           "fieldConfig": {
             "defaults": {
-              "mappings": [
-                {
-                  "type": "value",
-                  "options": {
-                    "0": {
-                      "text": "DOWN",
-                      "color": "red",
-                      "index": 0
-                    },
-                    "1": {
-                      "text": "DEGRADED",
-                      "color": "yellow",
-                      "index": 1
-                    },
-                    "2": {
-                      "text": "UP",
-                      "color": "green",
-                      "index": 2
-                    }
-                  }
-                }
-              ],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "value": 0,
-                    "color": "green"
-                  }
-                ]
-              },
               "color": {
                 "mode": "fixed"
               },
@@ -2624,18 +2597,49 @@
                 "insertNulls": false,
                 "lineWidth": 0,
                 "spanNulls": false
+              },
+              "mappings": [
+                {
+                  "options": {
+                    "0": {
+                      "color": "red",
+                      "index": 0,
+                      "text": "DOWN"
+                    },
+                    "1": {
+                      "color": "yellow",
+                      "index": 1,
+                      "text": "DEGRADED"
+                    },
+                    "2": {
+                      "color": "green",
+                      "index": 2,
+                      "text": "UP"
+                    }
+                  },
+                  "type": "value"
+                }
+              ],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
               }
-            },
-            "overrides": []
+            }
           },
           "gridPos": {
             "h": 10,
             "w": 12,
             "x": 0,
-            "y": 0
+            "y": 23
           },
           "id": 1,
-          "links": [],
+          "interval": "5s",
+          "maxDataPoints": 5000,
           "options": {
             "alignValue": "left",
             "legend": {
@@ -2653,8 +2657,6 @@
             }
           },
           "pluginVersion": "13.3.0",
-          "title": "Outbound health",
-          "type": "state-timeline",
           "targets": [
             {
               "datasource": {
@@ -2663,12 +2665,14 @@
               },
               "editorMode": "code",
               "expr": "(xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"} == bool 0)))\nor (xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"} * 2)",
-              "instant": false,
+              "interval": "5s",
+              "legendFormat": "{{outbound}}",
               "range": true,
-              "refId": "A",
-              "legendFormat": "{{outbound}}"
+              "refId": "A"
             }
-          ]
+          ],
+          "title": "Outbound health",
+          "type": "state-timeline"
         },
         {
           "datasource": {
@@ -2678,15 +2682,6 @@
           "description": "DOWN: Xray alive=0. DEGRADED: burst window contains failed probes. UP: alive with no failed probes; ordinary observatory exposes only alive. Missing data stays missing.",
           "fieldConfig": {
             "defaults": {
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "value": 0,
-                    "color": "green"
-                  }
-                ]
-              },
               "color": {
                 "mode": "thresholds"
               },
@@ -2703,14 +2698,23 @@
                 "minWidth": 100,
                 "wrapHeaderText": true,
                 "wrapText": false
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
               }
             },
             "overrides": [
               {
                 "matcher": {
                   "id": "byName",
-                  "scope": "series",
-                  "options": "Health"
+                  "options": "Health",
+                  "scope": "series"
                 },
                 "properties": [
                   {
@@ -2753,8 +2757,8 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "scope": "series",
-                  "options": "RTT"
+                  "options": "RTT",
+                  "scope": "series"
                 },
                 "properties": [
                   {
@@ -2792,8 +2796,8 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "scope": "series",
-                  "options": "Deviation"
+                  "options": "Deviation",
+                  "scope": "series"
                 },
                 "properties": [
                   {
@@ -2809,8 +2813,8 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "scope": "series",
-                  "options": "Failed"
+                  "options": "Failed",
+                  "scope": "series"
                 },
                 "properties": [
                   {
@@ -2848,8 +2852,8 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "scope": "series",
-                  "options": "Outbound"
+                  "options": "Outbound",
+                  "scope": "series"
                 },
                 "properties": [
                   {
@@ -2861,8 +2865,8 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "scope": "series",
-                  "options": "Probes"
+                  "options": "Probes",
+                  "scope": "series"
                 },
                 "properties": [
                   {
@@ -2877,10 +2881,9 @@
             "h": 10,
             "w": 12,
             "x": 12,
-            "y": 0
+            "y": 23
           },
           "id": 4,
-          "links": [],
           "options": {
             "cellHeight": "sm",
             "frameIndex": 0,
@@ -2891,8 +2894,6 @@
             "zebraStriping": false
           },
           "pluginVersion": "13.3.0",
-          "title": "Current outbound health",
-          "type": "table",
           "targets": [
             {
               "datasource": {
@@ -2900,11 +2901,13 @@
                 "uid": "${DS_PROMETHEUS-INFRA}"
               },
               "editorMode": "code",
+              "exemplar": false,
               "expr": "(xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"} == bool 0)))\nor (xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"} * 2)",
+              "format": "table",
               "instant": true,
+              "legendFormat": "Health",
               "range": false,
-              "refId": "A",
-              "legendFormat": "Health"
+              "refId": "A"
             },
             {
               "datasource": {
@@ -2912,11 +2915,13 @@
                 "uid": "${DS_PROMETHEUS-INFRA}"
               },
               "editorMode": "code",
+              "exemplar": false,
               "expr": "xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"} or xui_observatory_outbound_delay_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}",
+              "format": "table",
               "instant": true,
+              "legendFormat": "RTT",
               "range": false,
-              "refId": "B",
-              "legendFormat": "RTT"
+              "refId": "B"
             },
             {
               "datasource": {
@@ -2924,11 +2929,13 @@
                 "uid": "${DS_PROMETHEUS-INFRA}"
               },
               "editorMode": "code",
+              "exemplar": false,
               "expr": "xui_observatory_outbound_rtt_deviation_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}",
+              "format": "table",
               "instant": true,
+              "legendFormat": "Deviation",
               "range": false,
-              "refId": "C",
-              "legendFormat": "Deviation"
+              "refId": "C"
             },
             {
               "datasource": {
@@ -2936,11 +2943,13 @@
                 "uid": "${DS_PROMETHEUS-INFRA}"
               },
               "editorMode": "code",
+              "exemplar": false,
               "expr": "xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}",
+              "format": "table",
               "instant": true,
+              "legendFormat": "Failed",
               "range": false,
-              "refId": "D",
-              "legendFormat": "Failed"
+              "refId": "D"
             },
             {
               "datasource": {
@@ -2948,13 +2957,16 @@
                 "uid": "${DS_PROMETHEUS-INFRA}"
               },
               "editorMode": "code",
+              "exemplar": false,
               "expr": "xui_observatory_outbound_probe_samples{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}",
+              "format": "table",
               "instant": true,
+              "legendFormat": "Probes",
               "range": false,
-              "refId": "E",
-              "legendFormat": "Probes"
+              "refId": "E"
             }
           ],
+          "title": "Current outbound health",
           "transformations": [
             {
               "id": "joinByField",
@@ -3022,7 +3034,8 @@
                 }
               }
             }
-          ]
+          ],
+          "type": "table"
         },
         {
           "datasource": {
@@ -3032,15 +3045,6 @@
           "description": "P50/P95 are percentiles of observed window means, not individual HTTP requests. Probe success is a sample-weighted estimate over overlapping observation windows, not a count of unique probes.",
           "fieldConfig": {
             "defaults": {
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "value": 0,
-                    "color": "green"
-                  }
-                ]
-              },
               "color": {
                 "mode": "thresholds"
               },
@@ -3058,14 +3062,23 @@
                 "styleField": "Outbound",
                 "wrapHeaderText": false,
                 "wrapText": false
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
               }
             },
             "overrides": [
               {
                 "matcher": {
                   "id": "byName",
-                  "scope": "series",
-                  "options": "Xray alive time"
+                  "options": "Xray alive time",
+                  "scope": "series"
                 },
                 "properties": [
                   {
@@ -3081,8 +3094,8 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "scope": "series",
-                  "options": "Probe success"
+                  "options": "Probe success",
+                  "scope": "series"
                 },
                 "properties": [
                   {
@@ -3098,8 +3111,8 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "scope": "series",
-                  "options": "P50 RTT"
+                  "options": "P50 RTT",
+                  "scope": "series"
                 },
                 "properties": [
                   {
@@ -3115,8 +3128,8 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "scope": "series",
-                  "options": "P95 RTT"
+                  "options": "P95 RTT",
+                  "scope": "series"
                 },
                 "properties": [
                   {
@@ -3132,8 +3145,8 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "scope": "series",
-                  "options": "Outbound"
+                  "options": "Outbound",
+                  "scope": "series"
                 },
                 "properties": [
                   {
@@ -3148,10 +3161,9 @@
             "h": 10,
             "w": 12,
             "x": 0,
-            "y": 10
+            "y": 33
           },
           "id": 5,
-          "links": [],
           "options": {
             "cellHeight": "sm",
             "frameIndex": 0,
@@ -3162,8 +3174,6 @@
             "zebraStriping": false
           },
           "pluginVersion": "13.3.0",
-          "title": "Outbound quality metrics",
-          "type": "table",
           "targets": [
             {
               "datasource": {
@@ -3171,11 +3181,13 @@
                 "uid": "${DS_PROMETHEUS-INFRA}"
               },
               "editorMode": "code",
+              "exemplar": false,
               "expr": "avg_over_time(\n  xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range]\n)",
+              "format": "table",
               "instant": true,
+              "legendFormat": "Xray alive time",
               "range": false,
-              "refId": "A",
-              "legendFormat": "Xray alive time"
+              "refId": "A"
             },
             {
               "datasource": {
@@ -3183,11 +3195,13 @@
                 "uid": "${DS_PROMETHEUS-INFRA}"
               },
               "editorMode": "code",
+              "exemplar": false,
               "expr": "1 -\n(\n  sum_over_time(xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range])\n  /\n  sum_over_time(xui_observatory_outbound_probe_samples{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range])\n)",
+              "format": "table",
               "instant": true,
+              "legendFormat": "Probe success",
               "range": false,
-              "refId": "B",
-              "legendFormat": "Probe success"
+              "refId": "B"
             },
             {
               "datasource": {
@@ -3195,11 +3209,13 @@
                 "uid": "${DS_PROMETHEUS-INFRA}"
               },
               "editorMode": "code",
+              "exemplar": false,
               "expr": "quantile_over_time(\n  0.50,\n  xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range]\n)",
+              "format": "table",
               "instant": true,
+              "legendFormat": "P50 RTT",
               "range": false,
-              "refId": "C",
-              "legendFormat": "P50 RTT"
+              "refId": "C"
             },
             {
               "datasource": {
@@ -3207,13 +3223,16 @@
                 "uid": "${DS_PROMETHEUS-INFRA}"
               },
               "editorMode": "code",
+              "exemplar": false,
               "expr": "quantile_over_time(\n  0.95,\n  xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range]\n)",
+              "format": "table",
               "instant": true,
+              "legendFormat": "P95 RTT",
               "range": false,
-              "refId": "D",
-              "legendFormat": "P95 RTT"
+              "refId": "D"
             }
           ],
+          "title": "Outbound quality metrics",
           "transformations": [
             {
               "id": "joinByField",
@@ -3250,7 +3269,8 @@
                 }
               }
             }
-          ]
+          ],
+          "type": "table"
         },
         {
           "datasource": {
@@ -3260,15 +3280,6 @@
           "description": "Dashboard heuristic, not the score used by Xray leastLoad. Burst-only reliability inputs are absent for ordinary observatory. No missing values are filled with zero.",
           "fieldConfig": {
             "defaults": {
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "value": 0,
-                    "color": "green"
-                  }
-                ]
-              },
               "color": {
                 "mode": "thresholds"
               },
@@ -3282,14 +3293,23 @@
                 },
                 "inspect": false,
                 "wrapHeaderText": true
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
               }
             },
             "overrides": [
               {
                 "matcher": {
                   "id": "byName",
-                  "scope": "series",
-                  "options": "outbound"
+                  "options": "outbound",
+                  "scope": "series"
                 },
                 "properties": [
                   {
@@ -3301,8 +3321,8 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "scope": "series",
-                  "options": "Quality"
+                  "options": "Quality",
+                  "scope": "series"
                 },
                 "properties": [
                   {
@@ -3314,8 +3334,8 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "scope": "series",
-                  "options": "Reliability"
+                  "options": "Reliability",
+                  "scope": "series"
                 },
                 "properties": [
                   {
@@ -3327,8 +3347,8 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "scope": "series",
-                  "options": "RTT stability"
+                  "options": "RTT stability",
+                  "scope": "series"
                 },
                 "properties": [
                   {
@@ -3340,8 +3360,8 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "scope": "series",
-                  "options": "Latency"
+                  "options": "Latency",
+                  "scope": "series"
                 },
                 "properties": [
                   {
@@ -3353,8 +3373,8 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "scope": "series",
-                  "options": "Quality"
+                  "options": "Quality",
+                  "scope": "series"
                 },
                 "properties": [
                   {
@@ -3395,10 +3415,9 @@
             "h": 10,
             "w": 12,
             "x": 12,
-            "y": 10
+            "y": 33
           },
           "id": 6,
-          "links": [],
           "options": {
             "cellHeight": "sm",
             "frozenColumns": {
@@ -3414,8 +3433,6 @@
             "zebraStriping": false
           },
           "pluginVersion": "13.3.0",
-          "title": "Outbound quality score",
-          "type": "table",
           "targets": [
             {
               "datasource": {
@@ -3423,11 +3440,13 @@
                 "uid": "${DS_PROMETHEUS-INFRA}"
               },
               "editorMode": "code",
+              "exemplar": false,
               "expr": "100 *\nexp(\n  -10 *\n  (\n    sum_over_time(xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range])\n    /\n    sum_over_time(xui_observatory_outbound_probe_samples{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range])\n  )\n)",
+              "format": "table",
               "instant": true,
+              "legendFormat": "__auto",
               "range": false,
-              "refId": "R",
-              "legendFormat": "__auto"
+              "refId": "R"
             },
             {
               "datasource": {
@@ -3435,11 +3454,13 @@
                 "uid": "${DS_PROMETHEUS-INFRA}"
               },
               "editorMode": "code",
+              "exemplar": false,
               "expr": "100 *\nexp(\n  -2 *\n  (\n    quantile_over_time(\n      0.95,\n      xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range]\n    )\n    -\n    quantile_over_time(\n      0.50,\n      xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range]\n    )\n  )\n)",
+              "format": "table",
               "instant": true,
+              "legendFormat": "__auto",
               "range": false,
-              "refId": "S",
-              "legendFormat": "__auto"
+              "refId": "S"
             },
             {
               "datasource": {
@@ -3447,11 +3468,13 @@
                 "uid": "${DS_PROMETHEUS-INFRA}"
               },
               "editorMode": "code",
+              "exemplar": false,
               "expr": "clamp(\n  130 -\n  100 *\n  quantile_over_time(\n    0.50,\n    xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range]\n  ),\n  0,\n  100\n)",
+              "format": "table",
               "instant": true,
+              "legendFormat": "__auto",
               "range": false,
-              "refId": "L",
-              "legendFormat": "__auto"
+              "refId": "L"
             },
             {
               "datasource": {
@@ -3459,13 +3482,16 @@
                 "uid": "${DS_PROMETHEUS-INFRA}"
               },
               "editorMode": "code",
+              "exemplar": false,
               "expr": "100 * exp(\n  -5 * (sum_over_time(xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range]) / sum_over_time(xui_observatory_outbound_probe_samples{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range]))\n  - 0.6 * (quantile_over_time(0.95, xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range]) - quantile_over_time(0.50, xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range]))\n) * (clamp(130 - 100 * quantile_over_time(0.50, xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}[$__range]), 0, 100) / 100) ^ 0.20",
+              "format": "table",
               "instant": true,
+              "legendFormat": "__auto",
               "range": false,
-              "refId": "Q",
-              "legendFormat": "__auto"
+              "refId": "Q"
             }
           ],
+          "title": "Outbound quality score",
           "transformations": [
             {
               "id": "joinByField",
@@ -3520,7 +3546,8 @@
                 }
               }
             }
-          ]
+          ],
+          "type": "table"
         },
         {
           "datasource": {
@@ -3530,25 +3557,9 @@
           "description": "Burst: mean RTT of successful samples in the observation window. Ordinary observatory: last successful delay. Seconds; no fabricated values on failure.",
           "fieldConfig": {
             "defaults": {
-              "unit": "s",
-              "min": 0,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "value": 0,
-                    "color": "green"
-                  },
-                  {
-                    "value": 0.6,
-                    "color": "red"
-                  }
-                ]
-              },
               "color": {
                 "mode": "palette-classic"
               },
-              "noValue": "0",
               "custom": {
                 "axisBorderShow": false,
                 "axisCenteredZero": false,
@@ -3582,18 +3593,34 @@
                 "thresholdsStyle": {
                   "mode": "dashed"
                 }
-              }
-            },
-            "overrides": []
+              },
+              "min": 0,
+              "noValue": "0",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 0.6
+                  }
+                ]
+              },
+              "unit": "s"
+            }
           },
           "gridPos": {
             "h": 9,
             "w": 12,
             "x": 0,
-            "y": 20
+            "y": 43
           },
           "id": 2,
-          "links": [],
+          "interval": "5s",
+          "maxDataPoints": 5000,
           "options": {
             "legend": {
               "calcs": [
@@ -3614,8 +3641,6 @@
             }
           },
           "pluginVersion": "13.3.0",
-          "title": "Outbound latency",
-          "type": "timeseries",
           "targets": [
             {
               "datasource": {
@@ -3624,32 +3649,22 @@
               },
               "editorMode": "code",
               "expr": "xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"} or xui_observatory_outbound_delay_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}",
-              "instant": false,
+              "interval": "5s",
+              "legendFormat": "{{outbound}}",
               "range": true,
-              "refId": "A",
-              "legendFormat": "{{outbound}}"
+              "refId": "A"
             }
-          ]
+          ],
+          "title": "Outbound latency",
+          "type": "timeseries"
         },
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
-          "description": "",
           "fieldConfig": {
             "defaults": {
-              "unit": "s",
-              "min": 0,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "value": 0,
-                    "color": "green"
-                  }
-                ]
-              },
               "color": {
                 "mode": "palette-classic"
               },
@@ -3686,18 +3701,29 @@
                 "thresholdsStyle": {
                   "mode": "dashed"
                 }
-              }
-            },
-            "overrides": []
+              },
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              },
+              "unit": "s"
+            }
           },
           "gridPos": {
             "h": 9,
             "w": 12,
             "x": 12,
-            "y": 20
+            "y": 43
           },
           "id": 3,
-          "links": [],
+          "interval": "5s",
+          "maxDataPoints": 5000,
           "options": {
             "legend": {
               "calcs": [
@@ -3718,8 +3744,6 @@
             }
           },
           "pluginVersion": "13.3.0",
-          "title": "Outbound latency deviation",
-          "type": "timeseries",
           "targets": [
             {
               "datasource": {
@@ -3728,12 +3752,14 @@
               },
               "editorMode": "code",
               "expr": "xui_observatory_outbound_rtt_deviation_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}",
-              "instant": false,
+              "interval": "5s",
+              "legendFormat": "{{outbound}}",
               "range": true,
-              "refId": "A",
-              "legendFormat": "{{outbound}}"
+              "refId": "A"
             }
-          ]
+          ],
+          "title": "Outbound latency deviation",
+          "type": "timeseries"
         },
         {
           "datasource": {
@@ -3743,21 +3769,6 @@
           "description": "Minimum and maximum successful RTT in the current burst window. Not available for ordinary observatory.",
           "fieldConfig": {
             "defaults": {
-              "unit": "s",
-              "min": 0,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "value": 0,
-                    "color": "green"
-                  },
-                  {
-                    "value": 80,
-                    "color": "red"
-                  }
-                ]
-              },
               "color": {
                 "mode": "palette-classic"
               },
@@ -3794,18 +3805,33 @@
                 "thresholdsStyle": {
                   "mode": "off"
                 }
-              }
-            },
-            "overrides": []
+              },
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "s"
+            }
           },
           "gridPos": {
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 29
+            "y": 52
           },
           "id": 27,
-          "links": [],
+          "interval": "5s",
+          "maxDataPoints": 5000,
           "options": {
             "legend": {
               "calcs": [
@@ -3823,8 +3849,6 @@
             }
           },
           "pluginVersion": "13.3.0",
-          "title": "Burst RTT range",
-          "type": "timeseries",
           "targets": [
             {
               "datasource": {
@@ -3834,9 +3858,9 @@
               "editorMode": "code",
               "expr": "xui_observatory_outbound_rtt_min_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}",
               "instant": false,
+              "legendFormat": "{{outbound}} · min",
               "range": true,
-              "refId": "A",
-              "legendFormat": "{{outbound}} \u00b7 min"
+              "refId": "A"
             },
             {
               "datasource": {
@@ -3846,11 +3870,13 @@
               "editorMode": "code",
               "expr": "xui_observatory_outbound_rtt_max_seconds{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}",
               "instant": false,
+              "legendFormat": "{{outbound}} · max",
               "range": true,
-              "refId": "B",
-              "legendFormat": "{{outbound}} \u00b7 max"
+              "refId": "B"
             }
-          ]
+          ],
+          "title": "Burst RTT range",
+          "type": "timeseries"
         },
         {
           "datasource": {
@@ -3860,22 +3886,6 @@
           "description": "Failed fraction in the current burst window, not a cumulative counter. Empty measurements remain absent.",
           "fieldConfig": {
             "defaults": {
-              "unit": "percentunit",
-              "min": 0,
-              "max": 1,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "value": 0,
-                    "color": "green"
-                  },
-                  {
-                    "value": 80,
-                    "color": "red"
-                  }
-                ]
-              },
               "color": {
                 "mode": "palette-classic"
               },
@@ -3912,18 +3922,34 @@
                 "thresholdsStyle": {
                   "mode": "off"
                 }
-              }
-            },
-            "overrides": []
+              },
+              "max": 1,
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "percentunit"
+            }
           },
           "gridPos": {
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 29
+            "y": 52
           },
           "id": 28,
-          "links": [],
+          "interval": "5s",
+          "maxDataPoints": 5000,
           "options": {
             "legend": {
               "calcs": [
@@ -3941,8 +3967,6 @@
             }
           },
           "pluginVersion": "13.3.0",
-          "title": "Burst failed probes",
-          "type": "timeseries",
           "targets": [
             {
               "datasource": {
@@ -3952,11 +3976,13 @@
               "editorMode": "code",
               "expr": "xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"} / xui_observatory_outbound_probe_samples{job=\"xui-exporter\",instance=\"${instance}\",outbound=~\"${outbound}\"}",
               "instant": false,
+              "legendFormat": "{{outbound}}",
               "range": true,
-              "refId": "A",
-              "legendFormat": "{{outbound}}"
+              "refId": "A"
             }
-          ]
+          ],
+          "title": "Burst failed probes",
+          "type": "timeseries"
         }
       ],
       "title": "Observatory",
@@ -3970,7 +3996,7 @@
         "x": 0,
         "y": 23
       },
-      "id": 66,
+      "id": 75,
       "panels": [
         {
           "datasource": {
@@ -3980,32 +4006,31 @@
           "description": "Fraction of observed samples in which a target was selected, not its share of traffic. Multiple selected targets can sum above 100%. Missing scrapes do not count as zero.",
           "fieldConfig": {
             "defaults": {
-              "unit": "percent",
-              "min": 0,
+              "color": {
+                "mode": "thresholds"
+              },
               "max": 100,
+              "min": 0,
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
                   {
-                    "value": 0,
-                    "color": "green"
+                    "color": "green",
+                    "value": 0
                   }
                 ]
               },
-              "color": {
-                "mode": "thresholds"
-              }
-            },
-            "overrides": []
+              "unit": "percent"
+            }
           },
           "gridPos": {
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 0
+            "y": 24
           },
           "id": 16,
-          "links": [],
+          "interval": "10s",
           "options": {
             "displayMode": "gradient",
             "legend": {
@@ -4035,8 +4060,6 @@
             "valueMode": "color"
           },
           "pluginVersion": "13.3.0",
-          "title": "Outbound selected time",
-          "type": "bargauge",
           "targets": [
             {
               "datasource": {
@@ -4044,13 +4067,16 @@
                 "uid": "${DS_PROMETHEUS-INFRA}"
               },
               "editorMode": "code",
+              "exemplar": false,
               "expr": "sort_desc (\n  100 * avg_over_time(\n    xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\"}[$__range]\n  )\n)",
               "instant": true,
+              "legendFormat": "{{balancer}} | {{role}} | {{outbound}}",
               "range": false,
-              "refId": "A",
-              "legendFormat": "{{balancer}} | {{role}} | {{outbound}}"
+              "refId": "A"
             }
-          ]
+          ],
+          "title": "Outbound selected time",
+          "type": "bargauge"
         },
         {
           "datasource": {
@@ -4060,16 +4086,6 @@
           "description": "Number of observed 0/1 transitions across primary, fallback and override series in each minute. One target replacement can cause multiple transitions. Missing data and minute boundaries limit completeness; this is not a connection log. The window is centered on each minute; the latest bucket is incomplete.",
           "fieldConfig": {
             "defaults": {
-              "unit": "short",
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "value": 0,
-                    "color": "green"
-                  }
-                ]
-              },
               "color": {
                 "mode": "palette-classic",
                 "seriesBy": "last"
@@ -4110,18 +4126,28 @@
                 "thresholdsStyle": {
                   "mode": "off"
                 }
-              }
-            },
-            "overrides": []
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              },
+              "unit": "short"
+            }
           },
           "gridPos": {
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 0
+            "y": 24
           },
           "id": 15,
-          "links": [],
+          "interval": "1m",
+          "maxDataPoints": 5000,
           "options": {
             "legend": {
               "calcs": [
@@ -4139,8 +4165,6 @@
             }
           },
           "pluginVersion": "13.3.0",
-          "title": "Selection state changes",
-          "type": "timeseries",
           "targets": [
             {
               "datasource": {
@@ -4149,12 +4173,14 @@
               },
               "editorMode": "code",
               "expr": "sum by (instance, balancer) (\n  changes(\n    xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\"}[1m] offset -30s\n  )\n)",
-              "instant": false,
+              "interval": "1m",
+              "legendFormat": "{{balancer}}",
               "range": true,
-              "refId": "A",
-              "legendFormat": "{{balancer}}"
+              "refId": "A"
             }
-          ]
+          ],
+          "title": "Selection state changes",
+          "type": "timeseries"
         },
         {
           "datasource": {
@@ -4164,33 +4190,6 @@
           "description": "Primary target membership plus fallback and override activity. Fallback uses its configured outbound tag; override has no outbound tag. Gray means confirmed inactive; gaps mean unavailable or unknown data.",
           "fieldConfig": {
             "defaults": {
-              "unit": "short",
-              "mappings": [
-                {
-                  "type": "value",
-                  "options": {
-                    "0": {
-                      "text": "Not selected",
-                      "color": "#7f7f7f",
-                      "index": 0
-                    },
-                    "1": {
-                      "text": "Selected",
-                      "color": "green",
-                      "index": 1
-                    }
-                  }
-                }
-              ],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "value": 0,
-                    "color": "green"
-                  }
-                ]
-              },
               "color": {
                 "mode": "fixed"
               },
@@ -4205,18 +4204,45 @@
                 "insertNulls": false,
                 "lineWidth": 0,
                 "spanNulls": false
-              }
-            },
-            "overrides": []
+              },
+              "mappings": [
+                {
+                  "options": {
+                    "0": {
+                      "color": "#7f7f7f",
+                      "index": 0,
+                      "text": "Not selected"
+                    },
+                    "1": {
+                      "color": "green",
+                      "index": 1,
+                      "text": "Selected"
+                    }
+                  },
+                  "type": "value"
+                }
+              ],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              },
+              "unit": "short"
+            }
           },
           "gridPos": {
             "h": 7,
             "w": 24,
             "x": 0,
-            "y": 8
+            "y": 32
           },
           "id": 17,
-          "links": [],
+          "interval": "5s",
+          "maxDataPoints": 5000,
           "options": {
             "alignValue": "left",
             "legend": {
@@ -4234,8 +4260,6 @@
             }
           },
           "pluginVersion": "13.3.0",
-          "title": "Selected outbounds",
-          "type": "state-timeline",
           "targets": [
             {
               "datasource": {
@@ -4243,13 +4267,17 @@
                 "uid": "${DS_PROMETHEUS-INFRA}"
               },
               "editorMode": "code",
+              "exemplar": false,
               "expr": "xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\"}",
               "instant": false,
+              "interval": "5s",
+              "legendFormat": "{{balancer}} | {{role}} | {{outbound}}",
               "range": true,
-              "refId": "A",
-              "legendFormat": "{{balancer}} | {{role}} | {{outbound}}"
+              "refId": "A"
             }
-          ]
+          ],
+          "title": "Selected outbounds",
+          "type": "state-timeline"
         },
         {
           "datasource": {
@@ -4259,38 +4287,6 @@
           "description": "A selected target or fallback resolves to a runtime outbound. Structural availability, not a test of internet access.",
           "fieldConfig": {
             "defaults": {
-              "unit": "short",
-              "min": 0,
-              "mappings": [
-                {
-                  "type": "value",
-                  "options": {
-                    "0": {
-                      "text": "Unavailable",
-                      "color": "red",
-                      "index": 0
-                    },
-                    "1": {
-                      "text": "Available",
-                      "color": "green",
-                      "index": 1
-                    }
-                  }
-                }
-              ],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "value": 0,
-                    "color": "green"
-                  },
-                  {
-                    "value": 80,
-                    "color": "red"
-                  }
-                ]
-              },
               "color": {
                 "mode": "fixed"
               },
@@ -4305,18 +4301,50 @@
                 "insertNulls": false,
                 "lineWidth": 0,
                 "spanNulls": false
-              }
-            },
-            "overrides": []
+              },
+              "mappings": [
+                {
+                  "options": {
+                    "0": {
+                      "color": "red",
+                      "index": 0,
+                      "text": "Unavailable"
+                    },
+                    "1": {
+                      "color": "green",
+                      "index": 1,
+                      "text": "Available"
+                    }
+                  },
+                  "type": "value"
+                }
+              ],
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "short"
+            }
           },
           "gridPos": {
             "h": 6,
             "w": 12,
             "x": 0,
-            "y": 15
+            "y": 39
           },
           "id": 25,
-          "links": [],
+          "interval": "5s",
+          "maxDataPoints": 5000,
           "options": {
             "alignValue": "left",
             "legend": {
@@ -4334,8 +4362,6 @@
             }
           },
           "pluginVersion": "13.3.0",
-          "title": "Balancer outbound availability",
-          "type": "state-timeline",
           "targets": [
             {
               "datasource": {
@@ -4345,11 +4371,13 @@
               "editorMode": "code",
               "expr": "xui_balancer_outbound_available{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\"}",
               "instant": false,
+              "legendFormat": "{{balancer}}",
               "range": true,
-              "refId": "A",
-              "legendFormat": "{{balancer}}"
+              "refId": "A"
             }
-          ]
+          ],
+          "title": "Balancer outbound availability",
+          "type": "state-timeline"
         },
         {
           "datasource": {
@@ -4359,21 +4387,6 @@
           "description": "Number of selected primary targets only. A successfully observed empty selection is zero; missing or unsupported selection data is absent. Fallback and override are excluded.",
           "fieldConfig": {
             "defaults": {
-              "unit": "short",
-              "min": 0,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "value": 0,
-                    "color": "green"
-                  },
-                  {
-                    "value": 80,
-                    "color": "red"
-                  }
-                ]
-              },
               "color": {
                 "mode": "palette-classic"
               },
@@ -4410,18 +4423,33 @@
                 "thresholdsStyle": {
                   "mode": "off"
                 }
-              }
-            },
-            "overrides": []
+              },
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "short"
+            }
           },
           "gridPos": {
             "h": 6,
             "w": 12,
             "x": 12,
-            "y": 15
+            "y": 39
           },
           "id": 26,
-          "links": [],
+          "interval": "5s",
+          "maxDataPoints": 5000,
           "options": {
             "legend": {
               "calcs": [
@@ -4439,8 +4467,6 @@
             }
           },
           "pluginVersion": "13.3.0",
-          "title": "Selected target count",
-          "type": "timeseries",
           "targets": [
             {
               "datasource": {
@@ -4450,11 +4476,13 @@
               "editorMode": "code",
               "expr": "sum by(instance,balancer) (xui_balancer_outbound_selected{role=\"primary\",job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\"})",
               "instant": false,
+              "legendFormat": "{{balancer}}",
               "range": true,
-              "refId": "A",
-              "legendFormat": "{{balancer}}"
+              "refId": "A"
             }
-          ]
+          ],
+          "title": "Selected target count",
+          "type": "timeseries"
         }
       ],
       "title": "Balancers",
@@ -4468,7 +4496,7 @@
         "x": 0,
         "y": 24
       },
-      "id": 67,
+      "id": 76,
       "panels": [
         {
           "datasource": {
@@ -4478,21 +4506,6 @@
           "description": "Go runtime memory values; neither is process RSS.",
           "fieldConfig": {
             "defaults": {
-              "unit": "bytes",
-              "min": 0,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "value": 0,
-                    "color": "green"
-                  },
-                  {
-                    "value": 80,
-                    "color": "red"
-                  }
-                ]
-              },
               "color": {
                 "mode": "palette-classic"
               },
@@ -4529,18 +4542,33 @@
                 "thresholdsStyle": {
                   "mode": "off"
                 }
-              }
-            },
-            "overrides": []
+              },
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "bytes"
+            }
           },
           "gridPos": {
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 0
+            "y": 25
           },
           "id": 29,
-          "links": [],
+          "interval": "5s",
+          "maxDataPoints": 5000,
           "options": {
             "legend": {
               "calcs": [
@@ -4558,8 +4586,6 @@
             }
           },
           "pluginVersion": "13.3.0",
-          "title": "Go runtime memory",
-          "type": "timeseries",
           "targets": [
             {
               "datasource": {
@@ -4569,9 +4595,9 @@
               "editorMode": "code",
               "expr": "xui_xray_memory_alloc_bytes{job=\"xui-exporter\",instance=\"${instance}\"}",
               "instant": false,
+              "legendFormat": "Allocated",
               "range": true,
-              "refId": "A",
-              "legendFormat": "Allocated"
+              "refId": "A"
             },
             {
               "datasource": {
@@ -4581,35 +4607,21 @@
               "editorMode": "code",
               "expr": "xui_xray_memory_sys_bytes{job=\"xui-exporter\",instance=\"${instance}\"}",
               "instant": false,
+              "legendFormat": "Reserved by Go",
               "range": true,
-              "refId": "B",
-              "legendFormat": "Reserved by Go"
+              "refId": "B"
             }
-          ]
+          ],
+          "title": "Go runtime memory",
+          "type": "timeseries"
         },
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
-          "description": "",
           "fieldConfig": {
             "defaults": {
-              "unit": "Bps",
-              "min": 0,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "value": 0,
-                    "color": "green"
-                  },
-                  {
-                    "value": 80,
-                    "color": "red"
-                  }
-                ]
-              },
               "color": {
                 "mode": "palette-classic"
               },
@@ -4646,18 +4658,33 @@
                 "thresholdsStyle": {
                   "mode": "off"
                 }
-              }
-            },
-            "overrides": []
+              },
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "Bps"
+            }
           },
           "gridPos": {
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 0
+            "y": 25
           },
           "id": 30,
-          "links": [],
+          "interval": "5s",
+          "maxDataPoints": 5000,
           "options": {
             "legend": {
               "calcs": [
@@ -4675,8 +4702,6 @@
             }
           },
           "pluginVersion": "13.3.0",
-          "title": "Allocation throughput",
-          "type": "timeseries",
           "targets": [
             {
               "datasource": {
@@ -4686,35 +4711,22 @@
               "editorMode": "code",
               "expr": "rate(xui_xray_memory_alloc_bytes_total{job=\"xui-exporter\",instance=\"${instance}\"}[$__rate_interval])",
               "instant": false,
+              "interval": "5s",
+              "legendFormat": "Allocated bytes/s",
               "range": true,
-              "refId": "A",
-              "legendFormat": "Allocated bytes/s"
+              "refId": "A"
             }
-          ]
+          ],
+          "title": "Allocation throughput",
+          "type": "timeseries"
         },
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
-          "description": "",
           "fieldConfig": {
             "defaults": {
-              "unit": "short",
-              "min": 0,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "value": 0,
-                    "color": "green"
-                  },
-                  {
-                    "value": 80,
-                    "color": "red"
-                  }
-                ]
-              },
               "color": {
                 "mode": "palette-classic"
               },
@@ -4751,18 +4763,33 @@
                 "thresholdsStyle": {
                   "mode": "off"
                 }
-              }
-            },
-            "overrides": []
+              },
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "short"
+            }
           },
           "gridPos": {
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 8
+            "y": 33
           },
           "id": 31,
-          "links": [],
+          "interval": "5s",
+          "maxDataPoints": 5000,
           "options": {
             "legend": {
               "calcs": [
@@ -4780,8 +4807,6 @@
             }
           },
           "pluginVersion": "13.3.0",
-          "title": "Live objects",
-          "type": "timeseries",
           "targets": [
             {
               "datasource": {
@@ -4791,35 +4816,21 @@
               "editorMode": "code",
               "expr": "xui_xray_memory_live_objects{job=\"xui-exporter\",instance=\"${instance}\"}",
               "instant": false,
+              "legendFormat": "Objects",
               "range": true,
-              "refId": "A",
-              "legendFormat": "Objects"
+              "refId": "A"
             }
-          ]
+          ],
+          "title": "Live objects",
+          "type": "timeseries"
         },
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
-          "description": "",
           "fieldConfig": {
             "defaults": {
-              "unit": "ops",
-              "min": 0,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "value": 0,
-                    "color": "green"
-                  },
-                  {
-                    "value": 80,
-                    "color": "red"
-                  }
-                ]
-              },
               "color": {
                 "mode": "palette-classic"
               },
@@ -4856,18 +4867,33 @@
                 "thresholdsStyle": {
                   "mode": "off"
                 }
-              }
-            },
-            "overrides": []
+              },
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "ops"
+            }
           },
           "gridPos": {
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 8
+            "y": 33
           },
           "id": 32,
-          "links": [],
+          "interval": "5s",
+          "maxDataPoints": 5000,
           "options": {
             "legend": {
               "calcs": [
@@ -4885,8 +4911,6 @@
             }
           },
           "pluginVersion": "13.3.0",
-          "title": "Object allocations / frees",
-          "type": "timeseries",
           "targets": [
             {
               "datasource": {
@@ -4896,9 +4920,10 @@
               "editorMode": "code",
               "expr": "rate(xui_xray_memory_mallocs_total{job=\"xui-exporter\",instance=\"${instance}\"}[$__rate_interval])",
               "instant": false,
+              "interval": "5s",
+              "legendFormat": "Allocations/s",
               "range": true,
-              "refId": "A",
-              "legendFormat": "Allocations/s"
+              "refId": "A"
             },
             {
               "datasource": {
@@ -4908,35 +4933,22 @@
               "editorMode": "code",
               "expr": "rate(xui_xray_memory_frees_total{job=\"xui-exporter\",instance=\"${instance}\"}[$__rate_interval])",
               "instant": false,
+              "interval": "5s",
+              "legendFormat": "Frees/s",
               "range": true,
-              "refId": "B",
-              "legendFormat": "Frees/s"
+              "refId": "B"
             }
-          ]
+          ],
+          "title": "Object allocations / frees",
+          "type": "timeseries"
         },
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
-          "description": "",
           "fieldConfig": {
             "defaults": {
-              "unit": "ops",
-              "min": 0,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "value": 0,
-                    "color": "green"
-                  },
-                  {
-                    "value": 80,
-                    "color": "red"
-                  }
-                ]
-              },
               "color": {
                 "mode": "palette-classic"
               },
@@ -4973,18 +4985,33 @@
                 "thresholdsStyle": {
                   "mode": "off"
                 }
-              }
-            },
-            "overrides": []
+              },
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "ops"
+            }
           },
           "gridPos": {
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 16
+            "y": 41
           },
           "id": 33,
-          "links": [],
+          "interval": "5s",
+          "maxDataPoints": 5000,
           "options": {
             "legend": {
               "calcs": [
@@ -5002,8 +5029,6 @@
             }
           },
           "pluginVersion": "13.3.0",
-          "title": "GC cycles",
-          "type": "timeseries",
           "targets": [
             {
               "datasource": {
@@ -5013,11 +5038,14 @@
               "editorMode": "code",
               "expr": "rate(xui_xray_gc_cycles_total{job=\"xui-exporter\",instance=\"${instance}\"}[$__rate_interval])",
               "instant": false,
+              "interval": "5s",
+              "legendFormat": "Cycles/s",
               "range": true,
-              "refId": "A",
-              "legendFormat": "Cycles/s"
+              "refId": "A"
             }
-          ]
+          ],
+          "title": "GC cycles",
+          "type": "timeseries"
         },
         {
           "datasource": {
@@ -5027,21 +5055,6 @@
           "description": "GC pause seconds per elapsed second, displayed as a percentage.",
           "fieldConfig": {
             "defaults": {
-              "unit": "percentunit",
-              "min": 0,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "value": 0,
-                    "color": "green"
-                  },
-                  {
-                    "value": 80,
-                    "color": "red"
-                  }
-                ]
-              },
               "color": {
                 "mode": "palette-classic"
               },
@@ -5078,18 +5091,33 @@
                 "thresholdsStyle": {
                   "mode": "off"
                 }
-              }
-            },
-            "overrides": []
+              },
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "percentunit"
+            }
           },
           "gridPos": {
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 16
+            "y": 41
           },
           "id": 34,
-          "links": [],
+          "interval": "5s",
+          "maxDataPoints": 5000,
           "options": {
             "legend": {
               "calcs": [
@@ -5107,8 +5135,6 @@
             }
           },
           "pluginVersion": "13.3.0",
-          "title": "GC pause time",
-          "type": "timeseries",
           "targets": [
             {
               "datasource": {
@@ -5118,11 +5144,14 @@
               "editorMode": "code",
               "expr": "rate(xui_xray_gc_pause_seconds_total{job=\"xui-exporter\",instance=\"${instance}\"}[$__rate_interval])",
               "instant": false,
+              "interval": "5s",
+              "legendFormat": "Pause fraction",
               "range": true,
-              "refId": "A",
-              "legendFormat": "Pause fraction"
+              "refId": "A"
             }
-          ]
+          ],
+          "title": "GC pause time",
+          "type": "timeseries"
         }
       ],
       "title": "Xray runtime",
@@ -5136,7 +5165,7 @@
         "x": 0,
         "y": 25
       },
-      "id": 69,
+      "id": 77,
       "panels": [
         {
           "datasource": {
@@ -5146,32 +5175,6 @@
           "description": "Remote cluster node availability history over time. Green indicates online based on master panel heartbeat probes; red indicates offline. Missing data indicates collection failure or unconfigured nodes.",
           "fieldConfig": {
             "defaults": {
-              "mappings": [
-                {
-                  "type": "value",
-                  "options": {
-                    "0": {
-                      "text": "Down",
-                      "color": "red",
-                      "index": 0
-                    },
-                    "1": {
-                      "text": "Up",
-                      "color": "green",
-                      "index": 1
-                    }
-                  }
-                }
-              ],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "value": 0,
-                    "color": "green"
-                  }
-                ]
-              },
               "color": {
                 "mode": "continuous-GrYlRd"
               },
@@ -5186,18 +5189,42 @@
                 "insertNulls": false,
                 "lineWidth": 0,
                 "spanNulls": false
+              },
+              "mappings": [
+                {
+                  "options": {
+                    "0": {
+                      "color": "red",
+                      "index": 0,
+                      "text": "Down"
+                    },
+                    "1": {
+                      "color": "green",
+                      "index": 1,
+                      "text": "Up"
+                    }
+                  },
+                  "type": "value"
+                }
+              ],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
               }
-            },
-            "overrides": []
+            }
           },
           "gridPos": {
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 0
+            "y": 26
           },
           "id": 64,
-          "links": [],
           "options": {
             "alignValue": "left",
             "legend": {
@@ -5215,8 +5242,6 @@
             }
           },
           "pluginVersion": "13.3.0",
-          "title": "Availability history",
-          "type": "state-timeline",
           "targets": [
             {
               "datasource": {
@@ -5225,12 +5250,13 @@
               },
               "editorMode": "code",
               "expr": "xui_node_online{job=\"xui-exporter\",instance=\"${instance}\"}",
-              "instant": false,
+              "legendFormat": "{{node}}",
               "range": true,
-              "refId": "A",
-              "legendFormat": "{{node}}"
+              "refId": "A"
             }
-          ]
+          ],
+          "title": "Availability history",
+          "type": "state-timeline"
         },
         {
           "datasource": {
@@ -5240,21 +5266,6 @@
           "description": "Round-trip time (RTT) between master panel and remote cluster nodes. Based on master panel heartbeat probes. Missing data indicates offline nodes or heartbeat probe timeout.",
           "fieldConfig": {
             "defaults": {
-              "unit": "s",
-              "min": 0,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "value": 0,
-                    "color": "green"
-                  },
-                  {
-                    "value": 80,
-                    "color": "red"
-                  }
-                ]
-              },
               "color": {
                 "mode": "palette-classic"
               },
@@ -5291,18 +5302,31 @@
                 "thresholdsStyle": {
                   "mode": "off"
                 }
-              }
-            },
-            "overrides": []
+              },
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "s"
+            }
           },
           "gridPos": {
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 0
+            "y": 26
           },
           "id": 66,
-          "links": [],
           "options": {
             "legend": {
               "calcs": [],
@@ -5317,8 +5341,6 @@
             }
           },
           "pluginVersion": "13.3.0",
-          "title": "Latency",
-          "type": "timeseries",
           "targets": [
             {
               "datasource": {
@@ -5327,12 +5349,13 @@
               },
               "editorMode": "code",
               "expr": "xui_node_latency_seconds{job=\"xui-exporter\",instance=\"${instance}\"}",
-              "instant": false,
+              "legendFormat": "{{node}}",
               "range": true,
-              "refId": "A",
-              "legendFormat": "{{node}}"
+              "refId": "A"
             }
-          ]
+          ],
+          "title": "Latency",
+          "type": "timeseries"
         },
         {
           "datasource": {
@@ -5342,15 +5365,6 @@
           "description": "Inventory of remote cluster nodes: Xray core process state, system uptime, configured inbounds, and software versions.",
           "fieldConfig": {
             "defaults": {
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "value": 0,
-                    "color": "red"
-                  }
-                ]
-              },
               "color": {
                 "mode": "thresholds"
               },
@@ -5363,14 +5377,23 @@
                   "reducers": []
                 },
                 "inspect": false
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "red",
+                    "value": 0
+                  }
+                ]
               }
             },
             "overrides": [
               {
                 "matcher": {
                   "id": "byName",
-                  "scope": "series",
-                  "options": "Uptime"
+                  "options": "Uptime",
+                  "scope": "series"
                 },
                 "properties": [
                   {
@@ -5380,27 +5403,35 @@
                   {
                     "id": "noValue",
                     "value": "-"
+                  },
+                  {
+                    "id": "custom.width",
+                    "value": 98
                   }
                 ]
               },
               {
                 "matcher": {
                   "id": "byName",
-                  "scope": "series",
-                  "options": "Xray version"
+                  "options": "Xray version",
+                  "scope": "series"
                 },
                 "properties": [
                   {
                     "id": "noValue",
                     "value": "-"
+                  },
+                  {
+                    "id": "custom.width",
+                    "value": 110
                   }
                 ]
               },
               {
                 "matcher": {
                   "id": "byName",
-                  "scope": "series",
-                  "options": "Xray Core"
+                  "options": "Xray Core",
+                  "scope": "series"
                 },
                 "properties": [
                   {
@@ -5430,6 +5461,53 @@
                     "value": {
                       "type": "color-text"
                     }
+                  },
+                  {
+                    "id": "custom.width",
+                    "value": 110
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Online clients",
+                  "scope": "series"
+                },
+                "properties": [
+                  {
+                    "id": "noValue",
+                    "value": "-"
+                  },
+                  {
+                    "id": "custom.width",
+                    "value": 110
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Inbounds",
+                  "scope": "series"
+                },
+                "properties": [
+                  {
+                    "id": "custom.width",
+                    "value": 110
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Panel version",
+                  "scope": "series"
+                },
+                "properties": [
+                  {
+                    "id": "custom.width",
+                    "value": 110
                   }
                 ]
               }
@@ -5439,18 +5517,15 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 8
+            "y": 34
           },
           "id": 67,
-          "links": [],
           "options": {
             "cellHeight": "sm",
             "showHeader": true,
             "zebraStriping": false
           },
           "pluginVersion": "13.3.0",
-          "title": "Inventory",
-          "type": "table",
           "targets": [
             {
               "datasource": {
@@ -5458,11 +5533,13 @@
                 "uid": "${DS_PROMETHEUS-INFRA}"
               },
               "editorMode": "code",
+              "exemplar": false,
               "expr": "xui_node_xray_state{job=\"xui-exporter\",instance=\"${instance}\"} == 1",
+              "format": "table",
               "instant": true,
+              "legendFormat": "__auto",
               "range": false,
-              "refId": "A",
-              "legendFormat": "__auto"
+              "refId": "A"
             },
             {
               "datasource": {
@@ -5470,11 +5547,13 @@
                 "uid": "${DS_PROMETHEUS-INFRA}"
               },
               "editorMode": "code",
+              "exemplar": false,
               "expr": "xui_node_uptime_seconds{job=\"xui-exporter\",instance=\"${instance}\"} > 0",
-              "instant": false,
-              "range": true,
-              "refId": "B",
-              "legendFormat": "__auto"
+              "format": "table",
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "B"
             },
             {
               "datasource": {
@@ -5482,11 +5561,13 @@
                 "uid": "${DS_PROMETHEUS-INFRA}"
               },
               "editorMode": "code",
+              "exemplar": false,
               "expr": "count by (node) (xui_inbound_enabled{job=\"xui-exporter\",instance=\"${instance}\",node!=\"local\"})",
-              "instant": false,
-              "range": true,
-              "refId": "C",
-              "legendFormat": "__auto"
+              "format": "table",
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "C"
             },
             {
               "datasource": {
@@ -5494,13 +5575,30 @@
                 "uid": "${DS_PROMETHEUS-INFRA}"
               },
               "editorMode": "code",
+              "exemplar": false,
               "expr": "xui_node_info{job=\"xui-exporter\",instance=\"${instance}\"}",
-              "instant": false,
-              "range": true,
-              "refId": "D",
-              "legendFormat": "__auto"
+              "format": "table",
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "D"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "xui_node_online_clients{job=\"xui-exporter\",instance=\"${instance}\",node!=\"local\"}",
+              "format": "table",
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "E"
             }
           ],
+          "title": "Inventory",
           "transformations": [
             {
               "id": "joinByField",
@@ -5524,34 +5622,42 @@
                   "__name__ 1": true,
                   "__name__ 2": true,
                   "__name__ 3": true,
+                  "__name__ 4": true,
                   "instance": true,
                   "instance 1": true,
                   "instance 2": true,
                   "instance 3": true,
+                  "instance 4": true,
                   "job": true,
                   "job 1": true,
                   "job 2": true,
-                  "job 3": true
+                  "job 3": true,
+                  "job 4": true
                 },
                 "includeByName": {},
                 "indexByName": {
-                  "Time 1": 8,
-                  "Time 2": 12,
-                  "Time 3": 16,
-                  "Time 4": 17,
-                  "Value #A": 7,
+                  "Time 1": 9,
+                  "Time 2": 13,
+                  "Time 3": 17,
+                  "Time 4": 18,
+                  "Time 5": 22,
+                  "Value #A": 8,
                   "Value #B": 2,
                   "Value #C": 3,
-                  "Value #D": 6,
-                  "__name__ 1": 9,
-                  "__name__ 2": 13,
-                  "__name__ 3": 18,
-                  "instance 1": 10,
-                  "instance 2": 14,
-                  "instance 3": 19,
-                  "job 1": 11,
-                  "job 2": 15,
-                  "job 3": 20,
+                  "Value #D": 7,
+                  "Value #E": 6,
+                  "__name__ 1": 10,
+                  "__name__ 2": 14,
+                  "__name__ 3": 19,
+                  "__name__ 4": 23,
+                  "instance 1": 11,
+                  "instance 2": 15,
+                  "instance 3": 20,
+                  "instance 4": 24,
+                  "job 1": 12,
+                  "job 2": 16,
+                  "job 3": 21,
+                  "job 4": 25,
                   "node": 0,
                   "panel_version": 4,
                   "state": 1,
@@ -5563,6 +5669,7 @@
                   "Value #A": "",
                   "Value #B": "Uptime",
                   "Value #C": "Inbounds",
+                  "Value #E": "Online clients",
                   "job 2": "",
                   "node": "Node",
                   "panel_version": "Panel version",
@@ -5571,7 +5678,8 @@
                 }
               }
             }
-          ]
+          ],
+          "type": "table"
         },
         {
           "datasource": {
@@ -5581,19 +5689,6 @@
           "description": "Remote cluster node CPU and memory utilization percent over time. Missing data indicates offline nodes.",
           "fieldConfig": {
             "defaults": {
-              "unit": "percent",
-              "decimals": 1,
-              "min": -100,
-              "max": 100,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "value": 0,
-                    "color": "green"
-                  }
-                ]
-              },
               "color": {
                 "mode": "palette-classic"
               },
@@ -5630,14 +5725,27 @@
                 "thresholdsStyle": {
                   "mode": "off"
                 }
-              }
+              },
+              "decimals": 1,
+              "max": 100,
+              "min": -100,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              },
+              "unit": "percent"
             },
             "overrides": [
               {
                 "matcher": {
                   "id": "byRegexp",
-                  "scope": "series",
-                  "options": "/RAM/"
+                  "options": "/RAM/",
+                  "scope": "series"
                 },
                 "properties": [
                   {
@@ -5652,10 +5760,9 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 8
+            "y": 34
           },
           "id": 68,
-          "links": [],
           "options": {
             "legend": {
               "calcs": [],
@@ -5670,8 +5777,6 @@
             }
           },
           "pluginVersion": "13.3.0",
-          "title": "Resources",
-          "type": "timeseries",
           "targets": [
             {
               "datasource": {
@@ -5680,10 +5785,9 @@
               },
               "editorMode": "code",
               "expr": "xui_node_cpu_percent{job=\"xui-exporter\",instance=\"${instance}\"}",
-              "instant": false,
+              "legendFormat": "{{node}} · CPU",
               "range": true,
-              "refId": "A",
-              "legendFormat": "{{node}} \u00b7 CPU"
+              "refId": "A"
             },
             {
               "datasource": {
@@ -5693,11 +5797,193 @@
               "editorMode": "code",
               "expr": "xui_node_memory_percent{job=\"xui-exporter\",instance=\"${instance}\"}",
               "instant": false,
+              "legendFormat": "{{node}} · RAM",
               "range": true,
-              "refId": "B",
-              "legendFormat": "{{node}} \u00b7 RAM"
+              "refId": "B"
             }
-          ]
+          ],
+          "title": "Resources",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "description": "Aggregated inbound network throughput per remote cluster node. Based on inbound traffic counters reported by the master panel database. Step intervals reflect remote node heartbeat synchronization cadence.",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "showValues": false,
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "bps"
+            }
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 42
+          },
+          "id": 69,
+          "options": {
+            "legend": {
+              "calcs": [
+                "last",
+                "max",
+                "mean"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true,
+              "sortBy": "Mean",
+              "sortDesc": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "pluginVersion": "13.3.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "expr": "8 * sum by (node) (\n  rate(xui_inbound_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",node!=\"local\"}[$__rate_interval])\n)\nand on (node) (xui_node_online{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+              "interval": "5s",
+              "legendFormat": "{{node}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Throughput",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "description": "Total inbound traffic volume transferred per remote cluster node over the selected time range. Sourced from the master panel database.",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              },
+              "unit": "bytes"
+            }
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 42
+          },
+          "id": 70,
+          "options": {
+            "displayMode": "basic",
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": false
+            },
+            "maxVizHeight": 32,
+            "minVizHeight": 16,
+            "minVizWidth": 8,
+            "namePlacement": "auto",
+            "orientation": "horizontal",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showUnfilled": true,
+            "sizing": "manual",
+            "textMode": "auto",
+            "valueMode": "color"
+          },
+          "pluginVersion": "13.3.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "sort_desc(\n  sum by (node) (\n    increase(xui_inbound_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",node!=\"local\"}[$__range])\n  )\n)\nand on (node) (xui_node_online{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+              "instant": true,
+              "legendFormat": "{{node}}",
+              "range": false,
+              "refId": "A"
+            }
+          ],
+          "title": "Traffic volume",
+          "type": "bargauge"
         }
       ],
       "title": "Connected nodes",
@@ -5711,48 +5997,15 @@
         "x": 0,
         "y": 26
       },
-      "id": 68,
+      "id": 78,
       "panels": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
-          "description": "",
           "fieldConfig": {
             "defaults": {
-              "unit": "short",
-              "min": 0,
-              "mappings": [
-                {
-                  "type": "value",
-                  "options": {
-                    "0": {
-                      "text": "FAILED",
-                      "color": "red",
-                      "index": 0
-                    },
-                    "1": {
-                      "text": "OK",
-                      "color": "green",
-                      "index": 1
-                    }
-                  }
-                }
-              ],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "value": 0,
-                    "color": "green"
-                  },
-                  {
-                    "value": 80,
-                    "color": "red"
-                  }
-                ]
-              },
               "color": {
                 "mode": "fixed"
               },
@@ -5767,18 +6020,50 @@
                 "insertNulls": false,
                 "lineWidth": 0,
                 "spanNulls": false
-              }
-            },
-            "overrides": []
+              },
+              "mappings": [
+                {
+                  "options": {
+                    "0": {
+                      "color": "red",
+                      "index": 0,
+                      "text": "FAILED"
+                    },
+                    "1": {
+                      "color": "green",
+                      "index": 1,
+                      "text": "OK"
+                    }
+                  },
+                  "type": "value"
+                }
+              ],
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "short"
+            }
           },
           "gridPos": {
             "h": 4,
             "w": 24,
             "x": 0,
-            "y": 0
+            "y": 27
           },
           "id": 23,
-          "links": [],
+          "interval": "5s",
+          "maxDataPoints": 5000,
           "options": {
             "alignValue": "left",
             "legend": {
@@ -5796,8 +6081,6 @@
             }
           },
           "pluginVersion": "13.3.0",
-          "title": "Collection history",
-          "type": "state-timeline",
           "targets": [
             {
               "datasource": {
@@ -5807,11 +6090,13 @@
               "editorMode": "code",
               "expr": "xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\"}",
               "instant": false,
+              "legendFormat": "{{source}}",
               "range": true,
-              "refId": "A",
-              "legendFormat": "{{source}}"
+              "refId": "A"
             }
-          ]
+          ],
+          "title": "Collection history",
+          "type": "state-timeline"
         },
         {
           "datasource": {
@@ -5821,21 +6106,6 @@
           "description": "Settings and server/status requests start in parallel. gRPC and expvars start after settings completes, without waiting for server/status. Source durations overlap and are shown without stacking. API is the elapsed span until both API requests finish, not their sum. Runtime is max(gRPC, expvars). Total is the end-to-end duration measured by Prometheus; source durations cannot be added to reconstruct it.",
           "fieldConfig": {
             "defaults": {
-              "unit": "s",
-              "min": 0,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "value": 0,
-                    "color": "green"
-                  },
-                  {
-                    "value": 80,
-                    "color": "red"
-                  }
-                ]
-              },
               "color": {
                 "mode": "palette-classic"
               },
@@ -5872,7 +6142,22 @@
                 "thresholdsStyle": {
                   "mode": "off"
                 }
-              }
+              },
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "s"
             },
             "overrides": [
               {
@@ -5900,10 +6185,11 @@
             "h": 5,
             "w": 24,
             "x": 0,
-            "y": 4
+            "y": 31
           },
           "id": 24,
-          "links": [],
+          "interval": "5s",
+          "maxDataPoints": 5000,
           "options": {
             "legend": {
               "calcs": [
@@ -5921,8 +6207,6 @@
             }
           },
           "pluginVersion": "13.3.0",
-          "title": "Collection duration",
-          "type": "timeseries",
           "targets": [
             {
               "datasource": {
@@ -5932,9 +6216,9 @@
               "editorMode": "code",
               "expr": "scrape_duration_seconds{job=\"xui-exporter\",instance=\"${instance}\"}",
               "instant": false,
+              "legendFormat": "Total",
               "range": true,
-              "refId": "A",
-              "legendFormat": "Total"
+              "refId": "A"
             },
             {
               "datasource": {
@@ -5944,9 +6228,9 @@
               "editorMode": "code",
               "expr": "xui_exporter_scrape_duration_seconds{job=\"xui-exporter\",instance=\"${instance}\",source=\"api\"}",
               "instant": false,
+              "legendFormat": "API",
               "range": true,
-              "refId": "B",
-              "legendFormat": "API"
+              "refId": "B"
             },
             {
               "datasource": {
@@ -5956,11 +6240,13 @@
               "editorMode": "code",
               "expr": "max by (instance, job) (\n  xui_exporter_scrape_duration_seconds{\n    job=\"xui-exporter\",\n    instance=\"${instance}\",\n    source=~\"grpc|expvars\"\n  }\n)",
               "instant": false,
+              "legendFormat": "Runtime",
               "range": true,
-              "refId": "C",
-              "legendFormat": "Runtime"
+              "refId": "C"
             }
-          ]
+          ],
+          "title": "Collection duration",
+          "type": "timeseries"
         },
         {
           "datasource": {
@@ -5970,21 +6256,6 @@
           "description": "Resident Set Size (RSS) memory from OS process stats and live Go heap allocations.",
           "fieldConfig": {
             "defaults": {
-              "unit": "bytes",
-              "min": 0,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "value": 0,
-                    "color": "green"
-                  },
-                  {
-                    "value": 80,
-                    "color": "red"
-                  }
-                ]
-              },
               "color": {
                 "mode": "palette-classic"
               },
@@ -6021,18 +6292,33 @@
                 "thresholdsStyle": {
                   "mode": "off"
                 }
-              }
-            },
-            "overrides": []
+              },
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "bytes"
+            }
           },
           "gridPos": {
             "h": 6,
             "w": 12,
             "x": 0,
-            "y": 9
+            "y": 36
           },
           "id": 58,
-          "links": [],
+          "interval": "5s",
+          "maxDataPoints": 5000,
           "options": {
             "legend": {
               "calcs": [
@@ -6050,8 +6336,6 @@
             }
           },
           "pluginVersion": "13.3.0",
-          "title": "Exporter process memory",
-          "type": "timeseries",
           "targets": [
             {
               "datasource": {
@@ -6061,9 +6345,9 @@
               "editorMode": "code",
               "expr": "process_resident_memory_bytes{job=\"xui-exporter\",instance=\"${instance}\"}",
               "instant": false,
+              "legendFormat": "Resident (RSS)",
               "range": true,
-              "refId": "A",
-              "legendFormat": "Resident (RSS)"
+              "refId": "A"
             },
             {
               "datasource": {
@@ -6073,11 +6357,13 @@
               "editorMode": "code",
               "expr": "go_memstats_alloc_bytes{job=\"xui-exporter\",instance=\"${instance}\"}",
               "instant": false,
+              "legendFormat": "Go Heap (Alloc)",
               "range": true,
-              "refId": "B",
-              "legendFormat": "Go Heap (Alloc)"
+              "refId": "B"
             }
-          ]
+          ],
+          "title": "Exporter process memory",
+          "type": "timeseries"
         },
         {
           "datasource": {
@@ -6087,21 +6373,6 @@
           "description": "Process CPU utilization rate and active Go runtime goroutines.",
           "fieldConfig": {
             "defaults": {
-              "unit": "percent",
-              "min": 0,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "value": 0,
-                    "color": "green"
-                  },
-                  {
-                    "value": 80,
-                    "color": "red"
-                  }
-                ]
-              },
               "color": {
                 "mode": "palette-classic"
               },
@@ -6138,7 +6409,22 @@
                 "thresholdsStyle": {
                   "mode": "off"
                 }
-              }
+              },
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "percent"
             },
             "overrides": [
               {
@@ -6163,10 +6449,11 @@
             "h": 6,
             "w": 12,
             "x": 12,
-            "y": 9
+            "y": 36
           },
           "id": 59,
-          "links": [],
+          "interval": "5s",
+          "maxDataPoints": 5000,
           "options": {
             "legend": {
               "calcs": [
@@ -6184,8 +6471,6 @@
             }
           },
           "pluginVersion": "13.3.0",
-          "title": "Exporter CPU & Goroutines",
-          "type": "timeseries",
           "targets": [
             {
               "datasource": {
@@ -6195,9 +6480,9 @@
               "editorMode": "code",
               "expr": "rate(process_cpu_seconds_total{job=\"xui-exporter\",instance=\"${instance}\"}[$__rate_interval]) * 100",
               "instant": false,
+              "legendFormat": "CPU Usage",
               "range": true,
-              "refId": "A",
-              "legendFormat": "CPU Usage"
+              "refId": "A"
             },
             {
               "datasource": {
@@ -6207,11 +6492,13 @@
               "editorMode": "code",
               "expr": "go_goroutines{job=\"xui-exporter\",instance=\"${instance}\"}",
               "instant": false,
+              "legendFormat": "Goroutines",
               "range": true,
-              "refId": "B",
-              "legendFormat": "Goroutines"
+              "refId": "B"
             }
-          ]
+          ],
+          "title": "Exporter CPU & Goroutines",
+          "type": "timeseries"
         }
       ],
       "title": "Exporter stats",
@@ -6273,6 +6560,6 @@
   "timezone": "browser",
   "title": "3x-ui",
   "uid": "3x-ui-exporter",
-  "version": 30,
+  "version": 48,
   "weekStart": ""
 }

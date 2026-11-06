@@ -3,7 +3,7 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "3x-ui-exporter",
-    "generation": 47,
+    "generation": 48,
     "creationTimestamp": "2026-10-14T17:05:36Z",
     "labels": {},
     "annotations": {}
@@ -6394,6 +6394,7 @@
               "fieldConfig": {
                 "defaults": {
                   "unit": "decbytes",
+                  "min": 0,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
@@ -6406,7 +6407,7 @@
                   "color": {
                     "mode": "thresholds"
                   },
-                  "fieldMinMax": true
+                  "fieldMinMax": false
                 },
                 "overrides": []
               }
@@ -6788,11 +6789,12 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
+                        "exemplar": false,
                         "expr": "xui_node_uptime_seconds{job=\"xui-exporter\",instance=\"${instance}\"} > 0",
                         "format": "table",
-                        "instant": false,
+                        "instant": true,
                         "legendFormat": "__auto",
-                        "range": true
+                        "range": false
                       },
                       "labels": {
                         "grafana.app/export-label": "prometheus-1",
@@ -6812,11 +6814,12 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
+                        "exemplar": false,
                         "expr": "count by (node) (xui_inbound_enabled{job=\"xui-exporter\",instance=\"${instance}\",node!=\"local\"})",
                         "format": "table",
-                        "instant": false,
+                        "instant": true,
                         "legendFormat": "__auto",
-                        "range": true
+                        "range": false
                       },
                       "labels": {
                         "grafana.app/export-label": "prometheus-1",
@@ -6836,11 +6839,12 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
+                        "exemplar": false,
                         "expr": "xui_node_info{job=\"xui-exporter\",instance=\"${instance}\"}",
                         "format": "table",
-                        "instant": false,
+                        "instant": true,
                         "legendFormat": "__auto",
-                        "range": true
+                        "range": false
                       },
                       "labels": {
                         "grafana.app/export-label": "prometheus-1",
@@ -6848,6 +6852,31 @@
                       }
                     },
                     "refId": "D",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "exemplar": false,
+                        "expr": "xui_node_online_clients{job=\"xui-exporter\",instance=\"${instance}\",node!=\"local\"}",
+                        "format": "table",
+                        "instant": true,
+                        "legendFormat": "__auto",
+                        "range": false
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "prometheus-1",
+                        "grafana.app/export-datasource-name": "prometheus-infra"
+                      }
+                    },
+                    "refId": "E",
                     "hidden": false
                   }
                 }
@@ -6880,34 +6909,42 @@
                         "__name__ 1": true,
                         "__name__ 2": true,
                         "__name__ 3": true,
+                        "__name__ 4": true,
                         "instance": true,
                         "instance 1": true,
                         "instance 2": true,
                         "instance 3": true,
+                        "instance 4": true,
                         "job": true,
                         "job 1": true,
                         "job 2": true,
-                        "job 3": true
+                        "job 3": true,
+                        "job 4": true
                       },
                       "includeByName": {},
                       "indexByName": {
-                        "Time 1": 8,
-                        "Time 2": 12,
-                        "Time 3": 16,
-                        "Time 4": 17,
-                        "Value #A": 7,
+                        "Time 1": 9,
+                        "Time 2": 13,
+                        "Time 3": 17,
+                        "Time 4": 18,
+                        "Time 5": 22,
+                        "Value #A": 8,
                         "Value #B": 2,
                         "Value #C": 3,
-                        "Value #D": 6,
-                        "__name__ 1": 9,
-                        "__name__ 2": 13,
-                        "__name__ 3": 18,
-                        "instance 1": 10,
-                        "instance 2": 14,
-                        "instance 3": 19,
-                        "job 1": 11,
-                        "job 2": 15,
-                        "job 3": 20,
+                        "Value #D": 7,
+                        "Value #E": 6,
+                        "__name__ 1": 10,
+                        "__name__ 2": 14,
+                        "__name__ 3": 19,
+                        "__name__ 4": 23,
+                        "instance 1": 11,
+                        "instance 2": 15,
+                        "instance 3": 20,
+                        "instance 4": 24,
+                        "job 1": 12,
+                        "job 2": 16,
+                        "job 3": 21,
+                        "job 4": 25,
                         "node": 0,
                         "panel_version": 4,
                         "state": 1,
@@ -6919,6 +6956,7 @@
                         "Value #A": "",
                         "Value #B": "Uptime",
                         "Value #C": "Inbounds",
+                        "Value #E": "Online clients",
                         "job 2": "",
                         "node": "Node",
                         "panel_version": "Panel version",
@@ -6982,6 +7020,10 @@
                       {
                         "id": "noValue",
                         "value": "-"
+                      },
+                      {
+                        "id": "custom.width",
+                        "value": 98
                       }
                     ]
                   },
@@ -6995,6 +7037,10 @@
                       {
                         "id": "noValue",
                         "value": "-"
+                      },
+                      {
+                        "id": "custom.width",
+                        "value": 110
                       }
                     ]
                   },
@@ -7032,6 +7078,53 @@
                         "value": {
                           "type": "color-text"
                         }
+                      },
+                      {
+                        "id": "custom.width",
+                        "value": 110
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Online clients"
+                    },
+                    "properties": [
+                      {
+                        "id": "noValue",
+                        "value": "-"
+                      },
+                      {
+                        "id": "custom.width",
+                        "value": 110
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Inbounds"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 110
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Panel version"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 110
                       }
                     ]
                   }
@@ -7188,6 +7281,222 @@
                     ]
                   }
                 ]
+              }
+            }
+          }
+        }
+      },
+      "panel-69": {
+        "kind": "Panel",
+        "spec": {
+          "id": 69,
+          "title": "Throughput",
+          "description": "Aggregated inbound network throughput per remote cluster node. Based on inbound traffic counters reported by the master panel database. Step intervals reflect remote node heartbeat synchronization cadence.",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "8 * sum by (node) (\n  rate(xui_inbound_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",node!=\"local\"}[$__rate_interval])\n)\nand on (node) (xui_node_online{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+                        "interval": "5s",
+                        "legendFormat": "{{node}}",
+                        "range": true
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "prometheus-1",
+                        "grafana.app/export-datasource-name": "prometheus-infra"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "timeseries",
+            "version": "13.3.0",
+            "spec": {
+              "options": {
+                "legend": {
+                  "calcs": [
+                    "last",
+                    "max",
+                    "mean"
+                  ],
+                  "displayMode": "table",
+                  "placement": "right",
+                  "showLegend": true,
+                  "sortBy": "Mean",
+                  "sortDesc": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "desc"
+                }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "bps",
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      },
+                      {
+                        "value": 80,
+                        "color": "red"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 0,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-70": {
+        "kind": "Panel",
+        "spec": {
+          "id": 70,
+          "title": "Traffic volume",
+          "description": "Total inbound traffic volume transferred per remote cluster node over the selected time range. Sourced from the master panel database.",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "exemplar": false,
+                        "expr": "sort_desc(\n  sum by (node) (\n    increase(xui_inbound_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",node!=\"local\"}[$__range])\n  )\n)\nand on (node) (xui_node_online{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+                        "instant": true,
+                        "legendFormat": "{{node}}",
+                        "range": false
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "prometheus-1",
+                        "grafana.app/export-datasource-name": "prometheus-infra"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "bargauge",
+            "version": "13.3.0",
+            "spec": {
+              "options": {
+                "displayMode": "basic",
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": false
+                },
+                "maxVizHeight": 32,
+                "minVizHeight": 16,
+                "minVizWidth": 8,
+                "namePlacement": "auto",
+                "orientation": "horizontal",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showUnfilled": true,
+                "sizing": "manual",
+                "textMode": "auto",
+                "valueMode": "color"
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "bytes",
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "thresholds"
+                  }
+                },
+                "overrides": []
               }
             }
           }
@@ -8031,6 +8340,32 @@
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-68"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 0,
+                        "y": 16,
+                        "width": 12,
+                        "height": 8,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-69"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 12,
+                        "y": 16,
+                        "width": 12,
+                        "height": 8,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-70"
                         }
                       }
                     }
