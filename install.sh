@@ -530,6 +530,10 @@ main() {
   check_systemd
   check_dependencies
 
+  if [[ -n "$target_ver" && "$target_ver" =~ ^[0-9] ]]; then
+    target_ver="v${target_ver}"
+  fi
+
   case "$cmd" in
     install)
       if [[ -f "$BIN_PATH" && -f "$CONFIG_PATH" ]]; then
