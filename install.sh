@@ -273,6 +273,50 @@ EOF
   success "Configuration saved to ${CONFIG_PATH} (permissions 0600)."
 }
 
+verify_service_and_metrics() {
+  local show_service_hints="${1:-1}"
+
+  # Resolve local scrape address for display and self-test
+  local active_listen=""
+  if [[ -f "$CONFIG_PATH" ]]; then
+    active_listen="$(grep -E '^LISTEN_ADDRESS=' "$CONFIG_PATH" | head -n1 | cut -d= -f2- | tr -d '\"'\'' ' || true)"
+  fi
+  active_listen="${active_listen:-:9108}"
+
+  local metrics_addr="127.0.0.1:9108"
+  if [[ "$active_listen" =~ ^:([0-9]+)$ ]]; then
+    metrics_addr="127.0.0.1${active_listen}"
+  elif [[ "$active_listen" =~ ^(0\.0\.0\.0|\[::\]|::):([0-9]+)$ ]]; then
+    metrics_addr="127.0.0.1:${BASH_REMATCH[2]}"
+  else
+    metrics_addr="$active_listen"
+  fi
+
+  if [[ "$show_service_hints" -eq 1 ]]; then
+    info "Service status: systemctl status 3x-ui-exporter"
+    info "Logs:           journalctl -u 3x-ui-exporter -f"
+  fi
+  info "Metrics:        curl -s http://${metrics_addr}/metrics"
+
+  if [[ "${SKIP_PROBE:-0}" -ne 1 ]]; then
+    local probe_out
+    probe_out="$(curl -s --max-time 3 "http://${metrics_addr}/metrics" 2>/dev/null || true)"
+    if echo "$probe_out" | grep -q 'xui_exporter_scrape_success{source="api"} 1'; then
+      success "Self-test passed! All metrics sources are healthy and responding."
+    elif echo "$probe_out" | grep -q 'xui_exporter_scrape_success{source="api"} 0'; then
+      warn "Self-test: exporter service is running, but panel API scraping failed."
+      warn "Please verify XUI_URL and XUI_API_TOKEN in ${CONFIG_PATH}"
+      warn "View logs: journalctl -u 3x-ui-exporter -n 25 --no-pager"
+    elif [[ -n "$probe_out" ]]; then
+      warn "Self-test: received metrics response, but source status could not be verified."
+      warn "View metrics output: curl -s http://${metrics_addr}/metrics"
+    else
+      warn "Self-test: could not connect to http://${metrics_addr}/metrics"
+      warn "View logs: journalctl -u 3x-ui-exporter -n 25 --no-pager"
+    fi
+  fi
+}
+
 do_install() {
   local target_ver="$1"
   local token="$2"
@@ -301,44 +345,7 @@ do_install() {
   sleep 1
   if systemctl is-active --quiet 3x-ui-exporter; then
     success "3x-ui-exporter is active and running!"
-
-    # Resolve local scrape address for display and self-test
-    local active_listen=""
-    if [[ -f "$CONFIG_PATH" ]]; then
-      active_listen="$(grep -E '^LISTEN_ADDRESS=' "$CONFIG_PATH" | head -n1 | cut -d= -f2- | tr -d '\"'\'' ' || true)"
-    fi
-    active_listen="${active_listen:-${listen:-:9108}}"
-
-    local metrics_addr="127.0.0.1:9108"
-    if [[ "$active_listen" =~ ^:([0-9]+)$ ]]; then
-      metrics_addr="127.0.0.1${active_listen}"
-    elif [[ "$active_listen" =~ ^(0\.0\.0\.0|\[::\]|::):([0-9]+)$ ]]; then
-      metrics_addr="127.0.0.1:${BASH_REMATCH[2]}"
-    else
-      metrics_addr="$active_listen"
-    fi
-
-    info "Service status: systemctl status 3x-ui-exporter"
-    info "Logs:           journalctl -u 3x-ui-exporter -f"
-    info "Metrics:        curl -s http://${metrics_addr}/metrics"
-
-    if [[ "${SKIP_PROBE:-0}" -ne 1 ]]; then
-      local probe_out
-      probe_out="$(curl -s --max-time 3 "http://${metrics_addr}/metrics" 2>/dev/null || true)"
-      if echo "$probe_out" | grep -q 'xui_exporter_scrape_success{source="api"} 1'; then
-        success "Self-test passed! All metrics sources are healthy and responding."
-      elif echo "$probe_out" | grep -q 'xui_exporter_scrape_success{source="api"} 0'; then
-        warn "Self-test: exporter service is running, but panel API scraping failed."
-        warn "Please verify XUI_URL and XUI_API_TOKEN in ${CONFIG_PATH}"
-        warn "View logs: journalctl -u 3x-ui-exporter -n 25 --no-pager"
-      elif [[ -n "$probe_out" ]]; then
-        warn "Self-test: received metrics response, but source status could not be verified."
-        warn "View metrics output: curl -s http://${metrics_addr}/metrics"
-      else
-        warn "Self-test: could not connect to http://${metrics_addr}/metrics"
-        warn "View logs: journalctl -u 3x-ui-exporter -n 25 --no-pager"
-      fi
-    fi
+    verify_service_and_metrics 1
   else
     warn "3x-ui-exporter service is not active yet. Check logs with:"
     warn "  journalctl -u 3x-ui-exporter -n 25 --no-pager"
@@ -380,6 +387,7 @@ do_update() {
 
   if systemctl is-active --quiet 3x-ui-exporter; then
     success "Update completed successfully! Service is active."
+    verify_service_and_metrics 0
   else
     error "Service failed to restart cleanly after update. Check logs:"
     journalctl -u 3x-ui-exporter -n 25 --no-pager
@@ -450,6 +458,10 @@ do_status() {
   fi
 
   systemctl status 3x-ui-exporter --no-pager || true
+
+  if systemctl is-active --quiet 3x-ui-exporter 2>/dev/null; then
+    verify_service_and_metrics 0
+  fi
 }
 
 show_help() {
