@@ -61,6 +61,7 @@ func run() error {
 	bearerToken := fs.String("web.bearer-token", env("WEB_BEARER_TOKEN", ""), "bearer token for exporter authentication (prefer environment variable)")
 	bearerTokenFile := fs.String("web.bearer-token-file", env("WEB_BEARER_TOKEN_FILE", ""), "path to file containing bearer token for exporter authentication")
 	authHealthz := fs.Bool("web.auth-healthz", envBool("WEB_AUTH_HEALTHZ", false), "require authentication for /healthz endpoint")
+	authRealm := fs.String("web.auth-realm", env("WEB_AUTH_REALM", "metrics"), "authentication realm reported in WWW-Authenticate header")
 	tlsCertFile := fs.String("web.tls-cert-file", env("WEB_TLS_CERT_FILE", ""), "path to server TLS certificate / chain file")
 	tlsKeyFile := fs.String("web.tls-key-file", env("WEB_TLS_KEY_FILE", ""), "path to server TLS private key file")
 	tlsClientCAFile := fs.String("web.tls-client-ca-file", env("WEB_TLS_CLIENT_CA_FILE", ""), "path to client CA certificate file for mutual TLS (mTLS)")
@@ -133,7 +134,7 @@ func run() error {
 		Timeout: timeout,
 		Version: version,
 	}
-	authConfig, err := NewServerAuthConfig(*basicAuthUser, *basicAuthPass, *basicAuthPassFile, *bearerToken, *bearerTokenFile, *authHealthz)
+	authConfig, err := NewServerAuthConfig(*basicAuthUser, *basicAuthPass, *basicAuthPassFile, *bearerToken, *bearerTokenFile, *authHealthz, *authRealm)
 	if err != nil {
 		return err
 	}

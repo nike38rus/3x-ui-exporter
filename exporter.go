@@ -173,7 +173,7 @@ func (e *Exporter) Handler() http.Handler {
 		}
 		if r.URL.Path == "/" {
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			_, _ = fmt.Fprint(w, `<h1>3x-ui exporter</h1><a href="/metrics">Metrics</a>`)
+			_, _ = fmt.Fprint(w, `<h1>Metrics Exporter</h1><a href="/metrics">Metrics</a>`)
 			return
 		}
 		if r.URL.Path != "/metrics" {

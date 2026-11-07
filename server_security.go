@@ -18,6 +18,7 @@ type ServerAuthConfig struct {
 	BasicAuthPassword string
 	BearerToken       string
 	AuthHealthz       bool
+	Realm             string
 }
 
 // ServerTLSConfig configures inbound TLS and mTLS for the exporter HTTP server.
@@ -40,7 +41,7 @@ func readSecretFile(path string) (string, error) {
 }
 
 // NewServerAuthConfig validates and constructs ServerAuthConfig from flags/env values.
-func NewServerAuthConfig(username, password, passwordFile, token, tokenFile string, authHealthz bool) (*ServerAuthConfig, error) {
+func NewServerAuthConfig(username, password, passwordFile, token, tokenFile string, authHealthz bool, realm string) (*ServerAuthConfig, error) {
 	if password != "" && passwordFile != "" {
 		return nil, errors.New("cannot specify both --web.basic-auth-password and --web.basic-auth-password-file")
 	}
@@ -73,11 +74,16 @@ func NewServerAuthConfig(username, password, passwordFile, token, tokenFile stri
 		return nil, errors.New("basic auth username must be specified when password is provided")
 	}
 
+	if realm == "" {
+		realm = "metrics"
+	}
+
 	return &ServerAuthConfig{
 		BasicAuthUsername: username,
 		BasicAuthPassword: finalPass,
 		BearerToken:       finalToken,
 		AuthHealthz:       authHealthz,
+		Realm:             realm,
 	}, nil
 }
 
@@ -128,11 +134,15 @@ func (a *ServerAuthConfig) Authenticate(r *http.Request) bool {
 }
 
 func (a *ServerAuthConfig) writeUnauthorized(w http.ResponseWriter) {
+	realm := a.Realm
+	if realm == "" {
+		realm = "metrics"
+	}
 	if a.BasicAuthUsername != "" && a.BasicAuthPassword != "" {
-		w.Header().Add("WWW-Authenticate", `Basic realm="3x-ui-exporter"`)
+		w.Header().Add("WWW-Authenticate", fmt.Sprintf(`Basic realm="%s"`, realm))
 	}
 	if a.BearerToken != "" {
-		w.Header().Add("WWW-Authenticate", `Bearer realm="3x-ui-exporter"`)
+		w.Header().Add("WWW-Authenticate", fmt.Sprintf(`Bearer realm="%s"`, realm))
 	}
 	http.Error(w, "Unauthorized", http.StatusUnauthorized)
 }

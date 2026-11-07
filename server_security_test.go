@@ -61,49 +61,49 @@ func TestNewServerAuthConfig_Validation(t *testing.T) {
 	}
 
 	t.Run("both password and password-file error", func(t *testing.T) {
-		_, err := NewServerAuthConfig("user", "pass", validPassFile, "", "", false)
+		_, err := NewServerAuthConfig("user", "pass", validPassFile, "", "", false, "")
 		if err == nil || !strings.Contains(err.Error(), "both --web.basic-auth-password and --web.basic-auth-password-file") {
 			t.Fatalf("unexpected error: %v", err)
 		}
 	})
 
 	t.Run("both token and token-file error", func(t *testing.T) {
-		_, err := NewServerAuthConfig("", "", "", "tok", validTokenFile, false)
+		_, err := NewServerAuthConfig("", "", "", "tok", validTokenFile, false, "")
 		if err == nil || !strings.Contains(err.Error(), "both --web.bearer-token and --web.bearer-token-file") {
 			t.Fatalf("unexpected error: %v", err)
 		}
 	})
 
 	t.Run("username without password error", func(t *testing.T) {
-		_, err := NewServerAuthConfig("admin", "", "", "", "", false)
+		_, err := NewServerAuthConfig("admin", "", "", "", "", false, "")
 		if err == nil || !strings.Contains(err.Error(), "basic auth password must be specified") {
 			t.Fatalf("unexpected error: %v", err)
 		}
 	})
 
 	t.Run("password without username error", func(t *testing.T) {
-		_, err := NewServerAuthConfig("", "secret", "", "", "", false)
+		_, err := NewServerAuthConfig("", "secret", "", "", "", false, "")
 		if err == nil || !strings.Contains(err.Error(), "basic auth username must be specified") {
 			t.Fatalf("unexpected error: %v", err)
 		}
 	})
 
 	t.Run("empty password file error", func(t *testing.T) {
-		_, err := NewServerAuthConfig("admin", "", emptyFile, "", "", false)
+		_, err := NewServerAuthConfig("admin", "", emptyFile, "", "", false, "")
 		if err == nil || !strings.Contains(err.Error(), "is empty") {
 			t.Fatalf("unexpected error: %v", err)
 		}
 	})
 
 	t.Run("missing token file error", func(t *testing.T) {
-		_, err := NewServerAuthConfig("", "", "", "", filepath.Join(tmpDir, "nonexistent"), false)
+		_, err := NewServerAuthConfig("", "", "", "", filepath.Join(tmpDir, "nonexistent"), false, "")
 		if err == nil || !strings.Contains(err.Error(), "failed to read bearer token file") {
 			t.Fatalf("unexpected error: %v", err)
 		}
 	})
 
 	t.Run("valid file-based auth", func(t *testing.T) {
-		cfg, err := NewServerAuthConfig("admin", "", validPassFile, "", validTokenFile, true)
+		cfg, err := NewServerAuthConfig("admin", "", validPassFile, "", validTokenFile, true, "custom-realm")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -112,6 +112,9 @@ func TestNewServerAuthConfig_Validation(t *testing.T) {
 		}
 		if cfg.BearerToken != "my-secret-bearer" {
 			t.Errorf("got token %q, want 'my-secret-bearer'", cfg.BearerToken)
+		}
+		if cfg.Realm != "custom-realm" {
+			t.Errorf("got realm %q, want 'custom-realm'", cfg.Realm)
 		}
 		if !cfg.AuthHealthz {
 			t.Errorf("expected AuthHealthz to be true")
@@ -133,7 +136,7 @@ func testEchoHandler() http.Handler {
 }
 
 func TestServerAuthConfig_Wrap_NoAuth(t *testing.T) {
-	cfg, err := NewServerAuthConfig("", "", "", "", "", false)
+	cfg, err := NewServerAuthConfig("", "", "", "", "", false, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -158,7 +161,7 @@ func TestServerAuthConfig_Wrap_NoAuth(t *testing.T) {
 }
 
 func TestServerAuthConfig_Wrap_BasicAuth(t *testing.T) {
-	cfg, err := NewServerAuthConfig("monitor", "s3cret", "", "", "", false)
+	cfg, err := NewServerAuthConfig("monitor", "s3cret", "", "", "", false, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -220,7 +223,7 @@ func TestServerAuthConfig_Wrap_BasicAuth(t *testing.T) {
 }
 
 func TestServerAuthConfig_Wrap_BearerToken(t *testing.T) {
-	cfg, err := NewServerAuthConfig("", "", "", "secret-bearer-999", "", false)
+	cfg, err := NewServerAuthConfig("", "", "", "secret-bearer-999", "", false, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -280,7 +283,7 @@ func TestServerAuthConfig_Wrap_BearerToken(t *testing.T) {
 }
 
 func TestServerAuthConfig_Wrap_BothBasicAndBearer(t *testing.T) {
-	cfg, err := NewServerAuthConfig("prom", "prompass", "", "tokenxyz", "", true)
+	cfg, err := NewServerAuthConfig("prom", "prompass", "", "tokenxyz", "", true, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -580,7 +583,7 @@ func TestServerMutualTLS_mTLS(t *testing.T) {
 	}
 
 	// Auth config with Bearer Token on top of mTLS
-	authCfg, err := NewServerAuthConfig("", "", "", "supersecret", "", false)
+	authCfg, err := NewServerAuthConfig("", "", "", "supersecret", "", false, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -655,4 +658,89 @@ func TestServerMutualTLS_mTLS(t *testing.T) {
 	if !strings.Contains(string(body), "xui_up 1") {
 		t.Errorf("unexpected body: %q", string(body))
 	}
+}
+
+func TestUnauthenticatedResponsesDoNotLeakIdentity(t *testing.T) {
+	sensitiveSubstrings := []string{"3x-ui", "3xui", "xray", "x-ui", "panel"}
+
+	assertNoLeak := func(t *testing.T, endpoint string, res *http.Response, body string) {
+		t.Helper()
+		combined := strings.ToLower(body)
+		for k, v := range res.Header {
+			combined += " " + strings.ToLower(k) + ": " + strings.ToLower(strings.Join(v, " "))
+		}
+		for _, s := range sensitiveSubstrings {
+			if strings.Contains(combined, s) {
+				t.Errorf("endpoint %s leaked sensitive keyword %q in response: %s", endpoint, s, combined)
+			}
+		}
+	}
+
+	exporter := &Exporter{Timeout: time.Second, Version: "dev"}
+	baseHandler := exporter.Handler()
+
+	t.Run("auth enabled unauthenticated requests", func(t *testing.T) {
+		authCfg, err := NewServerAuthConfig("prom", "pass123", "", "bearer456", "", false, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		ts := httptest.NewServer(authCfg.Wrap(baseHandler))
+		defer ts.Close()
+
+		for _, path := range []string{"/", "/metrics", "/unknown", "/healthz"} {
+			res, err := ts.Client().Get(ts.URL + path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			b, _ := io.ReadAll(res.Body)
+			_ = res.Body.Close()
+			if path == "/healthz" {
+				if res.StatusCode != http.StatusOK {
+					t.Errorf("/healthz status = %d, want 200", res.StatusCode)
+				}
+			} else {
+				if res.StatusCode != http.StatusUnauthorized {
+					t.Errorf("%s status = %d, want 401", path, res.StatusCode)
+				}
+				wwwAuth := res.Header.Get("WWW-Authenticate")
+				if strings.Contains(strings.ToLower(wwwAuth), "3x-ui") {
+					t.Errorf("WWW-Authenticate leaked exporter name: %s", wwwAuth)
+				}
+			}
+			assertNoLeak(t, path, res, string(b))
+		}
+	})
+
+	t.Run("auth enabled with auth-healthz", func(t *testing.T) {
+		authCfg, err := NewServerAuthConfig("prom", "pass123", "", "", "", true, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		ts := httptest.NewServer(authCfg.Wrap(baseHandler))
+		defer ts.Close()
+
+		res, err := ts.Client().Get(ts.URL + "/healthz")
+		if err != nil {
+			t.Fatal(err)
+		}
+		b, _ := io.ReadAll(res.Body)
+		_ = res.Body.Close()
+		if res.StatusCode != http.StatusUnauthorized {
+			t.Errorf("/healthz status = %d, want 401", res.StatusCode)
+		}
+		assertNoLeak(t, "/healthz", res, string(b))
+	})
+
+	t.Run("open landing page does not mention 3x-ui or panel", func(t *testing.T) {
+		ts := httptest.NewServer(baseHandler)
+		defer ts.Close()
+
+		res, err := ts.Client().Get(ts.URL + "/")
+		if err != nil {
+			t.Fatal(err)
+		}
+		b, _ := io.ReadAll(res.Body)
+		_ = res.Body.Close()
+		assertNoLeak(t, "/", res, string(b))
+	})
 }

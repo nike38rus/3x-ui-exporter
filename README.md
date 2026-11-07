@@ -259,6 +259,7 @@ All settings can be configured via command-line flags or environment variables. 
 | `--web.bearer-token` | `WEB_BEARER_TOKEN` | `""` *(empty)* | Bearer token for HTTP Authorization (`Authorization: Bearer <token>`). Prefer environment variable. |
 | `--web.bearer-token-file` | `WEB_BEARER_TOKEN_FILE` | `""` *(empty)* | Path to file containing Bearer token for HTTP Authorization. |
 | `--web.auth-healthz` | `WEB_AUTH_HEALTHZ` | `false` | When `true`, requires authentication for `/healthz` endpoint (by default `/healthz` is unauthenticated for probes). |
+| `--web.auth-realm` | `WEB_AUTH_REALM` | `metrics` | Authentication realm reported in `WWW-Authenticate` header (defaults to generic `metrics` to avoid fingerprinting). |
 | `--web.tls-cert-file` | `WEB_TLS_CERT_FILE` | `""` *(empty)* | Path to server TLS certificate / certificate chain file. Enables HTTPS. |
 | `--web.tls-key-file` | `WEB_TLS_KEY_FILE` | `""` *(empty)* | Path to server TLS private key file. Enables HTTPS. |
 | `--web.tls-client-ca-file` | `WEB_TLS_CLIENT_CA_FILE` | `""` *(empty)* | Path to client CA certificate file for Mutual TLS (mTLS) client certificate verification. |
@@ -279,6 +280,7 @@ For securely publishing metrics to untrusted networks or the public internet, `3
 - **Modern TLS**: Enforces TLS 1.2+ minimum version (`tls.VersionTLS12`) and secure AEAD cipher suites (ECDHE with AES-GCM and ChaCha20-Poly1305). Insecure ciphers (CBC, RC4, 3DES, static RSA) are completely disabled.
 - **Mutual TLS (mTLS)**: Optionally verify client certificates against a trusted CA (`--web.tls-client-ca-file`), enforcing `tls.RequireAndVerifyClientCert`.
 - **Flexible Authentication**: Supports HTTP Basic Auth, Bearer Token, or both simultaneously.
+- **Stealth & Anti-Fingerprinting**: Unauthenticated probe responses never disclose that 3x-ui or Xray is running on the host. The `WWW-Authenticate` realm defaults to a generic `realm="metrics"`, and the HTML landing page uses a generic "Metrics Exporter" title without vendor fingerprints.
 - **Probe-Friendly `/healthz`**: The `/healthz` liveness probe endpoint remains accessible without credentials by default so Kubernetes liveness probes or systemd watchdogs function without secrets. Set `--web.auth-healthz=true` to require authentication for all endpoints.
 
 ### Usage Examples
