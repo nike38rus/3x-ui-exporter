@@ -196,15 +196,15 @@ prompt_config() {
 
   if [[ -z "$token" ]]; then
     local input_token=""
-    if read_input "3x-ui API Token (XUI_API_TOKEN) [required]: " input_token; then
+    if read_input "3x-ui API Token (XUI_API_TOKEN, requires Administrator scope) [required]: " input_token; then
       token="$input_token"
       while [[ -z "$token" ]]; do
         warn "XUI_API_TOKEN is required to scrape panel configuration."
-        read_input "3x-ui API Token (XUI_API_TOKEN): " token || break
+        read_input "3x-ui API Token (XUI_API_TOKEN, Administrator scope): " token || break
       done
     else
       warn "Running non-interactively without XUI_API_TOKEN set."
-      warn "Please edit ${CONFIG_PATH} and set XUI_API_TOKEN before starting the service."
+      warn "Please edit ${CONFIG_PATH} and set XUI_API_TOKEN (Administrator scope) before starting the service."
       token="CHANGE_ME_TOKEN"
     fi
   fi
@@ -233,7 +233,7 @@ prompt_config() {
 # 3x-ui-exporter environment configuration
 # Generated on $(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-# 3x-ui Panel connection
+# 3x-ui Panel connection (token must have Administrator scope)
 XUI_URL=${url}
 XUI_API_TOKEN=${token}
 
@@ -406,7 +406,7 @@ Commands:
 
 Options:
   -v, --version <tag>      Target release version (e.g. v1.0.0, default: latest)
-  -t, --token <token>      3x-ui API Bearer Token (XUI_API_TOKEN)
+  -t, --token <token>      3x-ui API Bearer Token (requires Administrator scope)
   -u, --url <url>          3x-ui Panel URL (default: http://127.0.0.1:2053)
   -l, --listen <addr>      Metrics listen address (default: :9108)
   -h, --help               Show this help message

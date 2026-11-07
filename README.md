@@ -240,7 +240,7 @@ All settings can be configured via command-line flags or environment variables. 
 | CLI Flag | Environment Variable | Default | Description |
 | --- | --- | --- | --- |
 | `--xui-url` | `XUI_URL` | *None (Required)* | 3x-ui panel base URL, including optional base path (e.g. `http://127.0.0.1:2053`). |
-| `--xui-api-token` | `XUI_API_TOKEN` | *None (Required)* | 3x-ui Bearer API token. Prefer environment variable to prevent process list exposure. |
+| `--xui-api-token` | `XUI_API_TOKEN` | *None (Required)* | 3x-ui Bearer API token with **Administrator** scope. Prefer environment variable to prevent process list exposure. |
 | `--xray-api` | `XRAY_API` | `127.0.0.1:62789` | Xray gRPC host and port (`host:port`). |
 | `--xray-metrics-url` | `XRAY_METRICS_URL` | `""` *(empty)* | Xray expvars HTTP base URL. If empty, automatically discovered from panel `metrics.listen`. |
 | `--listen-address` | `LISTEN_ADDRESS` | `:9108` | Address and port for the exporter HTTP server to bind. |
@@ -249,6 +249,9 @@ All settings can be configured via command-line flags or environment variables. 
 | `--log-format` | `LOG_FORMAT` | `text` | Log format output: `text` or `json`. |
 | `--collect-client-stats` | `COLLECT_CLIENT_STATS` | `false` | When `true`, parses individual user/client counters into `xui_client_traffic_bytes_total`. |
 | `--version` | — | `false` | Prints exporter version and exits. |
+
+> [!IMPORTANT]
+> **API Token Permissions:** The API token generated in 3x-ui must have the **Administrator** scope. Restricted scopes (such as `monitoring`) do not grant access to the Xray routing configuration (`/panel/api/xray/`), inbound inventories (`/panel/api/inbounds/list`), or cluster nodes, causing scrapes to fail with HTTP `403 Forbidden`.
 
 ---
 
