@@ -174,7 +174,50 @@ scrape_configs:
 > [!NOTE]
 > Ensure that Prometheus's `scrape_timeout` is slightly greater than or equal to the exporter's `SCRAPE_TIMEOUT` (e.g. 5s scrape timeout vs 4s exporter deadline).
 
-### Binary Execution
+### Systemd Service Installation (Standalone Host / VM)
+
+For standalone Linux virtual machines where 3x-ui runs directly under systemd without Docker, an automated installer script sets up the binary, hardened systemd service, and environment configuration:
+
+#### Fresh Installation
+
+```sh
+# One-liner automated installation (interactive prompt for token):
+curl -sSL https://raw.githubusercontent.com/nike38rus/3x-ui-exporter/main/install.sh | sudo bash
+
+# Or pass parameters non-interactively:
+curl -sSL https://raw.githubusercontent.com/nike38rus/3x-ui-exporter/main/install.sh | \
+  sudo XUI_API_TOKEN="your-panel-token" XUI_URL="http://127.0.0.1:2053" bash
+```
+
+The installer:
+- Detects the CPU architecture (`amd64` / `arm64`) and downloads the latest release binary to `/usr/local/bin/3x-ui-exporter`.
+- Creates a secure environment file at `/etc/3x-ui-exporter.env` (permissions `0600`).
+- Configures a sandboxed systemd service at `/etc/systemd/system/3x-ui-exporter.service` running as `nobody`.
+- Enables and starts the service immediately.
+
+#### Updating
+
+To update an existing installation to the latest release while strictly preserving your `/etc/3x-ui-exporter.env` configuration:
+
+```sh
+curl -sSL https://raw.githubusercontent.com/nike38rus/3x-ui-exporter/main/install.sh | sudo bash -s update
+```
+
+#### Service Management
+
+```sh
+# Check status and version
+sudo /usr/local/bin/3x-ui-exporter -version
+sudo systemctl status 3x-ui-exporter
+
+# View live logs
+sudo journalctl -u 3x-ui-exporter -f
+
+# Uninstall service and binary
+curl -sSL https://raw.githubusercontent.com/nike38rus/3x-ui-exporter/main/install.sh | sudo bash -s uninstall
+```
+
+### Manual Binary Execution
 
 You can run the static binary directly on the host or inside a virtual machine:
 
