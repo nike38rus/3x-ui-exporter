@@ -114,7 +114,7 @@ services:
     # ...
 
   exporter:
-    image: ghcr.io/nike38rus/3x-ui-exporter:1.0.0
+    image: ghcr.io/nike38rus/3x-ui-exporter:1.4.0
     network_mode: service:x-ui
     depends_on:
       x-ui:
@@ -227,7 +227,7 @@ To switch to a specific release version, downgrade, or install the rolling bleed
 
 ```sh
 # Pin specific version:
-curl -sSL https://raw.githubusercontent.com/nike38rus/3x-ui-exporter/main/install.sh | sudo bash -s update -v v1.2.0
+curl -sSL https://raw.githubusercontent.com/nike38rus/3x-ui-exporter/main/install.sh | sudo bash -s update -v v1.4.0
 
 # Install or update to edge build (latest commit on main):
 curl -sSL https://raw.githubusercontent.com/nike38rus/3x-ui-exporter/main/install.sh | sudo bash -s update -v edge

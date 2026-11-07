@@ -95,7 +95,7 @@ get_latest_version() {
     tag="$(curl -fsSL "https://api.github.com/repos/${GITHUB_REPO}/releases/latest" 2>/dev/null | grep '"tag_name":' | head -n1 | cut -d '"' -f 4)" || true
   fi
   if [[ ! "$tag" =~ ^v[0-9]+ ]]; then
-    echo "v1.3.0"
+    echo "v1.4.0"
   else
     echo "$tag"
   fi
@@ -762,7 +762,7 @@ Commands:
   restart      Restart the systemd service
 
 Options:
-  -v, --version <tag>      Target release version (e.g. v1.3.0, edge, default: latest)
+  -v, --version <tag>      Target release version (e.g. v1.4.0, edge, default: latest)
   -t, --token <token>      3x-ui API Bearer Token (requires Administrator scope)
   -u, --url <url>          3x-ui Panel URL (default: http://127.0.0.1:2053)
   -l, --listen <addr>      Metrics listen address (default: :9108)
