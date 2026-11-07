@@ -50,7 +50,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "(\n  (\n    xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"}\n    * (1 + (xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\"} == bool 0))\n  )\n  or (xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * 2)\n)\nand on (outbound)\nmax by (outbound) (\n  xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
+                        "expr": "(\n  (\n    xui_observatory_outbound_alive{instance=\"${instance}\"}\n    * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))\n  )\n  or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)\n)\nand on (outbound)\nmax by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
                         "interval": "5s",
                         "legendFormat": "{{outbound}}",
                         "range": true
@@ -169,7 +169,7 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "sum by (outbound) (increase(xui_outbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",outbound=\"direct\"}[$__range]))",
+                        "expr": "sum by (outbound) (increase(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound=\"direct\"}[$__range]))",
                         "instant": true,
                         "legendFormat": "{{outbound}}",
                         "range": false
@@ -193,7 +193,7 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "topk(6, (sum by (outbound) (\n  increase(xui_outbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range])\n)) > 10 * 1024 * 1024)",
+                        "expr": "topk(6, (sum by (outbound) (\n  increase(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range])\n)) > 10 * 1024 * 1024)",
                         "instant": true,
                         "legendFormat": "{{outbound}}",
                         "range": false
@@ -217,7 +217,7 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "label_replace(\n  clamp_min(\n    sum(increase(xui_outbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range]))\n    -\n    sum(topk(6, (sum by (outbound) (increase(xui_outbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range]))) > 10 * 1024 * 1024)),\n    0\n  ) > 0,\n  \"outbound\", \"others\", \"\", \"\"\n)",
+                        "expr": "label_replace(\n  clamp_min(\n    sum(increase(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range]))\n    -\n    sum(topk(6, (sum by (outbound) (increase(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range]))) > 10 * 1024 * 1024)),\n    0\n  ) > 0,\n  \"outbound\", \"others\", \"\", \"\"\n)",
                         "instant": true,
                         "legendFormat": "others",
                         "range": false
@@ -310,7 +310,7 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "sum(increase(xui_outbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range]))",
+                        "expr": "sum(increase(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range]))",
                         "instant": true,
                         "legendFormat": "Proxy",
                         "range": false
@@ -334,7 +334,7 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "sum(increase(xui_outbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",outbound=\"direct\"}[$__range]))",
+                        "expr": "sum(increase(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound=\"direct\"}[$__range]))",
                         "instant": true,
                         "legendFormat": "Direct",
                         "range": false
@@ -424,7 +424,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "8 * (\n  sum by (instance,inbound) (\n    rate(xui_inbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",inbound!~\"api|node_egress_.*\"}[$__rate_interval])\n  )\n  * on (instance,inbound) group_left(remark,node)\n  (0 * xui_inbound_enabled{job=\"xui-exporter\",instance=\"${instance}\"} + 1)\n)",
+                        "expr": "8 * (\n  sum by (instance,inbound) (\n    rate(xui_inbound_traffic_bytes_total{instance=\"${instance}\",inbound!~\"api|node_egress_.*\"}[$__rate_interval])\n  )\n  * on (instance,inbound) group_left(remark,node)\n  (0 * xui_inbound_enabled{instance=\"${instance}\"} + 1)\n)",
                         "interval": "5s",
                         "legendFormat": "{{remark}}",
                         "range": true
@@ -547,7 +547,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum by (instance, balancer) (\n  changes(\n    xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\"}[1m] offset -30s\n  )\n)",
+                        "expr": "sum by (instance, balancer) (\n  changes(\n    xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\"}[1m] offset -30s\n  )\n)",
                         "interval": "1m",
                         "legendFormat": "{{balancer}}",
                         "range": true
@@ -671,7 +671,7 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "sort_desc (\n  100 * avg_over_time(\n    xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\",role!~\"fallback|override\"}[$__range]\n  )\n)",
+                        "expr": "sort_desc (\n  100 * avg_over_time(\n    xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role!~\"fallback|override\"}[$__range]\n  )\n)",
                         "instant": true,
                         "legendFormat": "{{outbound}}",
                         "range": false
@@ -695,7 +695,7 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "sort_desc (\n  100 * avg_over_time(\n    xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\",role=~\"fallback|override\"}[$__range]\n  )\n)",
+                        "expr": "sort_desc (\n  100 * avg_over_time(\n    xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=~\"fallback|override\"}[$__range]\n  )\n)",
                         "instant": true,
                         "legendFormat": "{{balancer}} | {{role}}",
                         "range": false
@@ -794,7 +794,7 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\",role!~\"fallback|override\"}",
+                        "expr": "xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role!~\"fallback|override\"}",
                         "instant": false,
                         "interval": "5s",
                         "legendFormat": "{{outbound}}",
@@ -818,7 +818,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\",role=~\"fallback|override\"}",
+                        "expr": "xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=~\"fallback|override\"}",
                         "instant": false,
                         "interval": "5s",
                         "legendFormat": "{{role}}",
@@ -933,7 +933,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "(\n  xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\"}\n  or xui_observatory_outbound_delay_seconds{job=\"xui-exporter\",instance=\"${instance}\"}\n)\nand on (outbound)\nmax by (outbound) (\n  xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
+                        "expr": "(\n  xui_observatory_outbound_rtt_mean_seconds{instance=\"${instance}\"}\n  or xui_observatory_outbound_delay_seconds{instance=\"${instance}\"}\n)\nand on (outbound)\nmax by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
                         "interval": "5s",
                         "legendFormat": "{{outbound}}",
                         "range": true
@@ -1061,7 +1061,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\"}",
+                        "expr": "xui_exporter_scrape_success{instance=\"${instance}\"}",
                         "instant": false,
                         "legendFormat": "{{source}}",
                         "range": true
@@ -1180,7 +1180,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "scrape_duration_seconds{job=\"xui-exporter\",instance=\"${instance}\"}",
+                        "expr": "scrape_duration_seconds{instance=\"${instance}\"}",
                         "instant": false,
                         "legendFormat": "Total",
                         "range": true
@@ -1203,7 +1203,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "xui_exporter_scrape_duration_seconds{job=\"xui-exporter\",instance=\"${instance}\",source=\"api\"}",
+                        "expr": "xui_exporter_scrape_duration_seconds{instance=\"${instance}\",source=\"api\"}",
                         "instant": false,
                         "legendFormat": "API",
                         "range": true
@@ -1226,7 +1226,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "max by (instance, job) (\n  xui_exporter_scrape_duration_seconds{\n    job=\"xui-exporter\",\n    instance=\"${instance}\",\n    source=~\"grpc|expvars\"\n  }\n)",
+                        "expr": "max by (instance, job) (\n  xui_exporter_scrape_duration_seconds{\n    instance=\"${instance}\",\n    source=~\"grpc|expvars\"\n  }\n)",
                         "instant": false,
                         "legendFormat": "Runtime",
                         "range": true
@@ -1370,7 +1370,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "xui_balancer_outbound_available{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\"}",
+                        "expr": "xui_balancer_outbound_available{instance=\"${instance}\",balancer=~\"${balancer}\"}",
                         "instant": false,
                         "legendFormat": "{{balancer}}",
                         "range": true
@@ -1489,7 +1489,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "(\n  xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\"}\n  / xui_observatory_outbound_probe_samples{job=\"xui-exporter\",instance=\"${instance}\"}\n)\nand on (outbound)\nmax by (outbound) (\n  xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
+                        "expr": "(\n  xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"}\n  / xui_observatory_outbound_probe_samples{instance=\"${instance}\"}\n)\nand on (outbound)\nmax by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
                         "instant": false,
                         "legendFormat": "{{outbound}}",
                         "range": true
@@ -1614,7 +1614,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "xui_xray_memory_alloc_bytes{job=\"xui-exporter\",instance=\"${instance}\"}",
+                        "expr": "xui_xray_memory_alloc_bytes{instance=\"${instance}\"}",
                         "instant": false,
                         "legendFormat": "Allocated",
                         "range": true
@@ -1637,7 +1637,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "xui_xray_memory_sys_bytes{job=\"xui-exporter\",instance=\"${instance}\"}",
+                        "expr": "xui_xray_memory_sys_bytes{instance=\"${instance}\"}",
                         "instant": false,
                         "legendFormat": "Reserved by Go",
                         "range": true
@@ -1761,7 +1761,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "xui_observatory_outbound_rtt_deviation_seconds{job=\"xui-exporter\",instance=\"${instance}\"}\nand on (outbound)\nmax by (outbound) (\n  xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
+                        "expr": "xui_observatory_outbound_rtt_deviation_seconds{instance=\"${instance}\"}\nand on (outbound)\nmax by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
                         "interval": "5s",
                         "legendFormat": "{{outbound}}",
                         "range": true
@@ -1884,7 +1884,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "rate(xui_xray_memory_alloc_bytes_total{job=\"xui-exporter\",instance=\"${instance}\"}[$__rate_interval])",
+                        "expr": "rate(xui_xray_memory_alloc_bytes_total{instance=\"${instance}\"}[$__rate_interval])",
                         "instant": false,
                         "interval": "5s",
                         "legendFormat": "Allocated bytes/s",
@@ -2009,7 +2009,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "xui_xray_memory_live_objects{job=\"xui-exporter\",instance=\"${instance}\"}",
+                        "expr": "xui_xray_memory_live_objects{instance=\"${instance}\"}",
                         "instant": false,
                         "legendFormat": "Objects",
                         "range": true
@@ -2133,7 +2133,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "rate(xui_xray_memory_mallocs_total{job=\"xui-exporter\",instance=\"${instance}\"}[$__rate_interval])",
+                        "expr": "rate(xui_xray_memory_mallocs_total{instance=\"${instance}\"}[$__rate_interval])",
                         "instant": false,
                         "interval": "5s",
                         "legendFormat": "Allocations/s",
@@ -2157,7 +2157,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "rate(xui_xray_memory_frees_total{job=\"xui-exporter\",instance=\"${instance}\"}[$__rate_interval])",
+                        "expr": "rate(xui_xray_memory_frees_total{instance=\"${instance}\"}[$__rate_interval])",
                         "instant": false,
                         "interval": "5s",
                         "legendFormat": "Frees/s",
@@ -2282,7 +2282,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "rate(xui_xray_gc_cycles_total{job=\"xui-exporter\",instance=\"${instance}\"}[$__rate_interval])",
+                        "expr": "rate(xui_xray_gc_cycles_total{instance=\"${instance}\"}[$__rate_interval])",
                         "instant": false,
                         "interval": "5s",
                         "legendFormat": "Cycles/s",
@@ -2407,7 +2407,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "rate(xui_xray_gc_pause_seconds_total{job=\"xui-exporter\",instance=\"${instance}\"}[$__rate_interval])",
+                        "expr": "rate(xui_xray_gc_pause_seconds_total{instance=\"${instance}\"}[$__rate_interval])",
                         "instant": false,
                         "interval": "5s",
                         "legendFormat": "Pause fraction",
@@ -2532,7 +2532,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "xui_xray_info{job=\"xui-exporter\",instance=\"${instance}\"}",
+                        "expr": "xui_xray_info{instance=\"${instance}\"}",
                         "instant": true,
                         "legendFormat": "{{version}}",
                         "range": false
@@ -2628,7 +2628,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "xui_panel_info{job=\"xui-exporter\",instance=\"${instance}\"}",
+                        "expr": "xui_panel_info{instance=\"${instance}\"}",
                         "instant": true,
                         "legendFormat": "{{version}}",
                         "range": false
@@ -2724,7 +2724,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "xui_xray_state{job=\"xui-exporter\",instance=\"${instance}\"} == 1 and on(instance,job) (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"api\"} == 1) and on(instance,job) (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+                        "expr": "xui_xray_state{instance=\"${instance}\"} == 1 and on(instance,job) (xui_exporter_scrape_success{instance=\"${instance}\",source=\"api\"} == 1) and on(instance,job) (up{instance=\"${instance}\"} == 1)",
                         "instant": true,
                         "legendFormat": "{{state}}",
                         "range": false
@@ -2866,7 +2866,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "up{job=\"xui-exporter\",instance=\"${instance}\"}",
+                        "expr": "up{instance=\"${instance}\"}",
                         "instant": true,
                         "legendFormat": "Target",
                         "range": false
@@ -2986,7 +2986,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "(sum(xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\"}) / count(xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\"}))\n* on() group_left(summary)\nlabel_join(\n  count_values(\"healthy\", sum(xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\"}))\n  * on() group_left(total)\n  count_values(\"total\", count(xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\"})),\n  \"summary\", \"/\", \"healthy\", \"total\"\n)\nand on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+                        "expr": "(sum(xui_exporter_scrape_success{instance=\"${instance}\"}) / count(xui_exporter_scrape_success{instance=\"${instance}\"}))\n* on() group_left(summary)\nlabel_join(\n  count_values(\"healthy\", sum(xui_exporter_scrape_success{instance=\"${instance}\"}))\n  * on() group_left(total)\n  count_values(\"total\", count(xui_exporter_scrape_success{instance=\"${instance}\"})),\n  \"summary\", \"/\", \"healthy\", \"total\"\n)\nand on() (up{instance=\"${instance}\"} == 1)",
                         "instant": true,
                         "legendFormat": "{{summary}}",
                         "range": false
@@ -3095,7 +3095,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(xui_balancer_outbound_available{job=\"xui-exporter\",instance=\"${instance}\"} == bool 1) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+                        "expr": "sum(xui_balancer_outbound_available{instance=\"${instance}\"} == bool 1) and on() (xui_exporter_scrape_success{instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{instance=\"${instance}\"} == 1)",
                         "instant": true,
                         "legendFormat": "Available",
                         "range": false
@@ -3118,7 +3118,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",role=\"fallback\"}) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+                        "expr": "sum(xui_balancer_outbound_selected{instance=\"${instance}\",role=\"fallback\"}) and on() (xui_exporter_scrape_success{instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{instance=\"${instance}\"} == 1)",
                         "instant": true,
                         "legendFormat": "Fallback",
                         "range": false
@@ -3141,7 +3141,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",role=\"override\"}) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+                        "expr": "sum(xui_balancer_outbound_selected{instance=\"${instance}\",role=\"override\"}) and on() (xui_exporter_scrape_success{instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{instance=\"${instance}\"} == 1)",
                         "instant": true,
                         "legendFormat": "Override",
                         "range": false
@@ -3164,7 +3164,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(xui_balancer_outbound_available{job=\"xui-exporter\",instance=\"${instance}\"} == bool 0) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+                        "expr": "sum(xui_balancer_outbound_available{instance=\"${instance}\"} == bool 0) and on() (xui_exporter_scrape_success{instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{instance=\"${instance}\"} == 1)",
                         "instant": true,
                         "legendFormat": "Unavailable",
                         "range": false
@@ -3391,7 +3391,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(xui_balancer_outbound_available{job=\"xui-exporter\",instance=\"${instance}\"} == bool 1) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+                        "expr": "sum(xui_balancer_outbound_available{instance=\"${instance}\"} == bool 1) and on() (xui_exporter_scrape_success{instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{instance=\"${instance}\"} == 1)",
                         "instant": false,
                         "legendFormat": "Available",
                         "range": true
@@ -3414,7 +3414,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(xui_balancer_outbound_available{job=\"xui-exporter\",instance=\"${instance}\"} == bool 0) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+                        "expr": "sum(xui_balancer_outbound_available{instance=\"${instance}\"} == bool 0) and on() (xui_exporter_scrape_success{instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{instance=\"${instance}\"} == 1)",
                         "instant": false,
                         "legendFormat": "Unavailable",
                         "range": true
@@ -3437,7 +3437,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",role=\"fallback\"}) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+                        "expr": "sum(xui_balancer_outbound_selected{instance=\"${instance}\",role=\"fallback\"}) and on() (xui_exporter_scrape_success{instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{instance=\"${instance}\"} == 1)",
                         "instant": false,
                         "legendFormat": "Fallback active",
                         "range": true
@@ -3654,7 +3654,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "8 * sum (rate(xui_inbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",direction=\"downlink\"}[$__rate_interval])) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+                        "expr": "8 * sum (rate(xui_inbound_traffic_bytes_total{instance=\"${instance}\",direction=\"downlink\"}[$__rate_interval])) and on() (xui_exporter_scrape_success{instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{instance=\"${instance}\"} == 1)",
                         "instant": false,
                         "interval": "5s",
                         "legendFormat": "Download",
@@ -3678,7 +3678,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "8 * sum (rate(xui_inbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",direction=\"uplink\"}[$__rate_interval])) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+                        "expr": "8 * sum (rate(xui_inbound_traffic_bytes_total{instance=\"${instance}\",direction=\"uplink\"}[$__rate_interval])) and on() (xui_exporter_scrape_success{instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{instance=\"${instance}\"} == 1)",
                         "instant": false,
                         "interval": "5s",
                         "legendFormat": "Upload",
@@ -3892,7 +3892,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(((xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * 2)) == bool 2) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+                        "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 2) and on() (xui_exporter_scrape_success{instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{instance=\"${instance}\"} == 1)",
                         "instant": true,
                         "legendFormat": "UP",
                         "range": false
@@ -3915,7 +3915,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(((xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * 2)) == bool 1) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+                        "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 1) and on() (xui_exporter_scrape_success{instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{instance=\"${instance}\"} == 1)",
                         "instant": true,
                         "legendFormat": "DEGRADED",
                         "range": false
@@ -3938,7 +3938,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(((xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * 2)) == bool 0) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+                        "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 0) and on() (xui_exporter_scrape_success{instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{instance=\"${instance}\"} == 1)",
                         "instant": true,
                         "legendFormat": "DOWN",
                         "range": false
@@ -4134,7 +4134,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(((xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * 2)) == bool 2) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+                        "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 2) and on() (xui_exporter_scrape_success{instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{instance=\"${instance}\"} == 1)",
                         "instant": false,
                         "legendFormat": "UP",
                         "range": true
@@ -4157,7 +4157,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(((xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * 2)) == bool 1) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+                        "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 1) and on() (xui_exporter_scrape_success{instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{instance=\"${instance}\"} == 1)",
                         "instant": false,
                         "legendFormat": "DEGRADED",
                         "range": true
@@ -4180,7 +4180,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(((xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * 2)) == bool 0) and on() (xui_exporter_scrape_success{job=\"xui-exporter\",instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+                        "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 0) and on() (xui_exporter_scrape_success{instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{instance=\"${instance}\"} == 1)",
                         "instant": false,
                         "legendFormat": "DOWN",
                         "range": true
@@ -4386,7 +4386,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "process_resident_memory_bytes{job=\"xui-exporter\",instance=\"${instance}\"}",
+                        "expr": "process_resident_memory_bytes{instance=\"${instance}\"}",
                         "instant": false,
                         "legendFormat": "Resident (RSS)",
                         "range": true
@@ -4409,7 +4409,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "go_memstats_alloc_bytes{job=\"xui-exporter\",instance=\"${instance}\"}",
+                        "expr": "go_memstats_alloc_bytes{instance=\"${instance}\"}",
                         "instant": false,
                         "legendFormat": "Go Heap (Alloc)",
                         "range": true
@@ -4533,7 +4533,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "rate(process_cpu_seconds_total{job=\"xui-exporter\",instance=\"${instance}\"}[$__rate_interval]) * 100",
+                        "expr": "rate(process_cpu_seconds_total{instance=\"${instance}\"}[$__rate_interval]) * 100",
                         "instant": false,
                         "legendFormat": "CPU Usage",
                         "range": true
@@ -4556,7 +4556,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "go_goroutines{job=\"xui-exporter\",instance=\"${instance}\"}",
+                        "expr": "go_goroutines{instance=\"${instance}\"}",
                         "instant": false,
                         "legendFormat": "Goroutines",
                         "range": true
@@ -4697,7 +4697,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "xui_open_sockets{job=\"xui-exporter\",instance=\"${instance}\",protocol=\"tcp\"}",
+                        "expr": "xui_open_sockets{instance=\"${instance}\",protocol=\"tcp\"}",
                         "interval": "5s",
                         "legendFormat": "TCP",
                         "range": true
@@ -4720,7 +4720,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "xui_open_sockets{job=\"xui-exporter\",instance=\"${instance}\",protocol=\"udp\"}",
+                        "expr": "xui_open_sockets{instance=\"${instance}\",protocol=\"udp\"}",
                         "instant": false,
                         "interval": "5s",
                         "legendFormat": "UDP",
@@ -4849,7 +4849,7 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "xui_client_online{job=\"xui-exporter\",instance=\"${instance}\"}",
+                        "expr": "xui_client_online{instance=\"${instance}\"}",
                         "instant": true,
                         "legendFormat": "Clients",
                         "range": false
@@ -4940,7 +4940,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "xui_inbound_enabled{instance=\"$instance\",job=\"xui-exporter\",node=\"local\"}",
+                        "expr": "xui_inbound_enabled{instance=\"$instance\",node=\"local\"}",
                         "legendFormat": "{{remark}}",
                         "range": true
                       },
@@ -5050,7 +5050,7 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "sort_desc(\n  sum by (instance,inbound) (\n    increase(xui_inbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",inbound!~\"api|node_egress_.*\"}[$__range])\n  )\n  * on (instance,inbound) group_left(remark,node)\n  (0 * xui_inbound_enabled{job=\"xui-exporter\",instance=\"${instance}\"} + 1)\n)",
+                        "expr": "sort_desc(\n  sum by (instance,inbound) (\n    increase(xui_inbound_traffic_bytes_total{instance=\"${instance}\",inbound!~\"api|node_egress_.*\"}[$__range])\n  )\n  * on (instance,inbound) group_left(remark,node)\n  (0 * xui_inbound_enabled{instance=\"${instance}\"} + 1)\n)",
                         "instant": true,
                         "legendFormat": "{{remark}}",
                         "range": false
@@ -5143,7 +5143,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "xui_node_online{job=\"xui-exporter\",instance=\"${instance}\"}",
+                        "expr": "xui_node_online{instance=\"${instance}\"}",
                         "legendFormat": "{{node}}",
                         "range": true
                       },
@@ -5257,7 +5257,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "(sum(xui_node_online{job=\"xui-exporter\",instance=\"${instance}\"}) / count(xui_node_online{job=\"xui-exporter\",instance=\"${instance}\"}))\n* on() group_left(summary)\nlabel_join(\n  count_values(\"healthy\", sum(xui_node_online{job=\"xui-exporter\",instance=\"${instance}\"}))\n  * on() group_left(total)\n  count_values(\"total\", count(xui_node_online{job=\"xui-exporter\",instance=\"${instance}\"})),\n  \"summary\", \"/\", \"healthy\", \"total\"\n)\nand on() (up{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+                        "expr": "(sum(xui_node_online{instance=\"${instance}\"}) / count(xui_node_online{instance=\"${instance}\"}))\n* on() group_left(summary)\nlabel_join(\n  count_values(\"healthy\", sum(xui_node_online{instance=\"${instance}\"}))\n  * on() group_left(total)\n  count_values(\"total\", count(xui_node_online{instance=\"${instance}\"})),\n  \"summary\", \"/\", \"healthy\", \"total\"\n)\nand on() (up{instance=\"${instance}\"} == 1)",
                         "instant": true,
                         "legendFormat": "{{summary}}",
                         "range": false
@@ -5355,7 +5355,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "xui_node_latency_seconds{job=\"xui-exporter\",instance=\"${instance}\"}",
+                        "expr": "xui_node_latency_seconds{instance=\"${instance}\"}",
                         "legendFormat": "{{node}}",
                         "range": true
                       },
@@ -5473,7 +5473,7 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "xui_node_xray_state{job=\"xui-exporter\",instance=\"${instance}\"} == 1",
+                        "expr": "xui_node_xray_state{instance=\"${instance}\"} == 1",
                         "format": "table",
                         "instant": true,
                         "legendFormat": "__auto",
@@ -5498,7 +5498,7 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "xui_node_uptime_seconds{job=\"xui-exporter\",instance=\"${instance}\"} > 0",
+                        "expr": "xui_node_uptime_seconds{instance=\"${instance}\"} > 0",
                         "format": "table",
                         "instant": true,
                         "legendFormat": "__auto",
@@ -5523,7 +5523,7 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "count by (node) (xui_inbound_enabled{job=\"xui-exporter\",instance=\"${instance}\",node!=\"local\"})",
+                        "expr": "count by (node) (xui_inbound_enabled{instance=\"${instance}\",node!=\"local\"})",
                         "format": "table",
                         "instant": true,
                         "legendFormat": "__auto",
@@ -5548,7 +5548,7 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "xui_node_info{job=\"xui-exporter\",instance=\"${instance}\"}",
+                        "expr": "xui_node_info{instance=\"${instance}\"}",
                         "format": "table",
                         "instant": true,
                         "legendFormat": "__auto",
@@ -5573,7 +5573,7 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "xui_node_online_clients{job=\"xui-exporter\",instance=\"${instance}\",node!=\"local\"}",
+                        "expr": "xui_node_online_clients{instance=\"${instance}\",node!=\"local\"}",
                         "format": "table",
                         "instant": true,
                         "legendFormat": "__auto",
@@ -5862,7 +5862,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "xui_node_cpu_percent{job=\"xui-exporter\",instance=\"${instance}\"}",
+                        "expr": "xui_node_cpu_percent{instance=\"${instance}\"}",
                         "legendFormat": "{{node}} - CPU",
                         "range": true
                       },
@@ -5884,7 +5884,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "xui_node_memory_percent{job=\"xui-exporter\",instance=\"${instance}\"}",
+                        "expr": "xui_node_memory_percent{instance=\"${instance}\"}",
                         "instant": false,
                         "legendFormat": "{{node}} - RAM",
                         "range": true
@@ -6014,7 +6014,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "8 * sum by (node) (\n  rate(xui_inbound_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",node!=\"local\"}[$__rate_interval])\n)\nand on (node) (xui_node_online{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+                        "expr": "8 * sum by (node) (\n  rate(xui_inbound_bytes_total{instance=\"${instance}\",node!=\"local\"}[$__rate_interval])\n)\nand on (node) (xui_node_online{instance=\"${instance}\"} == 1)",
                         "interval": "5s",
                         "legendFormat": "{{node}}",
                         "range": true
@@ -6139,7 +6139,7 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "sort_desc(\n  sum by (node) (\n    increase(xui_inbound_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",node!=\"local\"}[$__range])\n  )\n)\nand on (node) (xui_node_online{job=\"xui-exporter\",instance=\"${instance}\"} == 1)",
+                        "expr": "sort_desc(\n  sum by (node) (\n    increase(xui_inbound_bytes_total{instance=\"${instance}\",node!=\"local\"}[$__range])\n  )\n)\nand on (node) (xui_node_online{instance=\"${instance}\"} == 1)",
                         "instant": true,
                         "legendFormat": "{{node}}",
                         "range": false
@@ -6231,7 +6231,7 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "xui_client_online{job=\"xui-exporter\",instance=\"${instance}\"}",
+                        "expr": "xui_client_online{instance=\"${instance}\"}",
                         "instant": true,
                         "legendFormat": "online",
                         "range": false
@@ -6255,7 +6255,7 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "xui_client_count{job=\"xui-exporter\",instance=\"${instance}\"}",
+                        "expr": "xui_client_count{instance=\"${instance}\"}",
                         "instant": true,
                         "legendFormat": "{{state}}",
                         "range": false
@@ -6348,7 +6348,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "xui_client_online{job=\"xui-exporter\",instance=\"${instance}\"}",
+                        "expr": "xui_client_online{instance=\"${instance}\"}",
                         "legendFormat": "Online clients",
                         "range": true
                       },
@@ -6468,7 +6468,7 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "(100 * exp(\n  -5 * (sum_over_time(xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\"}[$__range]) / sum_over_time(xui_observatory_outbound_probe_samples{job=\"xui-exporter\",instance=\"${instance}\"}[$__range]))\n  - 0.6 * (quantile_over_time(0.95, xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\"}[$__range]) - quantile_over_time(0.50, xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\"}[$__range]))\n) * (clamp(130 - 100 * quantile_over_time(0.50, xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\"}[$__range]), 0, 100) / 100) ^ 0.20)\nand on (outbound) max by (outbound) (\n  xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
+                        "expr": "(100 * exp(\n  -5 * (sum_over_time(xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"}[$__range]) / sum_over_time(xui_observatory_outbound_probe_samples{instance=\"${instance}\"}[$__range]))\n  - 0.6 * (quantile_over_time(0.95, xui_observatory_outbound_rtt_mean_seconds{instance=\"${instance}\"}[$__range]) - quantile_over_time(0.50, xui_observatory_outbound_rtt_mean_seconds{instance=\"${instance}\"}[$__range]))\n) * (clamp(130 - 100 * quantile_over_time(0.50, xui_observatory_outbound_rtt_mean_seconds{instance=\"${instance}\"}[$__range]), 0, 100) / 100) ^ 0.20)\nand on (outbound) max by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
                         "format": "table",
                         "instant": true,
                         "range": false
@@ -6488,7 +6488,7 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "((xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\"} == bool 0)))\nor (xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"} * 2))\nand on (outbound) max by (outbound) (\n  xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
+                        "expr": "((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0)))\nor (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2))\nand on (outbound) max by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
                         "format": "table",
                         "instant": true,
                         "range": false
@@ -6508,7 +6508,7 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "(xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\"} or xui_observatory_outbound_delay_seconds{job=\"xui-exporter\",instance=\"${instance}\"})\nand on (outbound) max by (outbound) (\n  xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
+                        "expr": "(xui_observatory_outbound_rtt_mean_seconds{instance=\"${instance}\"} or xui_observatory_outbound_delay_seconds{instance=\"${instance}\"})\nand on (outbound) max by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
                         "format": "table",
                         "instant": true,
                         "range": false
@@ -6528,7 +6528,7 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "quantile_over_time(0.95, xui_observatory_outbound_rtt_mean_seconds{job=\"xui-exporter\",instance=\"${instance}\"}[$__range])\nand on (outbound) max by (outbound) (\n  xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
+                        "expr": "quantile_over_time(0.95, xui_observatory_outbound_rtt_mean_seconds{instance=\"${instance}\"}[$__range])\nand on (outbound) max by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
                         "format": "table",
                         "instant": true,
                         "range": false
@@ -6548,7 +6548,7 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "xui_observatory_outbound_rtt_deviation_seconds{job=\"xui-exporter\",instance=\"${instance}\"}\nand on (outbound) max by (outbound) (\n  xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
+                        "expr": "xui_observatory_outbound_rtt_deviation_seconds{instance=\"${instance}\"}\nand on (outbound) max by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
                         "format": "table",
                         "instant": true,
                         "range": false
@@ -6568,7 +6568,7 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "(1 - (sum_over_time(xui_observatory_outbound_probe_failed_samples{job=\"xui-exporter\",instance=\"${instance}\"}[$__range]) / sum_over_time(xui_observatory_outbound_probe_samples{job=\"xui-exporter\",instance=\"${instance}\"}[$__range])))\nand on (outbound) max by (outbound) (\n  xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
+                        "expr": "(1 - (sum_over_time(xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"}[$__range]) / sum_over_time(xui_observatory_outbound_probe_samples{instance=\"${instance}\"}[$__range])))\nand on (outbound) max by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
                         "format": "table",
                         "instant": true,
                         "range": false
@@ -6588,7 +6588,7 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "avg_over_time(xui_observatory_outbound_alive{job=\"xui-exporter\",instance=\"${instance}\"}[$__range])\nand on (outbound) max by (outbound) (\n  xui_balancer_outbound_selected{job=\"xui-exporter\",instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
+                        "expr": "avg_over_time(xui_observatory_outbound_alive{instance=\"${instance}\"}[$__range])\nand on (outbound) max by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
                         "format": "table",
                         "instant": true,
                         "range": false
@@ -6933,7 +6933,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "8 * sum by (outbound) (rate(xui_outbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",outbound=\"direct\"}[$__rate_interval]))",
+                        "expr": "8 * sum by (outbound) (rate(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound=\"direct\"}[$__rate_interval]))",
                         "interval": "5s",
                         "legendFormat": "{{outbound}}",
                         "range": true
@@ -6956,7 +6956,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "8 * (\n  sum by (outbound) (rate(xui_outbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__rate_interval]))\n  and on (outbound)\n  topk(6, (sum by (outbound) (increase(xui_outbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range]))) > 10 * 1024 * 1024)\n)",
+                        "expr": "8 * (\n  sum by (outbound) (rate(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__rate_interval]))\n  and on (outbound)\n  topk(6, (sum by (outbound) (increase(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range]))) > 10 * 1024 * 1024)\n)",
                         "interval": "5s",
                         "legendFormat": "{{outbound}}",
                         "range": true
@@ -6979,7 +6979,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "8 * clamp_min(\n  sum(rate(xui_outbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__rate_interval]))\n  -\n  sum(\n    sum by (outbound) (rate(xui_outbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__rate_interval]))\n    and on (outbound)\n    topk(6, (sum by (outbound) (increase(xui_outbound_traffic_bytes_total{job=\"xui-exporter\",instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range]))) > 10 * 1024 * 1024)\n  ),\n  0\n)",
+                        "expr": "8 * clamp_min(\n  sum(rate(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__rate_interval]))\n  -\n  sum(\n    sum by (outbound) (rate(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__rate_interval]))\n    and on (outbound)\n    topk(6, (sum by (outbound) (increase(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range]))) > 10 * 1024 * 1024)\n  ),\n  0\n)",
                         "interval": "5s",
                         "legendFormat": "others",
                         "range": true
@@ -7891,7 +7891,7 @@
             "version": "v0",
             "spec": {
               "qryType": 1,
-              "query": "label_values(xui_exporter_build_info{job=\"xui-exporter\"},instance)",
+              "query": "label_values(xui_exporter_build_info,instance)",
               "refId": "PrometheusVariableQueryEditor-VariableQuery"
             },
             "labels": {
@@ -7902,7 +7902,7 @@
           "regex": "",
           "regexApplyTo": "value",
           "sort": "alphabeticalAsc",
-          "definition": "label_values(xui_exporter_build_info{job=\"xui-exporter\"},instance)",
+          "definition": "label_values(xui_exporter_build_info,instance)",
           "options": [],
           "multi": false,
           "includeAll": false,
