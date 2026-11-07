@@ -164,12 +164,27 @@ Grafana will be immediately available at `http://localhost:3000` with the 3x-ui 
 Add the scrape job to your `prometheus.yml`:
 
 ```yaml
+# Local / Internal Scrape (HTTP without auth)
 scrape_configs:
   - job_name: xui-exporter
     scrape_interval: 5s
     scrape_timeout: 5s
     static_configs:
       - targets: ["127.0.0.1:9108"]
+
+  # Remote VPS Scrape across the Internet (HTTPS + Bearer Token)
+  - job_name: xui-vps-remote
+    scrape_interval: 5s
+    scrape_timeout: 5s
+    scheme: https
+    bearer_token: "your-secret-bearer-token"
+    tls_config:
+      # If using self-signed certificate or certificate issued to IP address:
+      insecure_skip_verify: true
+      # If using a trusted domain certificate (Let's Encrypt), set to false:
+      # insecure_skip_verify: false
+    static_configs:
+      - targets: ["vps-ip-or-domain:9108"]
 ```
 
 > [!NOTE]
@@ -185,16 +200,20 @@ For standalone Linux virtual machines where 3x-ui runs directly under systemd wi
 # One-liner automated installation (interactive prompt for token):
 curl -sSL https://raw.githubusercontent.com/nike38rus/3x-ui-exporter/main/install.sh | sudo bash
 
-# Or pass parameters non-interactively:
+# Or pass parameters non-interactively (with optional TLS & Bearer token):
 curl -sSL https://raw.githubusercontent.com/nike38rus/3x-ui-exporter/main/install.sh | \
-  sudo XUI_API_TOKEN="your-panel-token" XUI_URL="http://127.0.0.1:2053" bash
+  sudo bash -s -- \
+    -t "your-panel-token" \
+    -u "http://127.0.0.1:2053" \
+    -C "/root/cert/ip/fullchain.pem" \
+    -K "/root/cert/ip/privkey.pem"
 ```
 
 The installer:
 - Detects the CPU architecture (`amd64` / `arm64`) and downloads the latest release binary to `/usr/local/bin/3x-ui-exporter`.
 - Creates a secure environment file at `/etc/3x-ui-exporter.env` (permissions `0600`).
-- Configures a sandboxed systemd service at `/etc/systemd/system/3x-ui-exporter.service` with `DynamicUser` isolation.
-- Enables and starts the service immediately.
+- Configures a sandboxed systemd service at `/etc/systemd/system/3x-ui-exporter.service` with `DynamicUser` isolation and `LoadCredential` for root-owned TLS certificates.
+- Enables and starts the service immediately, followed by self-test validation.
 
 #### Updating and Version Pinning
 
