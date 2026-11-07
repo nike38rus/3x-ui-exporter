@@ -303,12 +303,17 @@ do_install() {
     success "3x-ui-exporter is active and running!"
 
     # Resolve local scrape address for display and self-test
+    local active_listen=""
+    if [[ -f "$CONFIG_PATH" ]]; then
+      active_listen="$(grep -E '^LISTEN_ADDRESS=' "$CONFIG_PATH" | head -n1 | cut -d= -f2- | tr -d '\"'\'' ' || true)"
+    fi
+    active_listen="${active_listen:-${listen:-:9108}}"
+
     local metrics_addr="127.0.0.1:9108"
-    local active_listen="${listen:-:9108}"
     if [[ "$active_listen" =~ ^:([0-9]+)$ ]]; then
       metrics_addr="127.0.0.1${active_listen}"
-    elif [[ "$active_listen" =~ ^0\.0\.0\.0:([0-9]+)$ ]]; then
-      metrics_addr="127.0.0.1:${BASH_REMATCH[1]}"
+    elif [[ "$active_listen" =~ ^(0\.0\.0\.0|\[::\]|::):([0-9]+)$ ]]; then
+      metrics_addr="127.0.0.1:${BASH_REMATCH[2]}"
     else
       metrics_addr="$active_listen"
     fi
@@ -325,6 +330,12 @@ do_install() {
       elif echo "$probe_out" | grep -q 'xui_exporter_scrape_success{source="api"} 0'; then
         warn "Self-test: exporter service is running, but panel API scraping failed."
         warn "Please verify XUI_URL and XUI_API_TOKEN in ${CONFIG_PATH}"
+        warn "View logs: journalctl -u 3x-ui-exporter -n 25 --no-pager"
+      elif [[ -n "$probe_out" ]]; then
+        warn "Self-test: received metrics response, but source status could not be verified."
+        warn "View metrics output: curl -s http://${metrics_addr}/metrics"
+      else
+        warn "Self-test: could not connect to http://${metrics_addr}/metrics"
         warn "View logs: journalctl -u 3x-ui-exporter -n 25 --no-pager"
       fi
     fi
