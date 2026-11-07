@@ -49,7 +49,7 @@ func (e *Expvars) Snapshot(ctx context.Context, cfg *Config) (*ExpvarsSnapshot, 
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("expvars HTTP status %d", resp.StatusCode)
+		return nil, expvarsHTTPError(resp)
 	}
 	const limit = 16 << 20
 	body, err := io.ReadAll(io.LimitReader(resp.Body, limit+1))
@@ -57,6 +57,16 @@ func (e *Expvars) Snapshot(ctx context.Context, cfg *Config) (*ExpvarsSnapshot, 
 		return nil, errors.New("invalid or oversized expvars response")
 	}
 	return decodeExpvars(body, e.CollectClient)
+}
+
+func expvarsHTTPError(resp *http.Response) error {
+	if resp.StatusCode >= 300 && resp.StatusCode < 400 {
+		if loc := resp.Header.Get("Location"); loc != "" {
+			return fmt.Errorf("expvars HTTP status %d: redirected to %s", resp.StatusCode, loc)
+		}
+		return fmt.Errorf("expvars HTTP status %d: redirected", resp.StatusCode)
+	}
+	return fmt.Errorf("expvars HTTP status %d", resp.StatusCode)
 }
 func decodeExpvars(body []byte, collectClient bool) (*ExpvarsSnapshot, error) {
 	var envelope map[string]json.RawMessage

@@ -74,6 +74,8 @@ jobs:
     name: Repository checks
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    outputs:
+      build_container: ${{ steps.changes.outputs.build_container }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -85,14 +87,45 @@ jobs:
         run: |
           python3 -m json.tool grafana-3x-ui.classic.json >/dev/null
           python3 -m json.tool grafana-3x-ui.v2.json >/dev/null
+      - name: Validate shell scripts
+        run: bash -n install.sh
       - name: Scan Git history for secrets
         run: >-
           docker run --rm -v "$PWD:/repo:ro"
           ghcr.io/gitleaks/gitleaks:v8.30.1 git /repo
           --log-opts=--all --redact --log-level warn --config /repo/.gitleaks.toml
+      - name: Check container build necessity
+        id: changes
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "build_container=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          base=""
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="${{ github.event.pull_request.base.sha }}"
+          else
+            base="${{ github.event.before }}"
+          fi
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
+            base="HEAD~1"
+          fi
+          if git rev-parse --verify "$base" >/dev/null 2>&1; then
+            changed=$(git diff --name-only "$base" HEAD)
+          else
+            changed=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "Dockerfile")
+          fi
+          if echo "$changed" | grep -qE '^(\.dockerignore|Dockerfile|Makefile|go\.mod|go\.sum|.*\.go|scripts/.*)$'; then
+            echo "build_container=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "build_container=false" >> "$GITHUB_OUTPUT"
+          fi
 
   container:
     name: Docker build and smoke test
+    needs: [repository]
+    if: needs.repository.outputs.build_container == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -129,7 +162,7 @@ jobs:
   publish:
     name: Publish main build
     needs: [test, repository, container]
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && needs.repository.outputs.build_container == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:

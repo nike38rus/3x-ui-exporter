@@ -47,3 +47,68 @@ func TestPanelRejectsMissingTemplate(t *testing.T) {
 		})
 	}
 }
+
+func TestPanelHTTPError(t *testing.T) {
+	tests := []struct {
+		name       string
+		statusCode int
+		location   string
+		wantErr    string
+	}{
+		{
+			name:       "301 redirect to https",
+			statusCode: http.StatusMovedPermanently,
+			location:   "https://127.0.0.1:2053/panel/api/xray/",
+			wantErr:    "panel HTTP status 301: redirected to https://127.0.0.1:2053/panel/api/xray/",
+		},
+		{
+			name:       "302 redirect to login",
+			statusCode: http.StatusFound,
+			location:   "/login",
+			wantErr:    "panel HTTP status 302: redirected to /login",
+		},
+		{
+			name:       "307 redirect without location",
+			statusCode: http.StatusTemporaryRedirect,
+			location:   "",
+			wantErr:    "panel HTTP status 307: redirected",
+		},
+		{
+			name:       "308 permanent redirect",
+			statusCode: http.StatusPermanentRedirect,
+			location:   "https://example.com/panel/api/xray/",
+			wantErr:    "panel HTTP status 308: redirected to https://example.com/panel/api/xray/",
+		},
+		{
+			name:       "401 unauthorized",
+			statusCode: http.StatusUnauthorized,
+			wantErr:    "panel HTTP status 401: unauthorized (check XUI_API_TOKEN)",
+		},
+		{
+			name:       "403 forbidden",
+			statusCode: http.StatusForbidden,
+			wantErr:    "panel HTTP status 403: Administrator scope required",
+		},
+		{
+			name:       "500 internal server error",
+			statusCode: http.StatusInternalServerError,
+			wantErr:    "panel HTTP status 500",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resp := &http.Response{
+				StatusCode: tt.statusCode,
+				Header:     make(http.Header),
+			}
+			if tt.location != "" {
+				resp.Header.Set("Location", tt.location)
+			}
+			err := panelHTTPError(resp)
+			if err == nil || err.Error() != tt.wantErr {
+				t.Fatalf("panelHTTPError() = %v, want %q", err, tt.wantErr)
+			}
+		})
+	}
+}

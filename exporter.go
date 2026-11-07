@@ -36,15 +36,24 @@ type Core interface {
 	Balancer(context.Context, string) (*BalancerState, error)
 }
 type GRPCCore struct {
-	handlers hc.HandlerServiceClient
-	routing  rc.RoutingServiceClient
+	handlers      hc.HandlerServiceClient
+	routing       rc.RoutingServiceClient
+	slowThreshold time.Duration
 }
 
 func newCore(conn grpc.ClientConnInterface) *GRPCCore {
-	return &GRPCCore{hc.NewHandlerServiceClient(conn), rc.NewRoutingServiceClient(conn)}
+	return &GRPCCore{handlers: hc.NewHandlerServiceClient(conn), routing: rc.NewRoutingServiceClient(conn)}
 }
+
+func (c *GRPCCore) threshold() time.Duration {
+	if c == nil || c.slowThreshold <= 0 {
+		return 1 * time.Second
+	}
+	return c.slowThreshold
+}
+
 func (c *GRPCCore) Outbounds(ctx context.Context) (map[string]bool, error) {
-	defer reportSlow(time.Now(), "grpc", "ListOutbounds")
+	defer reportSlow(time.Now(), "grpc", "ListOutbounds", c.threshold())
 	r, e := c.handlers.ListOutbounds(ctx, &hc.ListOutboundsRequest{})
 	if e != nil {
 		return nil, e
@@ -62,7 +71,7 @@ func (c *GRPCCore) Outbounds(ctx context.Context) (map[string]bool, error) {
 	return tags, nil
 }
 func (c *GRPCCore) Balancer(ctx context.Context, tag string) (*BalancerState, error) {
-	defer reportSlow(time.Now(), "grpc", "GetBalancerInfo")
+	defer reportSlow(time.Now(), "grpc", "GetBalancerInfo", c.threshold())
 	r, e := c.routing.GetBalancerInfo(ctx, &rc.GetBalancerInfoRequest{Tag: tag})
 	if e != nil {
 		if status.Code(e) == codes.Unknown && status.Convert(e).Message() == "app/router: cannot find tag" {
@@ -90,9 +99,13 @@ func (c *GRPCCore) Balancer(ctx context.Context, tag string) (*BalancerState, er
 }
 
 // Log only unusually slow operations at warn level, or all operations at debug level.
-func reportSlow(start time.Time, source, operation string) {
+// Threshold defaults to 1/4 of scrape timeout, or 1 second when timeout is not configured.
+func reportSlow(start time.Time, source, operation string, threshold time.Duration) {
+	if threshold <= 0 {
+		threshold = 1 * time.Second
+	}
 	elapsed := time.Since(start)
-	if elapsed >= 100*time.Millisecond {
+	if elapsed >= threshold {
 		slog.Warn("slow source operation", "source", source, "operation", operation, "duration_seconds", elapsed.Seconds())
 	} else {
 		slog.Debug("source operation completed", "source", source, "operation", operation, "duration_seconds", elapsed.Seconds())
@@ -116,6 +129,14 @@ type Exporter struct {
 	Timeout time.Duration
 	Version string
 }
+
+func (e *Exporter) slowThreshold() time.Duration {
+	if e == nil || e.Timeout <= 0 {
+		return 1 * time.Second
+	}
+	return e.Timeout / 4
+}
+
 type samples []prometheus.Metric
 
 func (s *samples) add(name, help string, typ prometheus.ValueType, value float64, labels []string, values ...string) {
@@ -171,6 +192,7 @@ func (e *Exporter) Handler() http.Handler {
 	})
 }
 func (e *Exporter) scrape(ctx context.Context) samples {
+	threshold := e.slowThreshold()
 	apiStart := time.Now()
 	var status *PanelStatus
 	var statusErr error
@@ -180,7 +202,7 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 	go func() {
 		defer wg.Done()
 		start := time.Now()
-		defer reportSlow(start, "api", "server/status")
+		defer reportSlow(start, "api", "server/status", threshold)
 		status, statusErr = e.Panel.Status(ctx)
 		if statusErr == nil && status == nil {
 			statusErr = errors.New("missing panel status")
@@ -195,7 +217,7 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 		go func() {
 			defer wg.Done()
 			start := time.Now()
-			defer reportSlow(start, "api", "clients/onlines")
+			defer reportSlow(start, "api", "clients/onlines", threshold)
 			onlines, onlinesErr = onlinesSrc.Onlines(ctx)
 			if onlinesErr == nil {
 				hasOnlines = true
@@ -211,7 +233,7 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 		go func() {
 			defer wg.Done()
 			start := time.Now()
-			defer reportSlow(start, "api", "inbounds/list")
+			defer reportSlow(start, "api", "inbounds/list", threshold)
 			inbounds, inboundsErr = inbSrc.Inbounds(ctx)
 			if inboundsErr == nil {
 				hasInbounds = true
@@ -227,7 +249,7 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 		go func() {
 			defer wg.Done()
 			start := time.Now()
-			defer reportSlow(start, "api", "nodes/list")
+			defer reportSlow(start, "api", "nodes/list", threshold)
 			nodes, nodesErr = nodeSrc.Nodes(ctx)
 			if nodesErr == nil {
 				hasNodes = true
@@ -249,7 +271,7 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 		go func() {
 			defer wg.Done()
 			start := time.Now()
-			defer reportSlow(start, "expvars", "debug/vars")
+			defer reportSlow(start, "expvars", "debug/vars", threshold)
 			defer func() { expDuration = time.Since(start) }()
 			if e.Expvars == nil {
 				expErr = errors.New("missing expvars source")
@@ -267,7 +289,7 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 
 	cfg, cfgErr := e.Panel.Configuration(ctx)
 	configElapsed := time.Since(apiStart)
-	reportSlow(apiStart, "api", "getXraySetting")
+	reportSlow(apiStart, "api", "getXraySetting", threshold)
 	if cfgErr == nil && cfg == nil {
 		cfgErr = errors.New("missing panel configuration")
 	}
@@ -279,7 +301,7 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 		go func() {
 			defer wg.Done()
 			start := time.Now()
-			defer reportSlow(start, "expvars", "debug/vars")
+			defer reportSlow(start, "expvars", "debug/vars", threshold)
 			defer func() { expDuration = time.Since(start) }()
 			if e.Expvars == nil {
 				expErr = errors.New("missing expvars source")
@@ -378,6 +400,9 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 func (e *Exporter) readGRPC(ctx context.Context, cfg *Config) (map[string]bool, map[string]*BalancerState, error) {
 	if e.Core == nil {
 		return nil, nil, errors.New("missing gRPC source")
+	}
+	if c, ok := e.Core.(*GRPCCore); ok && c.slowThreshold <= 0 {
+		c.slowThreshold = e.slowThreshold()
 	}
 	outbounds, err := e.Core.Outbounds(ctx)
 	if err != nil {

@@ -64,7 +64,7 @@ func (p *Panel) object(ctx context.Context, method, path string) (json.RawMessag
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("panel HTTP status %d", resp.StatusCode)
+		return nil, panelHTTPError(resp)
 	}
 	const limit = 16 << 20
 	body, err := io.ReadAll(io.LimitReader(resp.Body, limit+1))
@@ -79,6 +79,23 @@ func (p *Panel) object(ctx context.Context, method, path string) (json.RawMessag
 		return nil, errors.New("panel response unsuccessful")
 	}
 	return envelope.Object, nil
+}
+
+func panelHTTPError(resp *http.Response) error {
+	switch resp.StatusCode {
+	case http.StatusUnauthorized:
+		return fmt.Errorf("panel HTTP status 401: unauthorized (check XUI_API_TOKEN)")
+	case http.StatusForbidden:
+		return fmt.Errorf("panel HTTP status 403: Administrator scope required")
+	default:
+		if resp.StatusCode >= 300 && resp.StatusCode < 400 {
+			if loc := resp.Header.Get("Location"); loc != "" {
+				return fmt.Errorf("panel HTTP status %d: redirected to %s", resp.StatusCode, loc)
+			}
+			return fmt.Errorf("panel HTTP status %d: redirected", resp.StatusCode)
+		}
+		return fmt.Errorf("panel HTTP status %d", resp.StatusCode)
+	}
 }
 
 func (p *Panel) Configuration(ctx context.Context) (*Config, error) {

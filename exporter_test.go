@@ -579,3 +579,37 @@ func TestNodeMetricsAndInboundEnrichment(t *testing.T) {
 		t.Fatal("expected no node metrics on error")
 	}
 }
+
+func TestExporterSlowThreshold(t *testing.T) {
+	tests := []struct {
+		timeout time.Duration
+		want    time.Duration
+	}{
+		{4 * time.Second, 1 * time.Second},
+		{10 * time.Second, 2500 * time.Millisecond},
+		{2 * time.Second, 500 * time.Millisecond},
+		{0, 1 * time.Second},
+		{-1 * time.Second, 1 * time.Second},
+	}
+	for _, tt := range tests {
+		e := &Exporter{Timeout: tt.timeout}
+		if got := e.slowThreshold(); got != tt.want {
+			t.Errorf("slowThreshold() for timeout %v = %v, want %v", tt.timeout, got, tt.want)
+		}
+	}
+
+	var nilExporter *Exporter
+	if got := nilExporter.slowThreshold(); got != 1*time.Second {
+		t.Errorf("nil Exporter slowThreshold() = %v, want 1s", got)
+	}
+
+	var nilCore *GRPCCore
+	if got := nilCore.threshold(); got != 1*time.Second {
+		t.Errorf("nil GRPCCore threshold() = %v, want 1s", got)
+	}
+
+	c := &GRPCCore{slowThreshold: 500 * time.Millisecond}
+	if got := c.threshold(); got != 500*time.Millisecond {
+		t.Errorf("GRPCCore threshold() = %v, want 500ms", got)
+	}
+}
