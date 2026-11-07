@@ -104,11 +104,22 @@ download_and_install_binary() {
   fi
 
   info "Extracting binary..."
-  tar -xzf "${tmp_dir}/${archive_name}" -C "$tmp_dir" 3x-ui-exporter
+  tar -xzf "${tmp_dir}/${archive_name}" -C "$tmp_dir"
+
+  local bin_source="${tmp_dir}/3x-ui-exporter"
+  if [[ ! -f "$bin_source" ]]; then
+    local found_bin
+    found_bin="$(find "$tmp_dir" -type f -name "3x-ui-exporter" | head -n 1)"
+    if [[ -n "$found_bin" ]]; then
+      bin_source="$found_bin"
+    else
+      abort "Could not find 3x-ui-exporter binary inside release archive."
+    fi
+  fi
 
   info "Installing binary to ${BIN_PATH}..."
   mkdir -p "$BIN_DIR"
-  install -m 755 "${tmp_dir}/3x-ui-exporter" "$BIN_PATH"
+  install -m 755 "$bin_source" "$BIN_PATH"
 
   success "Binary installed: $(${BIN_PATH} -version 2>/dev/null || echo "$target_ver")"
 }
