@@ -327,6 +327,20 @@ Or using a secret file:
   --web.bearer-token="cluster-scrape-token"
 ```
 
+### Secret File Format (`password-file` & `token-file`)
+
+When using `--web.basic-auth-password-file` or `--web.bearer-token-file` (or their environment variables `WEB_BASIC_AUTH_PASSWORD_FILE` / `WEB_BEARER_TOKEN_FILE`), credentials are loaded from the filesystem to avoid leaking secrets in process tables or process monitors:
+
+- **Format**: Plain text file containing the raw password or bearer token as a UTF-8 string.
+- **Whitespace & Newlines**: Leading and trailing whitespace, carriage returns (`\r`), and line feeds (`\n`) are automatically trimmed during initialization. Files created with standard text editors, `echo "secret" > file`, Docker Secrets, or Kubernetes Secret volume mounts work seamlessly out-of-the-box.
+- **Validation**: If the specified file does not exist or contains only whitespace, the exporter halts on startup with a descriptive configuration error.
+- **Permissions**: Protect secret files with restrictive file permissions (recommended `0600` or read-only mount).
+
+Example files and deployment integration guides in the repository:
+- [`examples/security/basic-auth-password.example`](examples/security/basic-auth-password.example): Sample secret file containing an HTTP Basic Auth password.
+- [`examples/security/bearer-token.example`](examples/security/bearer-token.example): Sample secret file containing an HTTP Bearer Token.
+- [`examples/security/README.md`](examples/security/README.md): Guide covering Docker Secrets, Kubernetes Secret volume mounts, and systemd `LoadCredential`.
+
 ### Scraping Configurations
 
 #### Prometheus Configuration (`prometheus.yml`)
