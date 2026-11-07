@@ -208,6 +208,7 @@ prompt_config() {
   local in_tls_cert="${5:-${TLS_CERT:-${WEB_TLS_CERT_FILE:-}}}"
   local in_tls_key="${6:-${TLS_KEY:-${WEB_TLS_KEY_FILE:-}}}"
   local in_bearer_token="${7:-${BEARER_TOKEN:-${WEB_BEARER_TOKEN:-}}}"
+  local in_auth_healthz="${8:-${WEB_AUTH_HEALTHZ:-}}"
 
   local token="$in_token"
   local url="$in_url"
@@ -313,6 +314,17 @@ prompt_config() {
       read_input "Bearer Token for Prometheus [press Enter to auto-generate]: " input_token || true
       bearer_token="${input_token:-$gen_token}"
     fi
+
+    local auth_healthz="$in_auth_healthz"
+    if [[ -z "$auth_healthz" ]]; then
+      local input_hz="y"
+      read_input "Require authentication for /healthz endpoint too? (recommended if public) [Y/n]: " input_hz || true
+      if [[ "$input_hz" =~ ^[nN] ]]; then
+        auth_healthz="false"
+      else
+        auth_healthz="true"
+      fi
+    fi
   fi
 
   cat <<EOF > "$CONFIG_PATH"
@@ -351,7 +363,7 @@ EOF
   if [[ -n "$bearer_token" ]]; then
     cat <<EOF >> "$CONFIG_PATH"
 WEB_BEARER_TOKEN=${bearer_token}
-WEB_AUTH_HEALTHZ=true
+WEB_AUTH_HEALTHZ=${auth_healthz:-true}
 EOF
   fi
 
@@ -366,14 +378,17 @@ verify_service_and_metrics() {
   local active_listen=""
   local tls_enabled=0
   local bearer_token=""
+  local auth_healthz=""
   if [[ -f "$CONFIG_PATH" ]]; then
     active_listen="$(grep -E '^LISTEN_ADDRESS=' "$CONFIG_PATH" | head -n1 | cut -d= -f2- | tr -d '\"'\'' ' || true)"
     if grep -E -q '^(WEB_TLS_CERT_FILE|TLS_CERT_SOURCE)=' "$CONFIG_PATH"; then
       tls_enabled=1
     fi
     bearer_token="$(grep -E '^WEB_BEARER_TOKEN=' "$CONFIG_PATH" | head -n1 | cut -d= -f2- | tr -d '\"'\'' ' || true)"
+    auth_healthz="$(grep -E '^WEB_AUTH_HEALTHZ=' "$CONFIG_PATH" | head -n1 | cut -d= -f2- | tr -d '\"'\'' ' || true)"
   fi
   active_listen="${active_listen:-:9108}"
+  auth_healthz="${auth_healthz:-false}"
 
   local metrics_addr="127.0.0.1:9108"
   if [[ "$active_listen" =~ ^:([0-9]+)$ ]]; then
@@ -409,14 +424,26 @@ verify_service_and_metrics() {
   fi
 
   if [[ "${SKIP_PROBE:-0}" -ne 1 ]]; then
-    # If bearer token is enabled, verify that unauthenticated request is rejected with 401
+    # If bearer token is enabled, verify authentication behavior
     if [[ -n "$bearer_token" ]]; then
       local unauth_code
       unauth_code="$(curl -s -k --max-time 3 -o /dev/null -w "%{http_code}" "${scheme}://${metrics_addr}/metrics" 2>/dev/null || true)"
       if [[ "$unauth_code" == "401" ]]; then
-        success "Security check passed: unauthenticated requests are rejected (HTTP 401)."
+        success "Security check passed: unauthenticated /metrics requests are rejected (HTTP 401)."
       else
-        warn "Security check warning: unauthenticated request returned HTTP ${unauth_code} (expected 401)."
+        warn "Security check warning: unauthenticated /metrics returned HTTP ${unauth_code} (expected 401)."
+      fi
+
+      local hz_code
+      hz_code="$(curl -s -k --max-time 3 -o /dev/null -w "%{http_code}" "${scheme}://${metrics_addr}/healthz" 2>/dev/null || true)"
+      if [[ "$auth_healthz" == "true" ]]; then
+        if [[ "$hz_code" == "401" ]]; then
+          success "Security check passed: unauthenticated /healthz requests are rejected (HTTP 401)."
+        fi
+      else
+        if [[ "$hz_code" == "200" ]]; then
+          success "Liveness check passed: /healthz is open for status monitors (HTTP 200)."
+        fi
       fi
     fi
 
@@ -467,6 +494,7 @@ do_install() {
   local tls_cert="$6"
   local tls_key="$7"
   local bearer_token="$8"
+  local auth_healthz="$9"
 
   local arch
   arch="$(detect_arch)"
@@ -478,7 +506,7 @@ do_install() {
 
   info "Installing 3x-ui-exporter ${target_ver} (${arch})..."
 
-  prompt_config "$token" "$url" "$listen" "$xray_api" "$tls_cert" "$tls_key" "$bearer_token"
+  prompt_config "$token" "$url" "$listen" "$xray_api" "$tls_cert" "$tls_key" "$bearer_token" "$auth_healthz"
   download_and_install_binary "$target_ver" "$arch"
   create_or_update_systemd
 
@@ -500,6 +528,7 @@ do_config_tls() {
   local tls_cert="${1:-${TLS_CERT:-${WEB_TLS_CERT_FILE:-}}}"
   local tls_key="${2:-${TLS_KEY:-${WEB_TLS_KEY_FILE:-}}}"
   local bearer_token="${3:-${BEARER_TOKEN:-${WEB_BEARER_TOKEN:-}}}"
+  local auth_healthz="${4:-${WEB_AUTH_HEALTHZ:-}}"
 
   if [[ ! -f "$CONFIG_PATH" ]]; then
     abort "Configuration file ${CONFIG_PATH} does not exist. Please run install first."
@@ -551,6 +580,16 @@ do_config_tls() {
     bearer_token="${input_token:-$gen_token}"
   fi
 
+  if [[ -z "$auth_healthz" ]]; then
+    local input_hz="y"
+    read_input "Require authentication for /healthz endpoint too? (recommended if public) [Y/n]: " input_hz || true
+    if [[ "$input_hz" =~ ^[nN] ]]; then
+      auth_healthz="false"
+    else
+      auth_healthz="true"
+    fi
+  fi
+
   # If LISTEN_ADDRESS is currently local-only, offer to open to all interfaces
   local current_listen
   current_listen="$(grep -E '^LISTEN_ADDRESS=' "$CONFIG_PATH" | head -n1 | cut -d= -f2- | tr -d '\"'\'' ' || true)"
@@ -577,7 +616,7 @@ TLS_KEY_SOURCE=${tls_key}
 WEB_TLS_CERT_FILE=/run/credentials/3x-ui-exporter.service/tls-cert
 WEB_TLS_KEY_FILE=/run/credentials/3x-ui-exporter.service/tls-key
 WEB_BEARER_TOKEN=${bearer_token}
-WEB_AUTH_HEALTHZ=true
+WEB_AUTH_HEALTHZ=${auth_healthz}
 EOF
 
   chmod 600 "$CONFIG_PATH"
@@ -730,13 +769,15 @@ Options:
   -C, --tls-cert <path>    Path to TLS certificate file (e.g. fullchain.pem)
   -K, --tls-key <path>     Path to TLS private key file (e.g. privkey.pem)
   -B, --bearer-token <tok> Bearer token for Prometheus authentication
+  --auth-healthz           Require authentication for /healthz endpoint too
+  --no-auth-healthz        Keep /healthz publicly accessible without authentication
   -p, --purge              Also remove configuration file during uninstall
   -h, --help               Show this help message
 
 Environment Variables:
   VERSION, XUI_API_TOKEN, XUI_URL, LISTEN_ADDRESS, XRAY_API,
   TLS_CERT (or WEB_TLS_CERT_FILE), TLS_KEY (or WEB_TLS_KEY_FILE),
-  BEARER_TOKEN (or WEB_BEARER_TOKEN)
+  BEARER_TOKEN (or WEB_BEARER_TOKEN), WEB_AUTH_HEALTHZ
 
 Examples:
   # Interactive installation:
@@ -766,6 +807,7 @@ main() {
   local tls_cert="${TLS_CERT:-${WEB_TLS_CERT_FILE:-}}"
   local tls_key="${TLS_KEY:-${WEB_TLS_KEY_FILE:-}}"
   local bearer_token="${BEARER_TOKEN:-${WEB_BEARER_TOKEN:-}}"
+  local auth_healthz="${WEB_AUTH_HEALTHZ:-}"
   local purge_config=0
 
   while [[ $# -gt 0 ]]; do
@@ -802,6 +844,14 @@ main() {
         bearer_token="$2"
         shift 2
         ;;
+      --auth-healthz)
+        auth_healthz="true"
+        shift
+        ;;
+      --no-auth-healthz)
+        auth_healthz="false"
+        shift
+        ;;
       -p|--purge)
         purge_config=1
         shift
@@ -834,14 +884,14 @@ main() {
         info "3x-ui-exporter is already installed. Running update..."
         do_update "$target_ver"
       else
-        do_install "$target_ver" "$token" "$url" "$listen" "$xray_api" "$tls_cert" "$tls_key" "$bearer_token"
+        do_install "$target_ver" "$token" "$url" "$listen" "$xray_api" "$tls_cert" "$tls_key" "$bearer_token" "$auth_healthz"
       fi
       ;;
     update)
       do_update "$target_ver"
       ;;
     config-tls|tls)
-      do_config_tls "$tls_cert" "$tls_key" "$bearer_token"
+      do_config_tls "$tls_cert" "$tls_key" "$bearer_token" "$auth_healthz"
       ;;
     uninstall)
       do_uninstall "$purge_config"
