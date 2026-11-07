@@ -213,8 +213,11 @@ sudo systemctl status 3x-ui-exporter
 # View live logs
 sudo journalctl -u 3x-ui-exporter -f
 
-# Uninstall service and binary
+# Uninstall service and binary (preserves configuration):
 curl -sSL https://raw.githubusercontent.com/nike38rus/3x-ui-exporter/main/install.sh | sudo bash -s uninstall
+
+# Full purge (removes service, binary, and configuration):
+curl -sSL https://raw.githubusercontent.com/nike38rus/3x-ui-exporter/main/install.sh | sudo bash -s uninstall --purge
 ```
 
 ### Manual Binary Execution

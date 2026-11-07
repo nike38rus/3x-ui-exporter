@@ -175,15 +175,15 @@ EOF
 
 read_input() {
   local prompt="$1"
-  local -n out_var="$2"
+  local var_name="$2"
   local val=""
   if [[ -t 0 ]]; then
     read -rp "$prompt" val
-    out_var="$val"
+    printf -v "$var_name" "%s" "$val"
     return 0
   elif [[ -r /dev/tty ]]; then
     read -rp "$prompt" val </dev/tty
-    out_var="$val"
+    printf -v "$var_name" "%s" "$val"
     return 0
   fi
   return 1
@@ -376,6 +376,7 @@ do_update() {
 }
 
 do_uninstall() {
+  local purge="${1:-0}"
   info "Uninstalling 3x-ui-exporter..."
 
   if systemctl is-active --quiet 3x-ui-exporter 2>/dev/null; then
@@ -400,19 +401,24 @@ do_uninstall() {
   fi
 
   if [[ -f "$CONFIG_PATH" ]]; then
-    if [[ -t 0 ]]; then
-      read -rp "Remove configuration file ${CONFIG_PATH}? [y/N]: " del_cfg
-      case "$del_cfg" in
-        [yY]|[yY][eE][sS])
-          rm -f "$CONFIG_PATH"
-          info "Configuration removed."
-          ;;
-        *)
-          info "Configuration preserved at ${CONFIG_PATH}."
-          ;;
-      esac
+    if [[ "$purge" -eq 1 ]]; then
+      rm -f "$CONFIG_PATH"
+      info "Configuration removed (--purge)."
     else
-      info "Configuration preserved at ${CONFIG_PATH}."
+      local del_cfg=""
+      if read_input "Remove configuration file ${CONFIG_PATH}? [y/N]: " del_cfg; then
+        case "$del_cfg" in
+          [yY]|[yY][eE][sS])
+            rm -f "$CONFIG_PATH"
+            info "Configuration removed."
+            ;;
+          *)
+            info "Configuration preserved at ${CONFIG_PATH}."
+            ;;
+        esac
+      else
+        info "Configuration preserved at ${CONFIG_PATH}."
+      fi
     fi
   fi
 
@@ -442,7 +448,7 @@ Usage: $0 [command] [options]
 Commands:
   install      Install 3x-ui-exporter as a systemd service (default)
   update       Update the exporter binary to the latest version (preserves config)
-  uninstall    Remove the exporter binary and systemd service
+  uninstall    Remove the exporter binary and systemd service (--purge to also remove config)
   status       Show current service status and version
   restart      Restart the systemd service
 
@@ -451,6 +457,7 @@ Options:
   -t, --token <token>      3x-ui API Bearer Token (requires Administrator scope)
   -u, --url <url>          3x-ui Panel URL (default: http://127.0.0.1:2053)
   -l, --listen <addr>      Metrics listen address (default: :9108)
+  -p, --purge              Also remove configuration file during uninstall
   -h, --help               Show this help message
 
 Environment Variables:
@@ -466,6 +473,9 @@ Examples:
 
   # Update to latest version:
   sudo bash install.sh update
+
+  # Complete uninstall including config:
+  sudo bash install.sh uninstall --purge
 EOF
 }
 
@@ -476,6 +486,7 @@ main() {
   local url="${XUI_URL:-}"
   local listen="${LISTEN_ADDRESS:-}"
   local xray_api="${XRAY_API:-}"
+  local purge_config=0
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -498,6 +509,10 @@ main() {
       -l|--listen)
         listen="$2"
         shift 2
+        ;;
+      -p|--purge)
+        purge_config=1
+        shift
         ;;
       -h|--help)
         show_help
@@ -528,7 +543,7 @@ main() {
       do_update "$target_ver"
       ;;
     uninstall)
-      do_uninstall
+      do_uninstall "$purge_config"
       ;;
     status)
       do_status
