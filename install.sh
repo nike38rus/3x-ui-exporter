@@ -60,6 +60,9 @@ check_dependencies() {
       missing+=("$tool")
     fi
   done
+  if ! command -v sha256sum >/dev/null 2>&1 && ! command -v shasum >/dev/null 2>&1; then
+    missing+=("sha256sum")
+  fi
   if [[ ${#missing[@]} -gt 0 ]]; then
     abort "Required utilities missing: ${missing[*]}. Please install them (e.g. apt-get install -y ${missing[*]})."
   fi
@@ -88,24 +91,28 @@ detect_arch() {
 
 get_latest_version() {
   local tag=""
+  local latest_url="${GITHUB_LATEST_URL:-https://github.com/${GITHUB_REPO}/releases/latest}"
+  local api_latest_url="${GITHUB_API_LATEST_URL:-https://api.github.com/repos/${GITHUB_REPO}/releases/latest}"
   # Try GitHub redirect (does not consume API rate limit)
-  tag="$(curl -fsSLI -o /dev/null -w "%{url_effective}" "https://github.com/${GITHUB_REPO}/releases/latest" 2>/dev/null | awk -F'/' '{print $NF}')" || true
+  tag="$(curl -fsSLI -o /dev/null -w "%{url_effective}" "$latest_url" 2>/dev/null | awk -F'/' '{print $NF}')" || true
   if [[ -z "$tag" || "$tag" == "latest" ]]; then
     # Fallback to GitHub API
-    tag="$(curl -fsSL "https://api.github.com/repos/${GITHUB_REPO}/releases/latest" 2>/dev/null | grep '"tag_name":' | head -n1 | cut -d '"' -f 4)" || true
+    tag="$(curl -fsSL "$api_latest_url" 2>/dev/null | grep '"tag_name":' | head -n1 | cut -d '"' -f 4)" || true
   fi
   if [[ ! "$tag" =~ ^v[0-9]+ ]]; then
-    echo "v1.4.0"
-  else
-    echo "$tag"
+    abort "Failed to determine latest release version from GitHub. Specify a version explicitly with -v <tag>."
   fi
+  echo "$tag"
 }
 
 download_and_install_binary() {
   local target_ver="$1"
   local arch="$2"
   local archive_name="3x-ui-exporter_${target_ver}_linux_${arch}.tar.gz"
-  local download_url="https://github.com/${GITHUB_REPO}/releases/download/${target_ver}/${archive_name}"
+  local checksums_name="checksums_${target_ver}.txt"
+  local base_url="${RELEASE_BASE_URL:-https://github.com/${GITHUB_REPO}/releases/download}"
+  local download_url="${base_url}/${target_ver}/${archive_name}"
+  local checksums_url="${base_url}/${target_ver}/${checksums_name}"
 
   info "Downloading ${archive_name} (${target_ver})..."
   local tmp_dir
@@ -115,6 +122,34 @@ download_and_install_binary() {
     rm -rf "$tmp_dir"
     abort "Failed to download release archive from ${download_url}."
   fi
+
+  info "Verifying SHA-256 checksum..."
+  if ! curl -fsSL "$checksums_url" -o "${tmp_dir}/${checksums_name}"; then
+    rm -rf "$tmp_dir"
+    abort "Failed to download checksums file from ${checksums_url}."
+  fi
+
+  local expected_sum actual_sum
+  expected_sum="$(awk -v file="$archive_name" '$2 == file || $2 == ("*" file) {print $1; exit}' "${tmp_dir}/${checksums_name}" | tr '[:upper:]' '[:lower:]')"
+  if [[ -z "$expected_sum" ]]; then
+    rm -rf "$tmp_dir"
+    abort "Checksum entry for ${archive_name} not found in ${checksums_name}."
+  fi
+
+  if command -v sha256sum >/dev/null 2>&1; then
+    actual_sum="$(sha256sum "${tmp_dir}/${archive_name}" | awk '{print $1}' | tr '[:upper:]' '[:lower:]')"
+  elif command -v shasum >/dev/null 2>&1; then
+    actual_sum="$(shasum -a 256 "${tmp_dir}/${archive_name}" | awk '{print $1}' | tr '[:upper:]' '[:lower:]')"
+  else
+    rm -rf "$tmp_dir"
+    abort "Neither sha256sum nor shasum is available to verify archive integrity."
+  fi
+
+  if [[ "$actual_sum" != "$expected_sum" ]]; then
+    rm -rf "$tmp_dir"
+    abort "Checksum verification failed for ${archive_name} (expected ${expected_sum}, got ${actual_sum})."
+  fi
+  success "Checksum verified (${actual_sum})."
 
   info "Extracting binary..."
   if ! tar -xzf "${tmp_dir}/${archive_name}" -C "$tmp_dir"; then
@@ -155,6 +190,7 @@ create_or_update_systemd() {
     fi
   fi
 
+  mkdir -p "$(dirname "$SYSTEMD_PATH")"
   cat <<EOF > "$SYSTEMD_PATH"
 [Unit]
 Description=3x-ui Prometheus Exporter
@@ -165,8 +201,8 @@ Wants=x-ui.service
 [Service]
 Type=simple
 DynamicUser=yes
-EnvironmentFile=/etc/3x-ui-exporter.env
-ExecStart=/usr/local/bin/3x-ui-exporter
+EnvironmentFile=${CONFIG_PATH}
+ExecStart=${BIN_PATH}
 Restart=on-failure
 RestartSec=5s
 
@@ -188,6 +224,9 @@ read_input() {
   local prompt="$1"
   local var_name="$2"
   local val=""
+  if [[ "${NON_INTERACTIVE:-0}" -eq 1 ]]; then
+    return 1
+  fi
   if [[ -t 0 ]]; then
     read -rp "$prompt" val
     printf -v "$var_name" "%s" "$val"
@@ -265,7 +304,7 @@ prompt_config() {
   local enable_sec="n"
   if [[ -n "$in_tls_cert" || -n "$in_tls_key" || -n "$in_bearer_token" ]]; then
     enable_sec="y"
-  elif [[ -t 0 || -r /dev/tty ]]; then
+  elif [[ "${NON_INTERACTIVE:-0}" -ne 1 && ( -t 0 || -r /dev/tty ) ]]; then
     read_input "Enable TLS & Bearer Token authentication for Prometheus? [y/N]: " enable_sec || true
   fi
 
@@ -276,7 +315,9 @@ prompt_config() {
   if [[ "$enable_sec" =~ ^[yY] ]]; then
     if [[ -z "$tls_cert" ]]; then
       while true; do
-        read_input "Path to TLS certificate file (e.g. fullchain.pem): " tls_cert || true
+        if ! read_input "Path to TLS certificate file (e.g. fullchain.pem): " tls_cert; then
+          abort "TLS certificate path (--tls-cert / TLS_CERT) is required when TLS is enabled in non-interactive mode."
+        fi
         if [[ -z "$tls_cert" ]]; then
           warn "TLS certificate path is required when TLS is enabled."
         elif [[ ! -f "$tls_cert" ]]; then
@@ -285,11 +326,15 @@ prompt_config() {
           break
         fi
       done
+    elif [[ ! -f "$tls_cert" ]]; then
+      abort "Certificate file '${tls_cert}' not found."
     fi
 
     if [[ -z "$tls_key" ]]; then
       while true; do
-        read_input "Path to TLS private key file (e.g. privkey.pem): " tls_key || true
+        if ! read_input "Path to TLS private key file (e.g. privkey.pem): " tls_key; then
+          abort "TLS private key path (--tls-key / TLS_KEY) is required when TLS is enabled in non-interactive mode."
+        fi
         if [[ -z "$tls_key" ]]; then
           warn "TLS private key path is required when TLS is enabled."
         elif [[ ! -f "$tls_key" ]]; then
@@ -298,6 +343,8 @@ prompt_config() {
           break
         fi
       done
+    elif [[ ! -f "$tls_key" ]]; then
+      abort "Private key file '${tls_key}' not found."
     fi
 
     if [[ -n "$tls_cert" && -f "$tls_cert" ]]; then
@@ -327,7 +374,10 @@ prompt_config() {
     fi
   fi
 
-  cat <<EOF > "$CONFIG_PATH"
+  mkdir -p "$(dirname "$CONFIG_PATH")"
+  (
+    umask 077
+    cat <<EOF > "$CONFIG_PATH"
 # 3x-ui-exporter environment configuration
 # Generated on $(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
@@ -349,8 +399,8 @@ LOG_FORMAT=text
 COLLECT_CLIENT_STATS=false
 EOF
 
-  if [[ -n "$tls_cert" && -n "$tls_key" ]]; then
-    cat <<EOF >> "$CONFIG_PATH"
+    if [[ -n "$tls_cert" && -n "$tls_key" ]]; then
+      cat <<EOF >> "$CONFIG_PATH"
 
 # Inbound TLS & HTTP Authentication
 TLS_CERT_SOURCE=${tls_cert}
@@ -358,14 +408,15 @@ TLS_KEY_SOURCE=${tls_key}
 WEB_TLS_CERT_FILE=/run/credentials/3x-ui-exporter.service/tls-cert
 WEB_TLS_KEY_FILE=/run/credentials/3x-ui-exporter.service/tls-key
 EOF
-  fi
+    fi
 
-  if [[ -n "$bearer_token" ]]; then
-    cat <<EOF >> "$CONFIG_PATH"
+    if [[ -n "$bearer_token" ]]; then
+      cat <<EOF >> "$CONFIG_PATH"
 WEB_BEARER_TOKEN=${bearer_token}
 WEB_AUTH_HEALTHZ=${auth_healthz:-true}
 EOF
-  fi
+    fi
+  )
 
   chmod 600 "$CONFIG_PATH"
   success "Configuration saved to ${CONFIG_PATH} (permissions 0600)."
@@ -406,19 +457,14 @@ verify_service_and_metrics() {
     curl_args+=("-k")
   fi
 
-  local auth_args=()
-  if [[ -n "$bearer_token" ]]; then
-    auth_args=("-H" "Authorization: Bearer ${bearer_token}")
-  fi
-
   if [[ "$show_service_hints" -eq 1 ]]; then
     info "Service status: systemctl status 3x-ui-exporter"
     info "Logs:           journalctl -u 3x-ui-exporter -f"
   fi
 
   if [[ -n "$bearer_token" ]]; then
-    info "Metrics:        curl -sk -H \"Authorization: Bearer ${bearer_token}\" ${scheme}://${metrics_addr}/metrics"
-    info "Bearer Token:   ${bearer_token}"
+    info "Metrics:        curl -sk -H \"Authorization: Bearer <WEB_BEARER_TOKEN>\" ${scheme}://${metrics_addr}/metrics"
+    info "Bearer Token:   stored in ${CONFIG_PATH} (WEB_BEARER_TOKEN)"
   else
     info "Metrics:        curl -sk ${scheme}://${metrics_addr}/metrics"
   fi
@@ -431,7 +477,8 @@ verify_service_and_metrics() {
       if [[ "$unauth_code" == "401" ]]; then
         success "Security check passed: unauthenticated /metrics requests are rejected (HTTP 401)."
       else
-        warn "Security check warning: unauthenticated /metrics returned HTTP ${unauth_code} (expected 401)."
+        error "Security check failed: unauthenticated /metrics returned HTTP ${unauth_code} (expected 401)."
+        return 1
       fi
 
       local hz_code
@@ -439,21 +486,31 @@ verify_service_and_metrics() {
       if [[ "$auth_healthz" == "true" ]]; then
         if [[ "$hz_code" == "401" ]]; then
           success "Security check passed: unauthenticated /healthz requests are rejected (HTTP 401)."
+        else
+          error "Security check failed: unauthenticated /healthz returned HTTP ${hz_code} (expected 401)."
+          return 1
         fi
       else
         if [[ "$hz_code" == "200" ]]; then
           success "Liveness check passed: /healthz is open for status monitors (HTTP 200)."
+        else
+          error "Liveness check failed: /healthz returned HTTP ${hz_code} (expected 200)."
+          return 1
         fi
       fi
     fi
 
     local probe_out
-    probe_out="$(curl "${curl_args[@]}" "${auth_args[@]}" "${scheme}://${metrics_addr}/metrics" 2>/dev/null || true)"
+    if [[ -n "$bearer_token" ]]; then
+      probe_out="$(printf 'header = "Authorization: Bearer %s"\n' "$bearer_token" | curl "${curl_args[@]}" -K - "${scheme}://${metrics_addr}/metrics" 2>/dev/null || true)"
+    else
+      probe_out="$(curl "${curl_args[@]}" "${scheme}://${metrics_addr}/metrics" 2>/dev/null || true)"
+    fi
 
     if [[ -z "$probe_out" ]]; then
-      warn "Self-test: could not connect to ${scheme}://${metrics_addr}/metrics"
+      error "Self-test: could not connect to ${scheme}://${metrics_addr}/metrics"
       warn "View logs: journalctl -u 3x-ui-exporter -n 25 --no-pager"
-      return 0
+      return 1
     fi
 
     local api_val expvars_val grpc_val
@@ -462,15 +519,19 @@ verify_service_and_metrics() {
     grpc_val="$(echo "$probe_out" | grep -E '^xui_exporter_scrape_success\{source="grpc"\}' | awk '{print $2}' || true)"
 
     if [[ -z "$api_val" || -z "$expvars_val" || -z "$grpc_val" ]]; then
-      warn "Self-test: endpoint responded, but scrape_success metrics are missing or incomplete."
-      warn "View metrics output: curl -sk ${scheme}://${metrics_addr}/metrics"
-      return 0
+      error "Self-test: endpoint responded, but scrape_success metrics are missing or incomplete."
+      if [[ -n "$bearer_token" ]]; then
+        warn "View metrics output: curl -sk -H \"Authorization: Bearer <WEB_BEARER_TOKEN>\" ${scheme}://${metrics_addr}/metrics"
+      else
+        warn "View metrics output: curl -sk ${scheme}://${metrics_addr}/metrics"
+      fi
+      return 1
     fi
 
     if [[ "$api_val" == "1" && "$expvars_val" == "1" && "$grpc_val" == "1" ]]; then
       success "Self-test passed! All scrape sources are healthy (api: 1, grpc: 1, expvars: 1)."
     else
-      warn "Self-test: one or more metric sources reported failure (api: ${api_val}, grpc: ${grpc_val}, expvars: ${expvars_val}):"
+      error "Self-test: one or more metric sources reported failure (api: ${api_val}, grpc: ${grpc_val}, expvars: ${expvars_val}):"
       if [[ "$api_val" != "1" ]]; then
         warn "  - api (0): failed to scrape 3x-ui API. Check XUI_URL and XUI_API_TOKEN (must have Administrator scope)."
       fi
@@ -481,27 +542,28 @@ verify_service_and_metrics() {
         warn "  - expvars (0): failed to scrape Xray metrics (/debug/vars). Check panel metrics.listen or XRAY_METRICS_URL."
       fi
       warn "View detailed logs: journalctl -u 3x-ui-exporter -n 25 --no-pager"
+      return 1
     fi
   fi
 }
 
 do_install() {
-  local target_ver="$1"
-  local token="$2"
-  local url="$3"
-  local listen="$4"
-  local xray_api="$5"
-  local tls_cert="$6"
-  local tls_key="$7"
-  local bearer_token="$8"
-  local auth_healthz="$9"
+  local target_ver="${1:-}"
+  local token="${2:-}"
+  local url="${3:-}"
+  local listen="${4:-}"
+  local xray_api="${5:-}"
+  local tls_cert="${6:-}"
+  local tls_key="${7:-}"
+  local bearer_token="${8:-}"
+  local auth_healthz="${9:-}"
 
   local arch
   arch="$(detect_arch)"
 
   if [[ -z "$target_ver" ]]; then
     info "Resolving latest release version..."
-    target_ver="$(get_latest_version)"
+    target_ver="$(get_latest_version)" || exit 1
   fi
 
   info "Installing 3x-ui-exporter ${target_ver} (${arch})..."
@@ -519,8 +581,9 @@ do_install() {
     success "3x-ui-exporter is active and running!"
     verify_service_and_metrics 1
   else
-    warn "3x-ui-exporter service is not active yet. Check logs with:"
-    warn "  journalctl -u 3x-ui-exporter -n 25 --no-pager"
+    error "3x-ui-exporter service is not active yet. Check logs with:"
+    error "  journalctl -u 3x-ui-exporter -n 25 --no-pager"
+    return 1
   fi
 }
 
@@ -538,7 +601,9 @@ do_config_tls() {
 
   if [[ -z "$tls_cert" ]]; then
     while true; do
-      read_input "Path to TLS certificate file (e.g. fullchain.pem): " tls_cert || true
+      if ! read_input "Path to TLS certificate file (e.g. fullchain.pem): " tls_cert; then
+        abort "TLS certificate path (--tls-cert / TLS_CERT) is required in non-interactive mode."
+      fi
       if [[ -z "$tls_cert" ]]; then
         warn "TLS certificate path is required."
       elif [[ ! -f "$tls_cert" ]]; then
@@ -551,7 +616,9 @@ do_config_tls() {
 
   if [[ -z "$tls_key" ]]; then
     while true; do
-      read_input "Path to TLS private key file (e.g. privkey.pem): " tls_key || true
+      if ! read_input "Path to TLS private key file (e.g. privkey.pem): " tls_key; then
+        abort "TLS private key path (--tls-key / TLS_KEY) is required in non-interactive mode."
+      fi
       if [[ -z "$tls_key" ]]; then
         warn "TLS private key path is required."
       elif [[ ! -f "$tls_key" ]]; then
@@ -598,17 +665,22 @@ do_config_tls() {
     local change_bind="y"
     read_input "Current LISTEN_ADDRESS is local-only (${current_listen}). Change to :${port} to allow external Prometheus scrapes? [Y/n]: " change_bind || true
     if [[ ! "$change_bind" =~ ^[nN] ]]; then
-      sed -i.bak -E "s|^LISTEN_ADDRESS=.*|LISTEN_ADDRESS=:${port}|" "$CONFIG_PATH"
-      rm -f "${CONFIG_PATH}.bak"
+      (
+        umask 077
+        sed -i.bak -E "s|^LISTEN_ADDRESS=.*|LISTEN_ADDRESS=:${port}|" "$CONFIG_PATH"
+        rm -f "${CONFIG_PATH}.bak"
+      )
       info "Updated LISTEN_ADDRESS=:${port}"
     fi
   fi
 
   info "Saving TLS & authentication settings to ${CONFIG_PATH}..."
-  sed -i.bak -E '/^(TLS_CERT_SOURCE|TLS_KEY_SOURCE|WEB_TLS_CERT_FILE|WEB_TLS_KEY_FILE|WEB_BEARER_TOKEN|WEB_AUTH_HEALTHZ)=/d' "$CONFIG_PATH"
-  rm -f "${CONFIG_PATH}.bak"
+  (
+    umask 077
+    sed -i.bak -E '/^(TLS_CERT_SOURCE|TLS_KEY_SOURCE|WEB_TLS_CERT_FILE|WEB_TLS_KEY_FILE|WEB_BEARER_TOKEN|WEB_AUTH_HEALTHZ)=/d' "$CONFIG_PATH"
+    rm -f "${CONFIG_PATH}.bak"
 
-  cat <<EOF >> "$CONFIG_PATH"
+    cat <<EOF >> "$CONFIG_PATH"
 
 # Inbound TLS & HTTP Authentication
 TLS_CERT_SOURCE=${tls_cert}
@@ -618,6 +690,7 @@ WEB_TLS_KEY_FILE=/run/credentials/3x-ui-exporter.service/tls-key
 WEB_BEARER_TOKEN=${bearer_token}
 WEB_AUTH_HEALTHZ=${auth_healthz}
 EOF
+  )
 
   chmod 600 "$CONFIG_PATH"
   success "Configuration saved to ${CONFIG_PATH} (permissions 0600)."
@@ -631,20 +704,39 @@ EOF
   if systemctl is-active --quiet 3x-ui-exporter; then
     success "3x-ui-exporter is active with TLS and authentication!"
     verify_service_and_metrics 1
+    local active_listen listen_port="9108"
+    active_listen="$(grep -E '^LISTEN_ADDRESS=' "$CONFIG_PATH" | head -n1 | cut -d= -f2- | tr -d '\"'\'' ' || true)"
+    if [[ "$active_listen" =~ :([0-9]+)$ ]]; then
+      listen_port="${BASH_REMATCH[1]}"
+    fi
+    info "Prometheus scrape configuration snippet (prometheus.yml):"
+    cat <<EOF
+  - job_name: xui-exporter
+    scrape_interval: 5s
+    scrape_timeout: 5s
+    scheme: https
+    bearer_token: "<WEB_BEARER_TOKEN from ${CONFIG_PATH}>"
+    static_configs:
+      - targets: ["<server-hostname-or-ip>:${listen_port}"]
+    # If using a private CA certificate, specify ca_file:
+    # tls_config:
+    #   ca_file: /etc/prometheus/certs/ca.crt
+EOF
   else
     error "Service failed to restart cleanly with new TLS configuration. Check logs:"
-    journalctl -u 3x-ui-exporter -n 25 --no-pager
+    journalctl -u 3x-ui-exporter -n 25 --no-pager || true
+    return 1
   fi
 }
 
 do_update() {
-  local target_ver="$1"
+  local target_ver="${1:-}"
   local arch
   arch="$(detect_arch)"
 
   if [[ ! -f "$BIN_PATH" ]]; then
     warn "3x-ui-exporter is not currently installed. Proceeding with full installation..."
-    do_install "$target_ver" "" "" "" ""
+    do_install "$target_ver"
     return
   fi
 
@@ -654,7 +746,7 @@ do_update() {
 
   if [[ -z "$target_ver" ]]; then
     info "Resolving latest release version..."
-    target_ver="$(get_latest_version)"
+    target_ver="$(get_latest_version)" || exit 1
   fi
 
   if [[ "$current_ver" == "$target_ver" ]]; then
@@ -662,6 +754,34 @@ do_update() {
   else
     info "Updating from ${current_ver} -> ${target_ver}..."
   fi
+
+  local backup_bin="${BIN_PATH}.bak.$$"
+  local backup_unit=""
+  local update_ok=0
+  cp -p "$BIN_PATH" "$backup_bin"
+  if [[ -f "$SYSTEMD_PATH" ]]; then
+    backup_unit="${SYSTEMD_PATH}.bak.$$"
+    cp -p "$SYSTEMD_PATH" "$backup_unit"
+  fi
+
+  rollback_update() {
+    if [[ "${update_ok:-0}" -eq 1 ]]; then
+      rm -f "$backup_bin" ${backup_unit:+"$backup_unit"}
+      return 0
+    fi
+    if [[ -f "$backup_bin" ]]; then
+      warn "Rolling back to previous binary (${current_ver})..."
+      install -m 755 "$backup_bin" "$BIN_PATH" || true
+      rm -f "$backup_bin"
+    fi
+    if [[ -n "$backup_unit" && -f "$backup_unit" ]]; then
+      cp -p "$backup_unit" "$SYSTEMD_PATH" || true
+      rm -f "$backup_unit"
+      systemctl daemon-reload 2>/dev/null || true
+    fi
+    systemctl restart 3x-ui-exporter 2>/dev/null || true
+  }
+  trap 'rollback_update' EXIT
 
   download_and_install_binary "$target_ver" "$arch"
   create_or_update_systemd
@@ -671,11 +791,22 @@ do_update() {
   sleep 1
 
   if systemctl is-active --quiet 3x-ui-exporter; then
-    success "Update completed successfully! Service is active."
-    verify_service_and_metrics 0
+    if verify_service_and_metrics 0; then
+      update_ok=1
+    fi
   else
     error "Service failed to restart cleanly after update. Check logs:"
-    journalctl -u 3x-ui-exporter -n 25 --no-pager
+    journalctl -u 3x-ui-exporter -n 25 --no-pager || true
+  fi
+
+  if [[ "$update_ok" -eq 1 ]]; then
+    rollback_update
+    trap - EXIT
+    success "Update completed successfully! Service is active."
+  else
+    rollback_update
+    trap - EXIT
+    return 1
   fi
 }
 
@@ -746,6 +877,9 @@ do_status() {
 
   if systemctl is-active --quiet 3x-ui-exporter 2>/dev/null; then
     verify_service_and_metrics 0
+  else
+    error "3x-ui-exporter service is not active."
+    return 1
   fi
 }
 

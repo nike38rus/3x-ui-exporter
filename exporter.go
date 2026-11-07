@@ -398,13 +398,16 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 
 // readGRPC probes runtime access even when panel settings are unavailable.
 func (e *Exporter) readGRPC(ctx context.Context, cfg *Config) (map[string]bool, map[string]*BalancerState, error) {
-	if e.Core == nil {
+	core := e.Core
+	if core == nil {
 		return nil, nil, errors.New("missing gRPC source")
 	}
-	if c, ok := e.Core.(*GRPCCore); ok && c.slowThreshold <= 0 {
-		c.slowThreshold = e.slowThreshold()
+	if c, ok := core.(*GRPCCore); ok && c.slowThreshold <= 0 {
+		cp := *c
+		cp.slowThreshold = e.slowThreshold()
+		core = &cp
 	}
-	outbounds, err := e.Core.Outbounds(ctx)
+	outbounds, err := core.Outbounds(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -412,7 +415,7 @@ func (e *Exporter) readGRPC(ctx context.Context, cfg *Config) (map[string]bool, 
 	if cfg != nil && len(cfg.Routing.Balancers) > 0 {
 		if len(cfg.Routing.Balancers) == 1 {
 			b := cfg.Routing.Balancers[0]
-			state, err := e.Core.Balancer(ctx, b.Tag)
+			state, err := core.Balancer(ctx, b.Tag)
 			if err != nil {
 				return outbounds, states, err
 			}
@@ -425,7 +428,7 @@ func (e *Exporter) readGRPC(ctx context.Context, cfg *Config) (map[string]bool, 
 				bWg.Add(1)
 				go func(tag string) {
 					defer bWg.Done()
-					state, err := e.Core.Balancer(ctx, tag)
+					state, err := core.Balancer(ctx, tag)
 					bMu.Lock()
 					defer bMu.Unlock()
 					if err != nil {

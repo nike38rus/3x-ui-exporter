@@ -37,6 +37,23 @@ func envBool(key string, fallback bool) bool {
 	}
 	return fallback
 }
+func newHTTPClients(insecureSkipVerify bool) (*http.Client, *http.Client) {
+	baseTransport := http.DefaultTransport.(*http.Transport).Clone()
+	baseTransport.Proxy = nil
+	baseTransport.MaxIdleConns = 20
+	baseTransport.MaxIdleConnsPerHost = 10
+	baseTransport.IdleConnTimeout = 90 * time.Second
+	noRedirect := func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+	expvarsClient := &http.Client{Transport: baseTransport, CheckRedirect: noRedirect}
+	panelClient := expvarsClient
+	if insecureSkipVerify {
+		panelTransport := baseTransport.Clone()
+		panelTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		panelClient = &http.Client{Transport: panelTransport, CheckRedirect: noRedirect}
+	}
+	return panelClient, expvarsClient
+}
+
 func main() {
 	if err := run(); err != nil {
 		slog.Error("exporter stopped", "error", err)
@@ -118,22 +135,16 @@ func run() error {
 		return fmt.Errorf("invalid gRPC endpoint")
 	}
 	defer conn.Close()
-	transport := http.DefaultTransport.(*http.Transport).Clone()
-	transport.Proxy = nil
-	transport.MaxIdleConns = 20
-	transport.MaxIdleConnsPerHost = 10
-	transport.IdleConnTimeout = 90 * time.Second
-	if *insecureSkipVerify {
-		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	}
-	client := &http.Client{Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	panelClient, expvarsClient := newHTTPClients(*insecureSkipVerify)
+	grpcCore := newCore(conn)
 	exporter := &Exporter{
-		Panel:   &Panel{URL: *panelURL, Token: *token, Client: client},
-		Core:    newCore(conn),
-		Expvars: &Expvars{URL: *metricsURL, Client: client, CollectClient: *collectClientStats},
+		Panel:   &Panel{URL: *panelURL, Token: *token, Client: panelClient},
+		Core:    grpcCore,
+		Expvars: &Expvars{URL: *metricsURL, Client: expvarsClient, CollectClient: *collectClientStats},
 		Timeout: timeout,
 		Version: version,
 	}
+	grpcCore.slowThreshold = exporter.slowThreshold()
 	authConfig, err := NewServerAuthConfig(*basicAuthUser, *basicAuthPass, *basicAuthPassFile, *bearerToken, *bearerTokenFile, *authHealthz, *authRealm)
 	if err != nil {
 		return err

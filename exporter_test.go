@@ -613,3 +613,48 @@ func TestExporterSlowThreshold(t *testing.T) {
 		t.Errorf("GRPCCore threshold() = %v, want 500ms", got)
 	}
 }
+
+func TestConcurrentScrapesWithGRPCCoreNoDataRace(t *testing.T) {
+	listener := bufconn.Listen(1 << 20)
+	server := grpc.NewServer()
+	svc := rpcServer{}
+	hc.RegisterHandlerServiceServer(server, svc)
+	rc.RegisterRoutingServiceServer(server, svc)
+	go func() { _ = server.Serve(listener) }()
+	defer server.Stop()
+
+	conn, err := grpc.NewClient(
+		"passthrough:///test",
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) { return listener.Dial() }),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+
+	cfg := configuration(t, `{"metrics":{"listen":"localhost:11111"},"routing":{"balancers":[{"tag":"lb1","selector":["A"],"strategy":{"type":"leastLoad"}},{"tag":"lb2","selector":["A"],"strategy":{"type":"leastPing"}}]}}`)
+	e := &Exporter{
+		Panel:   fakePanel{cfg: cfg},
+		Core:    newCore(conn),
+		Expvars: staticExpvars{},
+		Timeout: 2 * time.Second,
+		Version: "test",
+	}
+	handler := e.Handler()
+
+	var wg sync.WaitGroup
+	for i := 0; i < 16; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/metrics", nil))
+			body := w.Body.String()
+			if w.Code != http.StatusOK || !strings.Contains(body, `xui_exporter_scrape_success{source="grpc"} 1`) {
+				t.Errorf("unexpected response (%d): %s", w.Code, body)
+			}
+		}()
+	}
+	wg.Wait()
+}

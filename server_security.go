@@ -73,6 +73,9 @@ func NewServerAuthConfig(username, password, passwordFile, token, tokenFile stri
 	if finalPass != "" && username == "" {
 		return nil, errors.New("basic auth username must be specified when password is provided")
 	}
+	if authHealthz && username == "" && finalToken == "" {
+		return nil, errors.New("--web.auth-healthz (WEB_AUTH_HEALTHZ) requires basic auth or bearer token authentication to be configured")
+	}
 
 	if realm == "" {
 		realm = "metrics"
@@ -103,8 +106,11 @@ func constantTimeCompareStrings(a, b string) bool {
 
 // Authenticate verifies the request credentials in constant time.
 func (a *ServerAuthConfig) Authenticate(r *http.Request) bool {
-	if !a.Enabled() {
+	if a == nil {
 		return true
+	}
+	if !a.Enabled() {
+		return !a.AuthHealthz
 	}
 
 	// Basic Auth verification
@@ -149,7 +155,7 @@ func (a *ServerAuthConfig) writeUnauthorized(w http.ResponseWriter) {
 
 // Wrap wraps an http.Handler with authentication checks.
 func (a *ServerAuthConfig) Wrap(next http.Handler) http.Handler {
-	if !a.Enabled() {
+	if a == nil || (!a.Enabled() && !a.AuthHealthz) {
 		return next
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
