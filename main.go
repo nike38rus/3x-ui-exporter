@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -46,6 +47,7 @@ func run() error {
 	fs := flag.NewFlagSet("3x-ui-exporter", flag.ContinueOnError)
 	panelURL := fs.String("xui-url", env("XUI_URL", ""), "3x-ui base URL, including optional base path")
 	token := fs.String("xui-api-token", env("XUI_API_TOKEN", ""), "3x-ui bearer token (prefer environment variable)")
+	insecureSkipVerify := fs.Bool("xui-insecure-skip-verify", envBool("XUI_INSECURE_SKIP_VERIFY", false), "skip TLS certificate verification for 3x-ui panel requests")
 	target := fs.String("xray-api", env("XRAY_API", "127.0.0.1:62789"), "Xray gRPC host:port")
 	metricsURL := fs.String("xray-metrics-url", env("XRAY_METRICS_URL", ""), "Xray HTTP metrics base URL; empty discovers metrics.listen through panel API")
 	listen := fs.String("listen-address", env("LISTEN_ADDRESS", ":9108"), "metrics host:port")
@@ -53,6 +55,15 @@ func run() error {
 	logLevel := fs.String("log-level", env("LOG_LEVEL", "info"), "logging level (debug, info, warn, error)")
 	logFormat := fs.String("log-format", env("LOG_FORMAT", "text"), "logging format (text, json)")
 	collectClientStats := fs.Bool("collect-client-stats", envBool("COLLECT_CLIENT_STATS", false), "export individual client/user traffic counters from Xray")
+	basicAuthUser := fs.String("web.basic-auth-username", env("WEB_BASIC_AUTH_USERNAME", ""), "username for exporter basic auth")
+	basicAuthPass := fs.String("web.basic-auth-password", env("WEB_BASIC_AUTH_PASSWORD", ""), "password for exporter basic auth (prefer environment variable)")
+	basicAuthPassFile := fs.String("web.basic-auth-password-file", env("WEB_BASIC_AUTH_PASSWORD_FILE", ""), "path to file containing password for exporter basic auth")
+	bearerToken := fs.String("web.bearer-token", env("WEB_BEARER_TOKEN", ""), "bearer token for exporter authentication (prefer environment variable)")
+	bearerTokenFile := fs.String("web.bearer-token-file", env("WEB_BEARER_TOKEN_FILE", ""), "path to file containing bearer token for exporter authentication")
+	authHealthz := fs.Bool("web.auth-healthz", envBool("WEB_AUTH_HEALTHZ", false), "require authentication for /healthz endpoint")
+	tlsCertFile := fs.String("web.tls-cert-file", env("WEB_TLS_CERT_FILE", ""), "path to server TLS certificate / chain file")
+	tlsKeyFile := fs.String("web.tls-key-file", env("WEB_TLS_KEY_FILE", ""), "path to server TLS private key file")
+	tlsClientCAFile := fs.String("web.tls-client-ca-file", env("WEB_TLS_CLIENT_CA_FILE", ""), "path to client CA certificate file for mutual TLS (mTLS)")
 	showVersion := fs.Bool("version", false, "print exporter version")
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		return err
@@ -111,6 +122,9 @@ func run() error {
 	transport.MaxIdleConns = 20
 	transport.MaxIdleConnsPerHost = 10
 	transport.IdleConnTimeout = 90 * time.Second
+	if *insecureSkipVerify {
+		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
 	client := &http.Client{Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	exporter := &Exporter{
 		Panel:   &Panel{URL: *panelURL, Token: *token, Client: client},
@@ -119,7 +133,28 @@ func run() error {
 		Timeout: timeout,
 		Version: version,
 	}
-	server := &http.Server{Addr: *listen, Handler: exporter.Handler(), ReadHeaderTimeout: 5 * time.Second, WriteTimeout: timeout + 5*time.Second, IdleTimeout: 60 * time.Second}
+	authConfig, err := NewServerAuthConfig(*basicAuthUser, *basicAuthPass, *basicAuthPassFile, *bearerToken, *bearerTokenFile, *authHealthz)
+	if err != nil {
+		return err
+	}
+	serverTLS := &ServerTLSConfig{
+		CertFile:     *tlsCertFile,
+		KeyFile:      *tlsKeyFile,
+		ClientCAFile: *tlsClientCAFile,
+	}
+	tlsCfg, err := serverTLS.BuildTLSConfig()
+	if err != nil {
+		return err
+	}
+	httpHandler := authConfig.Wrap(exporter.Handler())
+	server := &http.Server{
+		Addr:              *listen,
+		Handler:           httpHandler,
+		TLSConfig:         tlsCfg,
+		ReadHeaderTimeout: 5 * time.Second,
+		WriteTimeout:      timeout + 5*time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	go func() {
@@ -128,9 +163,15 @@ func run() error {
 		defer cancel()
 		_ = server.Shutdown(shutdown)
 	}()
-	slog.Info("exporter listening", "address", *listen, "version", version)
-	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		return err
+	slog.Info("exporter listening", "address", *listen, "version", version, "tls", tlsCfg != nil, "auth", authConfig.Enabled())
+	var serveErr error
+	if tlsCfg != nil {
+		serveErr = server.ListenAndServeTLS("", "")
+	} else {
+		serveErr = server.ListenAndServe()
+	}
+	if serveErr != nil && serveErr != http.ErrServerClosed {
+		return serveErr
 	}
 	return nil
 }

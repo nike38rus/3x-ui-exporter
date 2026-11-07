@@ -252,10 +252,147 @@ All settings can be configured via command-line flags or environment variables. 
 | `--log-level` | `LOG_LEVEL` | `info` | Log verbosity level: `debug`, `info`, `warn`, `error`. |
 | `--log-format` | `LOG_FORMAT` | `text` | Log format output: `text` or `json`. |
 | `--collect-client-stats` | `COLLECT_CLIENT_STATS` | `false` | When `true`, parses individual user/client counters into `xui_client_traffic_bytes_total`. |
+| `--xui-insecure-skip-verify` | `XUI_INSECURE_SKIP_VERIFY` | `false` | When `true`, skips TLS certificate verification for 3x-ui panel requests (e.g. for local `https://127.0.0.1:...` with domain certificate). |
+| `--web.basic-auth-username` | `WEB_BASIC_AUTH_USERNAME` | `""` *(empty)* | Username for HTTP Basic Authentication on exporter endpoints. |
+| `--web.basic-auth-password` | `WEB_BASIC_AUTH_PASSWORD` | `""` *(empty)* | Password for HTTP Basic Authentication (prefer environment variable to avoid process list exposure). |
+| `--web.basic-auth-password-file` | `WEB_BASIC_AUTH_PASSWORD_FILE` | `""` *(empty)* | Path to file containing password for HTTP Basic Authentication. |
+| `--web.bearer-token` | `WEB_BEARER_TOKEN` | `""` *(empty)* | Bearer token for HTTP Authorization (`Authorization: Bearer <token>`). Prefer environment variable. |
+| `--web.bearer-token-file` | `WEB_BEARER_TOKEN_FILE` | `""` *(empty)* | Path to file containing Bearer token for HTTP Authorization. |
+| `--web.auth-healthz` | `WEB_AUTH_HEALTHZ` | `false` | When `true`, requires authentication for `/healthz` endpoint (by default `/healthz` is unauthenticated for probes). |
+| `--web.tls-cert-file` | `WEB_TLS_CERT_FILE` | `""` *(empty)* | Path to server TLS certificate / certificate chain file. Enables HTTPS. |
+| `--web.tls-key-file` | `WEB_TLS_KEY_FILE` | `""` *(empty)* | Path to server TLS private key file. Enables HTTPS. |
+| `--web.tls-client-ca-file` | `WEB_TLS_CLIENT_CA_FILE` | `""` *(empty)* | Path to client CA certificate file for Mutual TLS (mTLS) client certificate verification. |
 | `--version` | — | `false` | Prints exporter version and exits. |
 
 > [!IMPORTANT]
 > **API Token Permissions:** The API token generated in 3x-ui must have the **Administrator** scope. Restricted scopes (such as `monitoring`) do not grant access to the Xray routing configuration (`/panel/api/xray/`), inbound inventories (`/panel/api/inbounds/list`), or cluster nodes, causing scrapes to fail with HTTP `403 Forbidden`.
+
+---
+
+## Security & Remote Access: TLS and Authentication
+
+For securely publishing metrics to untrusted networks or the public internet, `3x-ui-exporter` includes built-in HTTPS and authentication support without requiring an external reverse proxy.
+
+### Security Highlights
+
+- **Timing Attack Protection**: Password and token comparisons are evaluated in constant time using `crypto/subtle.ConstantTimeCompare` combined with fixed-length SHA-256 hashes.
+- **Modern TLS**: Enforces TLS 1.2+ minimum version (`tls.VersionTLS12`) and secure AEAD cipher suites (ECDHE with AES-GCM and ChaCha20-Poly1305). Insecure ciphers (CBC, RC4, 3DES, static RSA) are completely disabled.
+- **Mutual TLS (mTLS)**: Optionally verify client certificates against a trusted CA (`--web.tls-client-ca-file`), enforcing `tls.RequireAndVerifyClientCert`.
+- **Flexible Authentication**: Supports HTTP Basic Auth, Bearer Token, or both simultaneously.
+- **Probe-Friendly `/healthz`**: The `/healthz` liveness probe endpoint remains accessible without credentials by default so Kubernetes liveness probes or systemd watchdogs function without secrets. Set `--web.auth-healthz=true` to require authentication for all endpoints.
+
+### Usage Examples
+
+#### 1. Bearer Token over HTTPS
+
+```sh
+./bin/3x-ui-exporter \
+  --web.tls-cert-file=/etc/ssl/certs/exporter.crt \
+  --web.tls-key-file=/etc/ssl/private/exporter.key \
+  --web.bearer-token="super-secret-token-12345"
+```
+
+Or via environment variables:
+
+```sh
+export WEB_TLS_CERT_FILE=/etc/ssl/certs/exporter.crt
+export WEB_TLS_KEY_FILE=/etc/ssl/private/exporter.key
+export WEB_BEARER_TOKEN="super-secret-token-12345"
+./bin/3x-ui-exporter
+```
+
+#### 2. Basic Authentication
+
+```sh
+./bin/3x-ui-exporter \
+  --web.basic-auth-username="prom-user" \
+  --web.basic-auth-password="complex-password-here"
+```
+
+Or using a secret file:
+
+```sh
+./bin/3x-ui-exporter \
+  --web.basic-auth-username="prom-user" \
+  --web.basic-auth-password-file=/run/secrets/basic_auth_password
+```
+
+#### 3. Mutual TLS (mTLS) + Bearer Token
+
+```sh
+./bin/3x-ui-exporter \
+  --web.tls-cert-file=/etc/ssl/certs/server.crt \
+  --web.tls-key-file=/etc/ssl/private/server.key \
+  --web.tls-client-ca-file=/etc/ssl/certs/client-ca.crt \
+  --web.bearer-token="cluster-scrape-token"
+```
+
+### Scraping Configurations
+
+#### Prometheus Configuration (`prometheus.yml`)
+
+**Bearer Token over HTTPS:**
+
+```yaml
+scrape_configs:
+  - job_name: "3x-ui"
+    scheme: https
+    bearer_token: "super-secret-token-12345"
+    static_configs:
+      - targets: ["your-server.example.com:9108"]
+    tls_config:
+      ca_file: /etc/prometheus/certs/ca.crt
+```
+
+**Basic Authentication over HTTPS:**
+
+```yaml
+scrape_configs:
+  - job_name: "3x-ui"
+    scheme: https
+    basic_auth:
+      username: "prom-user"
+      password: "complex-password-here"
+    static_configs:
+      - targets: ["your-server.example.com:9108"]
+    tls_config:
+      ca_file: /etc/prometheus/certs/ca.crt
+```
+
+**Mutual TLS (mTLS):**
+
+```yaml
+scrape_configs:
+  - job_name: "3x-ui-mtls"
+    scheme: https
+    static_configs:
+      - targets: ["your-server.example.com:9108"]
+    tls_config:
+      ca_file: /etc/prometheus/certs/server-ca.crt
+      cert_file: /etc/prometheus/certs/client.crt
+      key_file: /etc/prometheus/certs/client.key
+```
+
+#### Grafana Agent / Grafana Alloy
+
+```river
+prometheus.scrape "xui" {
+  targets = [{
+    __address__ = "your-server.example.com:9108",
+  }]
+  forward_to = [prometheus.remote_write.default.receiver]
+  scheme     = "https"
+
+  authorization {
+    type        = "Bearer"
+    credentials = "super-secret-token-12345"
+  }
+
+  tls_config {
+    ca_file = "/etc/agent/certs/ca.crt"
+  }
+}
+```
 
 ---
 
