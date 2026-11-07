@@ -301,18 +301,38 @@ verify_service_and_metrics() {
   if [[ "${SKIP_PROBE:-0}" -ne 1 ]]; then
     local probe_out
     probe_out="$(curl -s --max-time 3 "http://${metrics_addr}/metrics" 2>/dev/null || true)"
-    if echo "$probe_out" | grep -q 'xui_exporter_scrape_success{source="api"} 1'; then
-      success "Self-test passed! All metrics sources are healthy and responding."
-    elif echo "$probe_out" | grep -q 'xui_exporter_scrape_success{source="api"} 0'; then
-      warn "Self-test: exporter service is running, but panel API scraping failed."
-      warn "Please verify XUI_URL and XUI_API_TOKEN in ${CONFIG_PATH}"
-      warn "View logs: journalctl -u 3x-ui-exporter -n 25 --no-pager"
-    elif [[ -n "$probe_out" ]]; then
-      warn "Self-test: received metrics response, but source status could not be verified."
-      warn "View metrics output: curl -s http://${metrics_addr}/metrics"
-    else
+
+    if [[ -z "$probe_out" ]]; then
       warn "Self-test: could not connect to http://${metrics_addr}/metrics"
       warn "View logs: journalctl -u 3x-ui-exporter -n 25 --no-pager"
+      return 0
+    fi
+
+    local api_val expvars_val grpc_val
+    api_val="$(echo "$probe_out" | grep -E '^xui_exporter_scrape_success\{source="api"\}' | awk '{print $2}' || true)"
+    expvars_val="$(echo "$probe_out" | grep -E '^xui_exporter_scrape_success\{source="expvars"\}' | awk '{print $2}' || true)"
+    grpc_val="$(echo "$probe_out" | grep -E '^xui_exporter_scrape_success\{source="grpc"\}' | awk '{print $2}' || true)"
+
+    if [[ -z "$api_val" || -z "$expvars_val" || -z "$grpc_val" ]]; then
+      warn "Self-test: endpoint responded, but scrape_success metrics are missing or incomplete."
+      warn "View metrics output: curl -s http://${metrics_addr}/metrics"
+      return 0
+    fi
+
+    if [[ "$api_val" == "1" && "$expvars_val" == "1" && "$grpc_val" == "1" ]]; then
+      success "Self-test passed! All scrape sources are healthy (api: 1, grpc: 1, expvars: 1)."
+    else
+      warn "Self-test: one or more metric sources reported failure (api: ${api_val}, grpc: ${grpc_val}, expvars: ${expvars_val}):"
+      if [[ "$api_val" != "1" ]]; then
+        warn "  - api (0): failed to scrape 3x-ui API. Check XUI_URL and XUI_API_TOKEN (must have Administrator scope)."
+      fi
+      if [[ "$grpc_val" != "1" ]]; then
+        warn "  - grpc (0): failed to communicate with Xray gRPC API. Check XRAY_API."
+      fi
+      if [[ "$expvars_val" != "1" ]]; then
+        warn "  - expvars (0): failed to scrape Xray metrics (/debug/vars). Check panel metrics.listen or XRAY_METRICS_URL."
+      fi
+      warn "View detailed logs: journalctl -u 3x-ui-exporter -n 25 --no-pager"
     fi
   fi
 }
