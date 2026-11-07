@@ -144,7 +144,18 @@ download_and_install_binary() {
 
 create_or_update_systemd() {
   info "Configuring systemd service at ${SYSTEMD_PATH}..."
-  cat <<'EOF' > "$SYSTEMD_PATH"
+
+  local cred_lines=""
+  if [[ -f "$CONFIG_PATH" ]]; then
+    local cert_src key_src
+    cert_src="$(grep -E '^TLS_CERT_SOURCE=' "$CONFIG_PATH" | head -n1 | cut -d= -f2- | tr -d '\"'\'' ' || true)"
+    key_src="$(grep -E '^TLS_KEY_SOURCE=' "$CONFIG_PATH" | head -n1 | cut -d= -f2- | tr -d '\"'\'' ' || true)"
+    if [[ -n "$cert_src" && -n "$key_src" ]]; then
+      cred_lines="$(printf '\n# Secure credential loading for DynamicUser\nLoadCredential=tls-cert:%s\nLoadCredential=tls-key:%s' "$cert_src" "$key_src")"
+    fi
+  fi
+
+  cat <<EOF > "$SYSTEMD_PATH"
 [Unit]
 Description=3x-ui Prometheus Exporter
 Documentation=https://github.com/nike38rus/3x-ui-exporter
@@ -163,7 +174,7 @@ RestartSec=5s
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
-PrivateTmp=true
+PrivateTmp=true${cred_lines}
 
 [Install]
 WantedBy=multi-user.target
@@ -194,6 +205,9 @@ prompt_config() {
   local in_url="${2:-${XUI_URL:-}}"
   local in_listen="${3:-${LISTEN_ADDRESS:-}}"
   local in_xray_api="${4:-${XRAY_API:-}}"
+  local in_tls_cert="${5:-${TLS_CERT:-${WEB_TLS_CERT_FILE:-}}}"
+  local in_tls_key="${6:-${TLS_KEY:-${WEB_TLS_KEY_FILE:-}}}"
+  local in_bearer_token="${7:-${BEARER_TOKEN:-${WEB_BEARER_TOKEN:-}}}"
 
   local token="$in_token"
   local url="$in_url"
@@ -247,6 +261,60 @@ prompt_config() {
     xray_api="127.0.0.1:62789"
   fi
 
+  local enable_sec="n"
+  if [[ -n "$in_tls_cert" || -n "$in_tls_key" || -n "$in_bearer_token" ]]; then
+    enable_sec="y"
+  elif [[ -t 0 || -r /dev/tty ]]; then
+    read_input "Enable TLS & Bearer Token authentication for Prometheus? [y/N]: " enable_sec || true
+  fi
+
+  local tls_cert="$in_tls_cert"
+  local tls_key="$in_tls_key"
+  local bearer_token="$in_bearer_token"
+
+  if [[ "$enable_sec" =~ ^[yY] ]]; then
+    if [[ -z "$tls_cert" ]]; then
+      while true; do
+        read_input "Path to TLS certificate file (e.g. fullchain.pem): " tls_cert || true
+        if [[ -z "$tls_cert" ]]; then
+          warn "TLS certificate path is required when TLS is enabled."
+        elif [[ ! -f "$tls_cert" ]]; then
+          warn "File '${tls_cert}' does not exist. Please check the path."
+        else
+          break
+        fi
+      done
+    fi
+
+    if [[ -z "$tls_key" ]]; then
+      while true; do
+        read_input "Path to TLS private key file (e.g. privkey.pem): " tls_key || true
+        if [[ -z "$tls_key" ]]; then
+          warn "TLS private key path is required when TLS is enabled."
+        elif [[ ! -f "$tls_key" ]]; then
+          warn "File '${tls_key}' does not exist. Please check the path."
+        else
+          break
+        fi
+      done
+    fi
+
+    if [[ -n "$tls_cert" && -f "$tls_cert" ]]; then
+      tls_cert="$(cd "$(dirname "$tls_cert")" 2>/dev/null && pwd)/$(basename "$tls_cert")"
+    fi
+    if [[ -n "$tls_key" && -f "$tls_key" ]]; then
+      tls_key="$(cd "$(dirname "$tls_key")" 2>/dev/null && pwd)/$(basename "$tls_key")"
+    fi
+
+    if [[ -z "$bearer_token" ]]; then
+      local gen_token
+      gen_token="$(openssl rand -hex 24 2>/dev/null || head -c 24 /dev/urandom | tr -dc 'a-zA-Z0-9' 2>/dev/null || echo "xui-$(date +%s%N)")"
+      local input_token=""
+      read_input "Bearer Token for Prometheus [press Enter to auto-generate]: " input_token || true
+      bearer_token="${input_token:-$gen_token}"
+    fi
+  fi
+
   cat <<EOF > "$CONFIG_PATH"
 # 3x-ui-exporter environment configuration
 # Generated on $(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -267,16 +335,25 @@ SCRAPE_TIMEOUT=4s
 LOG_LEVEL=info
 LOG_FORMAT=text
 COLLECT_CLIENT_STATS=false
-
-# Optional HTTP Server Security (Basic Auth / Bearer Token / TLS / mTLS)
-# WEB_BASIC_AUTH_USERNAME=
-# WEB_BASIC_AUTH_PASSWORD=
-# WEB_BEARER_TOKEN=
-# WEB_AUTH_HEALTHZ=false
-# WEB_TLS_CERT_FILE=
-# WEB_TLS_KEY_FILE=
-# WEB_TLS_CLIENT_CA_FILE=
 EOF
+
+  if [[ -n "$tls_cert" && -n "$tls_key" ]]; then
+    cat <<EOF >> "$CONFIG_PATH"
+
+# Inbound TLS & HTTP Authentication
+TLS_CERT_SOURCE=${tls_cert}
+TLS_KEY_SOURCE=${tls_key}
+WEB_TLS_CERT_FILE=/run/credentials/3x-ui-exporter.service/tls-cert
+WEB_TLS_KEY_FILE=/run/credentials/3x-ui-exporter.service/tls-key
+EOF
+  fi
+
+  if [[ -n "$bearer_token" ]]; then
+    cat <<EOF >> "$CONFIG_PATH"
+WEB_BEARER_TOKEN=${bearer_token}
+WEB_AUTH_HEALTHZ=true
+EOF
+  fi
 
   chmod 600 "$CONFIG_PATH"
   success "Configuration saved to ${CONFIG_PATH} (permissions 0600)."
@@ -287,8 +364,14 @@ verify_service_and_metrics() {
 
   # Resolve local scrape address for display and self-test
   local active_listen=""
+  local tls_enabled=0
+  local bearer_token=""
   if [[ -f "$CONFIG_PATH" ]]; then
     active_listen="$(grep -E '^LISTEN_ADDRESS=' "$CONFIG_PATH" | head -n1 | cut -d= -f2- | tr -d '\"'\'' ' || true)"
+    if grep -E -q '^(WEB_TLS_CERT_FILE|TLS_CERT_SOURCE)=' "$CONFIG_PATH"; then
+      tls_enabled=1
+    fi
+    bearer_token="$(grep -E '^WEB_BEARER_TOKEN=' "$CONFIG_PATH" | head -n1 | cut -d= -f2- | tr -d '\"'\'' ' || true)"
   fi
   active_listen="${active_listen:-:9108}"
 
@@ -301,18 +384,47 @@ verify_service_and_metrics() {
     metrics_addr="$active_listen"
   fi
 
+  local scheme="http"
+  local curl_args=("-s" "--max-time" "3")
+  if [[ "$tls_enabled" -eq 1 ]]; then
+    scheme="https"
+    curl_args+=("-k")
+  fi
+
+  local auth_args=()
+  if [[ -n "$bearer_token" ]]; then
+    auth_args=("-H" "Authorization: Bearer ${bearer_token}")
+  fi
+
   if [[ "$show_service_hints" -eq 1 ]]; then
     info "Service status: systemctl status 3x-ui-exporter"
     info "Logs:           journalctl -u 3x-ui-exporter -f"
   fi
-  info "Metrics:        curl -s http://${metrics_addr}/metrics"
+
+  if [[ -n "$bearer_token" ]]; then
+    info "Metrics:        curl -sk -H \"Authorization: Bearer ${bearer_token}\" ${scheme}://${metrics_addr}/metrics"
+    info "Bearer Token:   ${bearer_token}"
+  else
+    info "Metrics:        curl -sk ${scheme}://${metrics_addr}/metrics"
+  fi
 
   if [[ "${SKIP_PROBE:-0}" -ne 1 ]]; then
+    # If bearer token is enabled, verify that unauthenticated request is rejected with 401
+    if [[ -n "$bearer_token" ]]; then
+      local unauth_code
+      unauth_code="$(curl -s -k --max-time 3 -o /dev/null -w "%{http_code}" "${scheme}://${metrics_addr}/metrics" 2>/dev/null || true)"
+      if [[ "$unauth_code" == "401" ]]; then
+        success "Security check passed: unauthenticated requests are rejected (HTTP 401)."
+      else
+        warn "Security check warning: unauthenticated request returned HTTP ${unauth_code} (expected 401)."
+      fi
+    fi
+
     local probe_out
-    probe_out="$(curl -s --max-time 3 "http://${metrics_addr}/metrics" 2>/dev/null || true)"
+    probe_out="$(curl "${curl_args[@]}" "${auth_args[@]}" "${scheme}://${metrics_addr}/metrics" 2>/dev/null || true)"
 
     if [[ -z "$probe_out" ]]; then
-      warn "Self-test: could not connect to http://${metrics_addr}/metrics"
+      warn "Self-test: could not connect to ${scheme}://${metrics_addr}/metrics"
       warn "View logs: journalctl -u 3x-ui-exporter -n 25 --no-pager"
       return 0
     fi
@@ -324,7 +436,7 @@ verify_service_and_metrics() {
 
     if [[ -z "$api_val" || -z "$expvars_val" || -z "$grpc_val" ]]; then
       warn "Self-test: endpoint responded, but scrape_success metrics are missing or incomplete."
-      warn "View metrics output: curl -s http://${metrics_addr}/metrics"
+      warn "View metrics output: curl -sk ${scheme}://${metrics_addr}/metrics"
       return 0
     fi
 
@@ -352,6 +464,9 @@ do_install() {
   local url="$3"
   local listen="$4"
   local xray_api="$5"
+  local tls_cert="$6"
+  local tls_key="$7"
+  local bearer_token="$8"
 
   local arch
   arch="$(detect_arch)"
@@ -363,7 +478,7 @@ do_install() {
 
   info "Installing 3x-ui-exporter ${target_ver} (${arch})..."
 
-  prompt_config "$token" "$url" "$listen" "$xray_api"
+  prompt_config "$token" "$url" "$listen" "$xray_api" "$tls_cert" "$tls_key" "$bearer_token"
   download_and_install_binary "$target_ver" "$arch"
   create_or_update_systemd
 
@@ -378,6 +493,108 @@ do_install() {
   else
     warn "3x-ui-exporter service is not active yet. Check logs with:"
     warn "  journalctl -u 3x-ui-exporter -n 25 --no-pager"
+  fi
+}
+
+do_config_tls() {
+  local tls_cert="${1:-${TLS_CERT:-${WEB_TLS_CERT_FILE:-}}}"
+  local tls_key="${2:-${TLS_KEY:-${WEB_TLS_KEY_FILE:-}}}"
+  local bearer_token="${3:-${BEARER_TOKEN:-${WEB_BEARER_TOKEN:-}}}"
+
+  if [[ ! -f "$CONFIG_PATH" ]]; then
+    abort "Configuration file ${CONFIG_PATH} does not exist. Please run install first."
+  fi
+
+  info "Configuring TLS & authentication for 3x-ui-exporter..."
+
+  if [[ -z "$tls_cert" ]]; then
+    while true; do
+      read_input "Path to TLS certificate file (e.g. fullchain.pem): " tls_cert || true
+      if [[ -z "$tls_cert" ]]; then
+        warn "TLS certificate path is required."
+      elif [[ ! -f "$tls_cert" ]]; then
+        warn "File '${tls_cert}' does not exist. Please check the path."
+      else
+        break
+      fi
+    done
+  fi
+
+  if [[ -z "$tls_key" ]]; then
+    while true; do
+      read_input "Path to TLS private key file (e.g. privkey.pem): " tls_key || true
+      if [[ -z "$tls_key" ]]; then
+        warn "TLS private key path is required."
+      elif [[ ! -f "$tls_key" ]]; then
+        warn "File '${tls_key}' does not exist. Please check the path."
+      else
+        break
+      fi
+    done
+  fi
+
+  if [[ ! -f "$tls_cert" ]]; then
+    abort "Certificate file '${tls_cert}' not found."
+  fi
+  if [[ ! -f "$tls_key" ]]; then
+    abort "Private key file '${tls_key}' not found."
+  fi
+
+  tls_cert="$(cd "$(dirname "$tls_cert")" 2>/dev/null && pwd)/$(basename "$tls_cert")"
+  tls_key="$(cd "$(dirname "$tls_key")" 2>/dev/null && pwd)/$(basename "$tls_key")"
+
+  if [[ -z "$bearer_token" ]]; then
+    local gen_token
+    gen_token="$(openssl rand -hex 24 2>/dev/null || head -c 24 /dev/urandom | tr -dc 'a-zA-Z0-9' 2>/dev/null || echo "xui-$(date +%s%N)")"
+    local input_token=""
+    read_input "Bearer Token for Prometheus [press Enter to auto-generate]: " input_token || true
+    bearer_token="${input_token:-$gen_token}"
+  fi
+
+  # If LISTEN_ADDRESS is currently local-only, offer to open to all interfaces
+  local current_listen
+  current_listen="$(grep -E '^LISTEN_ADDRESS=' "$CONFIG_PATH" | head -n1 | cut -d= -f2- | tr -d '\"'\'' ' || true)"
+  if [[ "$current_listen" =~ ^127\.0\.0\.1:([0-9]+)$ ]]; then
+    local port="${BASH_REMATCH[1]}"
+    local change_bind="y"
+    read_input "Current LISTEN_ADDRESS is local-only (${current_listen}). Change to :${port} to allow external Prometheus scrapes? [Y/n]: " change_bind || true
+    if [[ ! "$change_bind" =~ ^[nN] ]]; then
+      sed -i.bak -E "s|^LISTEN_ADDRESS=.*|LISTEN_ADDRESS=:${port}|" "$CONFIG_PATH"
+      rm -f "${CONFIG_PATH}.bak"
+      info "Updated LISTEN_ADDRESS=:${port}"
+    fi
+  fi
+
+  info "Saving TLS & authentication settings to ${CONFIG_PATH}..."
+  sed -i.bak -E '/^(TLS_CERT_SOURCE|TLS_KEY_SOURCE|WEB_TLS_CERT_FILE|WEB_TLS_KEY_FILE|WEB_BEARER_TOKEN|WEB_AUTH_HEALTHZ)=/d' "$CONFIG_PATH"
+  rm -f "${CONFIG_PATH}.bak"
+
+  cat <<EOF >> "$CONFIG_PATH"
+
+# Inbound TLS & HTTP Authentication
+TLS_CERT_SOURCE=${tls_cert}
+TLS_KEY_SOURCE=${tls_key}
+WEB_TLS_CERT_FILE=/run/credentials/3x-ui-exporter.service/tls-cert
+WEB_TLS_KEY_FILE=/run/credentials/3x-ui-exporter.service/tls-key
+WEB_BEARER_TOKEN=${bearer_token}
+WEB_AUTH_HEALTHZ=true
+EOF
+
+  chmod 600 "$CONFIG_PATH"
+  success "Configuration saved to ${CONFIG_PATH} (permissions 0600)."
+
+  create_or_update_systemd
+
+  info "Restarting 3x-ui-exporter service..."
+  systemctl restart 3x-ui-exporter
+  sleep 1
+
+  if systemctl is-active --quiet 3x-ui-exporter; then
+    success "3x-ui-exporter is active with TLS and authentication!"
+    verify_service_and_metrics 1
+  else
+    error "Service failed to restart cleanly with new TLS configuration. Check logs:"
+    journalctl -u 3x-ui-exporter -n 25 --no-pager
   fi
 }
 
@@ -500,8 +717,9 @@ Usage: $0 [command] [options]
 Commands:
   install      Install 3x-ui-exporter as a systemd service (default)
   update       Update the exporter binary to the latest version (preserves config)
+  config-tls   Configure inbound TLS certificate and Bearer token for Prometheus
   uninstall    Remove the exporter binary and systemd service (--purge to also remove config)
-  status       Show current service status and version
+  status       Show current service status, metrics, and health check
   restart      Restart the systemd service
 
 Options:
@@ -509,19 +727,26 @@ Options:
   -t, --token <token>      3x-ui API Bearer Token (requires Administrator scope)
   -u, --url <url>          3x-ui Panel URL (default: http://127.0.0.1:2053)
   -l, --listen <addr>      Metrics listen address (default: :9108)
+  -C, --tls-cert <path>    Path to TLS certificate file (e.g. fullchain.pem)
+  -K, --tls-key <path>     Path to TLS private key file (e.g. privkey.pem)
+  -B, --bearer-token <tok> Bearer token for Prometheus authentication
   -p, --purge              Also remove configuration file during uninstall
   -h, --help               Show this help message
 
 Environment Variables:
-  VERSION, XUI_API_TOKEN, XUI_URL, LISTEN_ADDRESS, XRAY_API
+  VERSION, XUI_API_TOKEN, XUI_URL, LISTEN_ADDRESS, XRAY_API,
+  TLS_CERT (or WEB_TLS_CERT_FILE), TLS_KEY (or WEB_TLS_KEY_FILE),
+  BEARER_TOKEN (or WEB_BEARER_TOKEN)
 
 Examples:
   # Interactive installation:
   sudo bash install.sh
 
-  # One-line automated install:
-  curl -sSL https://raw.githubusercontent.com/nike38rus/3x-ui-exporter/main/install.sh | \
-    sudo XUI_API_TOKEN="your_token" bash
+  # Configure TLS and authentication on existing installation:
+  sudo bash install.sh config-tls
+
+  # Automated install with TLS & Bearer token:
+  sudo bash install.sh -t "xui_token" -C "/path/to/fullchain.pem" -K "/path/to/privkey.pem"
 
   # Update to latest version:
   sudo bash install.sh update
@@ -538,11 +763,14 @@ main() {
   local url="${XUI_URL:-}"
   local listen="${LISTEN_ADDRESS:-}"
   local xray_api="${XRAY_API:-}"
+  local tls_cert="${TLS_CERT:-${WEB_TLS_CERT_FILE:-}}"
+  local tls_key="${TLS_KEY:-${WEB_TLS_KEY_FILE:-}}"
+  local bearer_token="${BEARER_TOKEN:-${WEB_BEARER_TOKEN:-}}"
   local purge_config=0
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      install|update|uninstall|status|restart)
+      install|update|uninstall|status|restart|config-tls|tls)
         cmd="$1"
         shift
         ;;
@@ -560,6 +788,18 @@ main() {
         ;;
       -l|--listen)
         listen="$2"
+        shift 2
+        ;;
+      -C|--tls-cert)
+        tls_cert="$2"
+        shift 2
+        ;;
+      -K|--tls-key)
+        tls_key="$2"
+        shift 2
+        ;;
+      -B|--bearer-token)
+        bearer_token="$2"
         shift 2
         ;;
       -p|--purge)
@@ -594,11 +834,14 @@ main() {
         info "3x-ui-exporter is already installed. Running update..."
         do_update "$target_ver"
       else
-        do_install "$target_ver" "$token" "$url" "$listen" "$xray_api"
+        do_install "$target_ver" "$token" "$url" "$listen" "$xray_api" "$tls_cert" "$tls_key" "$bearer_token"
       fi
       ;;
     update)
       do_update "$target_ver"
+      ;;
+    config-tls|tls)
+      do_config_tls "$tls_cert" "$tls_key" "$bearer_token"
       ;;
     uninstall)
       do_uninstall "$purge_config"

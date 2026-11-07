@@ -214,6 +214,27 @@ curl -sSL https://raw.githubusercontent.com/nike38rus/3x-ui-exporter/main/instal
 curl -sSL https://raw.githubusercontent.com/nike38rus/3x-ui-exporter/main/install.sh | sudo bash -s update -v edge
 ```
 
+#### Inbound TLS & Prometheus Authentication
+
+To secure the metrics endpoint for remote Prometheus scrapes across the public internet using TLS and a Bearer token:
+
+```sh
+# Configure TLS and auto-generate a secure Bearer token on an existing installation:
+curl -sSL https://raw.githubusercontent.com/nike38rus/3x-ui-exporter/main/install.sh | \
+  sudo bash -s config-tls \
+    --tls-cert /root/cert/ip/fullchain.pem \
+    --tls-key /root/cert/ip/privkey.pem
+
+# Or run interactively (prompts for paths and auto-generates a token):
+curl -sSL https://raw.githubusercontent.com/nike38rus/3x-ui-exporter/main/install.sh | \
+  sudo bash -s config-tls
+```
+
+The installer:
+- Configures systemd `LoadCredential` to securely grant the sandboxed `DynamicUser` read access to root-owned TLS private keys without relaxing file permissions.
+- Configures `WEB_BEARER_TOKEN` in `/etc/3x-ui-exporter.env` and enables `WEB_AUTH_HEALTHZ=true`.
+- Performs security validation: ensures unauthenticated requests are rejected (HTTP 401) and authenticated scrapes succeed over HTTPS.
+
 #### Service Management
 
 ```sh
