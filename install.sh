@@ -97,14 +97,17 @@ download_and_install_binary() {
   info "Downloading ${archive_name} (${target_ver})..."
   local tmp_dir
   tmp_dir="$(mktemp -d)"
-  trap 'rm -rf "$tmp_dir"' RETURN
 
   if ! curl -fsSL "$download_url" -o "${tmp_dir}/${archive_name}"; then
+    rm -rf "$tmp_dir"
     abort "Failed to download release archive from ${download_url}."
   fi
 
   info "Extracting binary..."
-  tar -xzf "${tmp_dir}/${archive_name}" -C "$tmp_dir"
+  if ! tar -xzf "${tmp_dir}/${archive_name}" -C "$tmp_dir"; then
+    rm -rf "$tmp_dir"
+    abort "Failed to extract release archive."
+  fi
 
   local bin_source="${tmp_dir}/3x-ui-exporter"
   if [[ ! -f "$bin_source" ]]; then
@@ -113,6 +116,7 @@ download_and_install_binary() {
     if [[ -n "$found_bin" ]]; then
       bin_source="$found_bin"
     else
+      rm -rf "$tmp_dir"
       abort "Could not find 3x-ui-exporter binary inside release archive."
     fi
   fi
@@ -120,6 +124,7 @@ download_and_install_binary() {
   info "Installing binary to ${BIN_PATH}..."
   mkdir -p "$BIN_DIR"
   install -m 755 "$bin_source" "$BIN_PATH"
+  rm -rf "$tmp_dir"
 
   success "Binary installed: $(${BIN_PATH} -version 2>/dev/null || echo "$target_ver")"
 }
