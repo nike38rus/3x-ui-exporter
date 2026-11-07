@@ -6,11 +6,11 @@
 set -euo pipefail
 
 GITHUB_REPO="nike38rus/3x-ui-exporter"
-BIN_DIR="/usr/local/bin"
+BIN_DIR="${BIN_DIR:-/usr/local/bin}"
 BIN_NAME="3x-ui-exporter"
 BIN_PATH="${BIN_DIR}/${BIN_NAME}"
-CONFIG_PATH="/etc/3x-ui-exporter.env"
-SYSTEMD_PATH="/etc/systemd/system/3x-ui-exporter.service"
+CONFIG_PATH="${CONFIG_PATH:-/etc/3x-ui-exporter.env}"
+SYSTEMD_PATH="${SYSTEMD_PATH:-/etc/systemd/system/3x-ui-exporter.service}"
 
 # Terminal colors
 RED='\033[0;31m'
@@ -41,25 +41,38 @@ abort() {
 }
 
 check_root() {
-  if [[ "$(id -u)" -ne 0 ]]; then
+  if [[ "${SKIP_ROOT_CHECK:-0}" -ne 1 && "$(id -u)" -ne 0 ]]; then
     abort "This script must be run as root (or with sudo)."
   fi
 }
 
 check_systemd() {
-  if ! command -v systemctl >/dev/null 2>&1; then
+  if [[ "${SKIP_SYSTEMD_CHECK:-0}" -ne 1 ]] && ! command -v systemctl >/dev/null 2>&1; then
     abort "systemd is required but systemctl was not found."
+  fi
+}
+
+check_dependencies() {
+  local missing=()
+  local tool
+  for tool in curl tar; do
+    if ! command -v "$tool" >/dev/null 2>&1; then
+      missing+=("$tool")
+    fi
+  done
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    abort "Required utilities missing: ${missing[*]}. Please install them (e.g. apt-get install -y ${missing[*]})."
   fi
 }
 
 detect_arch() {
   local os arch
-  os="$(uname -s)"
+  os="${TARGET_OS:-$(uname -s)}"
   if [[ "$os" != "Linux" ]]; then
     abort "Unsupported OS: $os. 3x-ui-exporter runs on Linux."
   fi
 
-  arch="$(uname -m)"
+  arch="${TARGET_ARCH:-$(uname -m)}"
   case "$arch" in
     x86_64|amd64)
       echo "amd64"
@@ -82,7 +95,7 @@ get_latest_version() {
     tag="$(curl -fsSL "https://api.github.com/repos/${GITHUB_REPO}/releases/latest" 2>/dev/null | grep '"tag_name":' | head -n1 | cut -d '"' -f 4)" || true
   fi
   if [[ ! "$tag" =~ ^v[0-9]+ ]]; then
-    echo "v1.0.0"
+    echo "v1.3.0"
   else
     echo "$tag"
   fi
@@ -211,10 +224,15 @@ prompt_config() {
 
   if [[ -z "$url" ]]; then
     local input_url=""
-    if read_input "3x-ui URL [default: http://127.0.0.1:2053]: " input_url; then
+    if read_input "3x-ui URL (use https:// if panel has SSL) [default: http://127.0.0.1:2053]: " input_url; then
       url="$input_url"
     fi
     url="${url:-http://127.0.0.1:2053}"
+  fi
+
+  if [[ -n "$url" && ! "$url" =~ ^https?:// ]]; then
+    warn "URL '${url}' does not start with http:// or https://. Assuming http://${url}"
+    url="http://${url}"
   fi
 
   if [[ -z "$listen" ]]; then
@@ -283,9 +301,33 @@ do_install() {
   sleep 1
   if systemctl is-active --quiet 3x-ui-exporter; then
     success "3x-ui-exporter is active and running!"
+
+    # Resolve local scrape address for display and self-test
+    local metrics_addr="127.0.0.1:9108"
+    local active_listen="${listen:-:9108}"
+    if [[ "$active_listen" =~ ^:([0-9]+)$ ]]; then
+      metrics_addr="127.0.0.1${active_listen}"
+    elif [[ "$active_listen" =~ ^0\.0\.0\.0:([0-9]+)$ ]]; then
+      metrics_addr="127.0.0.1:${BASH_REMATCH[1]}"
+    else
+      metrics_addr="$active_listen"
+    fi
+
     info "Service status: systemctl status 3x-ui-exporter"
     info "Logs:           journalctl -u 3x-ui-exporter -f"
-    info "Metrics:        curl -s http://localhost${listen:-:9108}/metrics"
+    info "Metrics:        curl -s http://${metrics_addr}/metrics"
+
+    if [[ "${SKIP_PROBE:-0}" -ne 1 ]]; then
+      local probe_out
+      probe_out="$(curl -s --max-time 3 "http://${metrics_addr}/metrics" 2>/dev/null || true)"
+      if echo "$probe_out" | grep -q 'xui_exporter_scrape_success{source="api"} 1'; then
+        success "Self-test passed! All metrics sources are healthy and responding."
+      elif echo "$probe_out" | grep -q 'xui_exporter_scrape_success{source="api"} 0'; then
+        warn "Self-test: exporter service is running, but panel API scraping failed."
+        warn "Please verify XUI_URL and XUI_API_TOKEN in ${CONFIG_PATH}"
+        warn "View logs: journalctl -u 3x-ui-exporter -n 25 --no-pager"
+      fi
+    fi
   else
     warn "3x-ui-exporter service is not active yet. Check logs with:"
     warn "  journalctl -u 3x-ui-exporter -n 25 --no-pager"
@@ -471,6 +513,7 @@ main() {
 
   check_root
   check_systemd
+  check_dependencies
 
   case "$cmd" in
     install)
