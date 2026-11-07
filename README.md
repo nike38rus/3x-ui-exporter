@@ -192,7 +192,7 @@ curl -sSL https://raw.githubusercontent.com/nike38rus/3x-ui-exporter/main/instal
 The installer:
 - Detects the CPU architecture (`amd64` / `arm64`) and downloads the latest release binary to `/usr/local/bin/3x-ui-exporter`.
 - Creates a secure environment file at `/etc/3x-ui-exporter.env` (permissions `0600`).
-- Configures a sandboxed systemd service at `/etc/systemd/system/3x-ui-exporter.service` running as `nobody`.
+- Configures a sandboxed systemd service at `/etc/systemd/system/3x-ui-exporter.service` with `DynamicUser` isolation.
 - Enables and starts the service immediately.
 
 #### Updating

@@ -153,7 +153,7 @@ Wants=x-ui.service
 
 [Service]
 Type=simple
-User=nobody
+DynamicUser=yes
 EnvironmentFile=/etc/3x-ui-exporter.env
 ExecStart=/usr/local/bin/3x-ui-exporter
 Restart=on-failure
