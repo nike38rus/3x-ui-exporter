@@ -8,7 +8,7 @@
 
 High-performance, stateless Prometheus exporter for the **[3x-ui](https://github.com/MHSanaei/3x-ui)** control panel and its running **Xray core**.
 
-Provides real-time visibility into traffic throughput, memory and GC behavior, balancer selection and fallback states, and outbound latency health via Xray's Observatory probe statistics.
+Provides real-time visibility into traffic throughput, multi-node cluster health, client account lifecycle and active sessions, memory and GC behavior, balancer selection and fallback states, and outbound latency health via Xray's Observatory probe statistics.
 
 ---
 
@@ -23,6 +23,7 @@ Provides real-time visibility into traffic throughput, memory and GC behavior, b
   - [Systemd Service Installation](#systemd-service-installation-standalone-host--vm)
   - [Manual Binary Execution](#manual-binary-execution)
 - [Configuration Reference](#configuration-reference)
+- [Security & Remote Access: TLS and Authentication](#security--remote-access-tls-and-authentication)
 - [Metrics Reference](#metrics-reference)
   - [Exporter Diagnostics](#exporter-diagnostics)
   - [Panel, Node Cluster, and Inbound Status](#panel-node-cluster-and-inbound-status)
@@ -63,8 +64,11 @@ Traditional exporters for 3x-ui often rely on periodic background polling, store
 - **Automatic Metrics Discovery:** Automatically extracts Xray's `metrics.listen` address directly from current panel settings, with support for explicit URL overrides.
 - **Role-Aware Balancer Tracking:** Distinguishes between `primary` targets, configured `fallback` paths, and active `override` states across leastLoad, leastPing, random, and roundRobin strategies.
 - **Comprehensive Observatory Insights:** Exports burst observatory probe counts, failure rates, and RTT distributions (mean, min, max, deviation).
+- **Multi-Node Cluster & Client Lifecycle Telemetry:** Monitors remote cluster nodes (online status, latency, CPU/RAM, uptime, per-node online clients, cross-node inbound traffic) and tracks deduplicated client accounts by lifecycle state (`active`, `disabled`, `expired`, `depleted`).
+- **Built-In TLS, mTLS & HTTP Authentication:** Securely expose `/metrics` for remote Prometheus scraping using TLS 1.2+, Mutual TLS (mTLS), Basic Auth, or Bearer tokens (with secret file support and anti-fingerprinting responses).
+- **Automated `systemd` Installer:** One-command installation, in-place updates, TLS & token setup (`config-tls`), and automated 3-source health self-tests (`api`, `grpc`, `expvars`).
 - **Hardened Distroless/Scratch Image:** Final Docker image is built `FROM scratch` with a statically linked Go binary: ~15 MB total size, runs as non-root user `65532:65532`, with zero OS packages and zero CVEs.
-- **Out-of-the-Box Grafana Dashboards:** Includes production-verified Grafana dashboards (in both Classic and Schema v2 formats) featuring a comprehensive Overview and an automated outbound **Quality Score**.
+- **Out-of-the-Box Grafana Dashboards:** Includes production-verified Grafana dashboards (in both Classic and Schema v2 formats) featuring a comprehensive Overview, multi-job support, and an automated outbound **Quality Score**.
 
 ---
 
@@ -251,13 +255,16 @@ curl -sSL https://raw.githubusercontent.com/nike38rus/3x-ui-exporter/main/instal
 
 The installer:
 - Configures systemd `LoadCredential` to securely grant the sandboxed `DynamicUser` read access to root-owned TLS private keys without relaxing file permissions.
-- Configures `WEB_BEARER_TOKEN` in `/etc/3x-ui-exporter.env` and enables `WEB_AUTH_HEALTHZ=true`.
-- Performs security validation: ensures unauthenticated requests are rejected (HTTP 401) and authenticated scrapes succeed over HTTPS.
+- Configures `WEB_BEARER_TOKEN` in `/etc/3x-ui-exporter.env` and prompts whether to require authentication on `/healthz` (`WEB_AUTH_HEALTHZ`, or via `--auth-healthz` / `--no-auth-healthz`).
+- Performs security and scrape validation: ensures unauthenticated requests are rejected (HTTP 401), authenticated scrapes succeed over HTTPS, and all three upstream sources (`api`, `grpc`, `expvars`) report healthy.
 
 #### Service Management
 
 ```sh
-# Check status and version
+# Run service status check and 3-source scrape self-test (api, grpc, expvars):
+curl -sSL https://raw.githubusercontent.com/nike38rus/3x-ui-exporter/main/install.sh | sudo bash -s status
+
+# Check binary version and systemd status directly:
 sudo /usr/local/bin/3x-ui-exporter -version
 sudo systemctl status 3x-ui-exporter
 
@@ -693,7 +700,7 @@ Xray's `GetBalancerInfo` exposes candidate pools, not actual connection logs, fo
 
 ### Prerequisites
 
-- Go 1.24+ (uses `testing/synctest`)
+- Go 1.27+ (uses `testing/synctest`)
 - Docker (optional, for container builds)
 
 ### Common Make Targets
@@ -715,7 +722,7 @@ make linux
 make licenses
 
 # Package release archives with checksums
-make release VERSION=v0.6.1
+make release VERSION=v1.4.0
 ```
 
 ---
