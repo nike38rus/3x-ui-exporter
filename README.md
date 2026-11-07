@@ -20,7 +20,7 @@ Provides real-time visibility into traffic throughput, memory and GC behavior, b
 - [Quick Start](#quick-start)
   - [Docker Compose (Recommended)](#docker-compose-recommended)
   - [Prometheus Configuration](#prometheus-configuration)
-  - [Systemd Service Installation](#systemd-service-installation-standalone-host-vm)
+  - [Systemd Service Installation](#systemd-service-installation-standalone-host--vm)
   - [Manual Binary Execution](#manual-binary-execution)
 - [Configuration Reference](#configuration-reference)
 - [Metrics Reference](#metrics-reference)
