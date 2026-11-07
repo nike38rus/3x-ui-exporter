@@ -729,6 +729,38 @@ EOF
   fi
 }
 
+_UPDATE_BACKUP_BIN=""
+_UPDATE_BACKUP_UNIT=""
+_UPDATE_PREV_VER=""
+_UPDATE_OK=0
+
+rollback_update() {
+  set +e
+  if [[ "${_UPDATE_OK:-0}" -eq 1 ]]; then
+    if [[ -n "${_UPDATE_BACKUP_BIN:-}" && -f "${_UPDATE_BACKUP_BIN}" ]]; then
+      rm -f "${_UPDATE_BACKUP_BIN}"
+    fi
+    if [[ -n "${_UPDATE_BACKUP_UNIT:-}" && -f "${_UPDATE_BACKUP_UNIT}" ]]; then
+      rm -f "${_UPDATE_BACKUP_UNIT}"
+    fi
+    return 0
+  fi
+
+  if [[ -n "${_UPDATE_BACKUP_BIN:-}" && -f "${_UPDATE_BACKUP_BIN}" ]]; then
+    warn "Rolling back to previous binary (${_UPDATE_PREV_VER:-unknown})..."
+    install -m 755 "${_UPDATE_BACKUP_BIN}" "$BIN_PATH" 2>/dev/null || cp -fp "${_UPDATE_BACKUP_BIN}" "$BIN_PATH" 2>/dev/null || true
+    rm -f "${_UPDATE_BACKUP_BIN}"
+  fi
+
+  if [[ -n "${_UPDATE_BACKUP_UNIT:-}" && -f "${_UPDATE_BACKUP_UNIT}" ]]; then
+    cp -p "${_UPDATE_BACKUP_UNIT}" "$SYSTEMD_PATH" 2>/dev/null || true
+    rm -f "${_UPDATE_BACKUP_UNIT}"
+    systemctl daemon-reload 2>/dev/null || true
+  fi
+
+  systemctl restart 3x-ui-exporter 2>/dev/null || true
+}
+
 do_update() {
   local target_ver="${1:-}"
   local arch
@@ -740,47 +772,28 @@ do_update() {
     return
   fi
 
-  local current_ver
-  current_ver="$("${BIN_PATH}" -version 2>/dev/null || echo "unknown")"
-  info "Current version: ${current_ver}"
+  _UPDATE_PREV_VER="$("${BIN_PATH}" -version 2>/dev/null || echo "unknown")"
+  info "Current version: ${_UPDATE_PREV_VER}"
 
   if [[ -z "$target_ver" ]]; then
     info "Resolving latest release version..."
     target_ver="$(get_latest_version)" || exit 1
   fi
 
-  if [[ "$current_ver" == "$target_ver" ]]; then
-    info "Already on latest version (${current_ver}). Re-installing to ensure binary integrity..."
+  if [[ "$_UPDATE_PREV_VER" == "$target_ver" ]]; then
+    info "Already on latest version (${_UPDATE_PREV_VER}). Re-installing to ensure binary integrity..."
   else
-    info "Updating from ${current_ver} -> ${target_ver}..."
+    info "Updating from ${_UPDATE_PREV_VER} -> ${target_ver}..."
   fi
 
-  local backup_bin="${BIN_PATH}.bak.$$"
-  local backup_unit=""
-  local update_ok=0
-  cp -p "$BIN_PATH" "$backup_bin"
+  _UPDATE_BACKUP_BIN="${BIN_PATH}.bak.$$"
+  _UPDATE_BACKUP_UNIT=""
+  _UPDATE_OK=0
+  cp -p "$BIN_PATH" "$_UPDATE_BACKUP_BIN"
   if [[ -f "$SYSTEMD_PATH" ]]; then
-    backup_unit="${SYSTEMD_PATH}.bak.$$"
-    cp -p "$SYSTEMD_PATH" "$backup_unit"
+    _UPDATE_BACKUP_UNIT="${SYSTEMD_PATH}.bak.$$"
+    cp -p "$SYSTEMD_PATH" "$_UPDATE_BACKUP_UNIT"
   fi
-
-  rollback_update() {
-    if [[ "${update_ok:-0}" -eq 1 ]]; then
-      rm -f "$backup_bin" ${backup_unit:+"$backup_unit"}
-      return 0
-    fi
-    if [[ -f "$backup_bin" ]]; then
-      warn "Rolling back to previous binary (${current_ver})..."
-      install -m 755 "$backup_bin" "$BIN_PATH" || true
-      rm -f "$backup_bin"
-    fi
-    if [[ -n "$backup_unit" && -f "$backup_unit" ]]; then
-      cp -p "$backup_unit" "$SYSTEMD_PATH" || true
-      rm -f "$backup_unit"
-      systemctl daemon-reload 2>/dev/null || true
-    fi
-    systemctl restart 3x-ui-exporter 2>/dev/null || true
-  }
   trap 'rollback_update' EXIT
 
   download_and_install_binary "$target_ver" "$arch"
@@ -792,14 +805,14 @@ do_update() {
 
   if systemctl is-active --quiet 3x-ui-exporter; then
     if verify_service_and_metrics 0; then
-      update_ok=1
+      _UPDATE_OK=1
     fi
   else
     error "Service failed to restart cleanly after update. Check logs:"
     journalctl -u 3x-ui-exporter -n 25 --no-pager || true
   fi
 
-  if [[ "$update_ok" -eq 1 ]]; then
+  if [[ "$_UPDATE_OK" -eq 1 ]]; then
     rollback_update
     trap - EXIT
     success "Update completed successfully! Service is active."
