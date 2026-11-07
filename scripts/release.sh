@@ -2,8 +2,8 @@
 set -euo pipefail
 
 version="${1:?Pass the release version}"
-if [[ ! "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$ ]]; then
-  printf 'Expected a version such as v0.1.0\n' >&2
+if [[ "$version" != "edge" && ! "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$ ]]; then
+  printf 'Expected a version such as v0.1.0 or edge\n' >&2
   exit 1
 fi
 

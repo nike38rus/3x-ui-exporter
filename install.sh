@@ -505,7 +505,7 @@ Commands:
   restart      Restart the systemd service
 
 Options:
-  -v, --version <tag>      Target release version (e.g. v1.0.0, default: latest)
+  -v, --version <tag>      Target release version (e.g. v1.3.0, edge, default: latest)
   -t, --token <token>      3x-ui API Bearer Token (requires Administrator scope)
   -u, --url <url>          3x-ui Panel URL (default: http://127.0.0.1:2053)
   -l, --listen <addr>      Metrics listen address (default: :9108)
@@ -582,7 +582,9 @@ main() {
   check_systemd
   check_dependencies
 
-  if [[ -n "$target_ver" && "$target_ver" =~ ^[0-9] ]]; then
+  if [[ "$target_ver" == "vedge" ]]; then
+    target_ver="edge"
+  elif [[ -n "$target_ver" && "$target_ver" =~ ^[0-9] ]]; then
     target_ver="v${target_ver}"
   fi
 

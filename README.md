@@ -196,12 +196,22 @@ The installer:
 - Configures a sandboxed systemd service at `/etc/systemd/system/3x-ui-exporter.service` with `DynamicUser` isolation.
 - Enables and starts the service immediately.
 
-#### Updating
+#### Updating and Version Pinning
 
 To update an existing installation to the latest release while strictly preserving your `/etc/3x-ui-exporter.env` configuration:
 
 ```sh
 curl -sSL https://raw.githubusercontent.com/nike38rus/3x-ui-exporter/main/install.sh | sudo bash -s update
+```
+
+To switch to a specific release version, downgrade, or install the rolling bleeding-edge build from `main`:
+
+```sh
+# Pin specific version:
+curl -sSL https://raw.githubusercontent.com/nike38rus/3x-ui-exporter/main/install.sh | sudo bash -s update -v v1.2.0
+
+# Install or update to edge build (latest commit on main):
+curl -sSL https://raw.githubusercontent.com/nike38rus/3x-ui-exporter/main/install.sh | sudo bash -s update -v edge
 ```
 
 #### Service Management
