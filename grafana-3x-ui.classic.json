@@ -86,9 +86,250 @@
         "x": 0,
         "y": 0
       },
-      "id": 74,
+      "id": 75,
       "title": "Overview",
       "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS-INFRA}"
+      },
+      "description": "Whether Prometheus can scrape the exporter; independent of upstream collection success.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "red",
+                  "index": 0,
+                  "text": "DOWN"
+                },
+                "1": {
+                  "color": "green",
+                  "index": 1,
+                  "text": "UP"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "min": 0,
+          "noValue": "No data",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 3,
+        "x": 0,
+        "y": 1
+      },
+      "id": 39,
+      "interval": "5s",
+      "maxDataPoints": 5000,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {},
+        "textMode": "value",
+        "wideLayout": false
+      },
+      "pluginVersion": "13.3.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "expr": "up{instance=\"${instance}\"}",
+          "instant": true,
+          "legendFormat": "Target",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "Prometheus target",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS-INFRA}"
+      },
+      "description": "Successful / present sources. Numeric value is the success fraction, used for color. With the upcoming exporter all three source rows are always present. Older exporters may expose fewer sources. No data when the target is down. API: settings/status; gRPC: runtime outbounds/balancers; expvars: traffic, memory/GC and observation.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "noValue": "Unknown",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#404040",
+                "value": 0
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Failed",
+              "scope": "series"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Total",
+              "scope": "series"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": 0
+                    },
+                    {
+                      "color": "green",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 3,
+        "x": 3,
+        "y": 1
+      },
+      "id": 40,
+      "interval": "5s",
+      "links": [
+        {
+          "targetBlank": false,
+          "title": "Collection history",
+          "url": "/d/${__dashboard.uid}/?viewPanel=panel-23&${__all_variables}"
+        }
+      ],
+      "maxDataPoints": 5000,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "vertical",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 10
+        },
+        "textMode": "value_and_name",
+        "wideLayout": false
+      },
+      "pluginVersion": "13.3.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "count(xui_exporter_scrape_success{instance=\"${instance}\"})",
+          "instant": true,
+          "legendFormat": "Total",
+          "range": false,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "expr": "count(xui_exporter_scrape_success{instance=\"${instance}\"}) - sum(xui_exporter_scrape_success{instance=\"${instance}\"})",
+          "instant": true,
+          "legendFormat": "Failed",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "Metrics sources",
+      "type": "stat"
     },
     {
       "datasource": {
@@ -100,19 +341,15 @@
         "defaults": {
           "color": {
             "fixedColor": "blue",
-            "mode": "fixed"
+            "mode": "thresholds"
           },
           "noValue": "No data",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "#404040",
                 "value": 0
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
           },
@@ -168,8 +405,8 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 4,
-        "x": 0,
+        "w": 3,
+        "x": 6,
         "y": 1
       },
       "id": 38,
@@ -189,10 +426,7 @@
           "values": false
         },
         "showPercentChange": false,
-        "text": {
-          "titleSize": 28,
-          "valueSize": 36
-        },
+        "text": {},
         "textMode": "name",
         "wideLayout": true
       },
@@ -204,7 +438,7 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "xui_xray_state{instance=\"${instance}\"} == 1 and on(instance,job) (xui_exporter_scrape_success{instance=\"${instance}\",source=\"api\"} == 1) and on(instance,job) (up{instance=\"${instance}\"} == 1)",
+          "expr": "(xui_xray_state{instance=\"${instance}\"} == 1)\nor on()\nlabel_replace(vector(0), \"state\", \"Unknown\", \"\", \"\")",
           "instant": true,
           "legendFormat": "{{state}}",
           "range": false,
@@ -219,220 +453,82 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS-INFRA}"
       },
-      "description": "Whether Prometheus can scrape the exporter; independent of upstream collection success.",
+      "description": "Offline / total remote cluster nodes. Based on master panel heartbeat status. Numeric value is the availability fraction used for color. No data when no remote nodes are configured or panel API is unreachable.",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "thresholds"
           },
           "decimals": 0,
-          "mappings": [
-            {
-              "options": {
-                "0": {
-                  "color": "red",
-                  "index": 0,
-                  "text": "DOWN"
-                },
-                "1": {
-                  "color": "green",
-                  "index": 1,
-                  "text": "UP"
+          "noValue": "Unknown",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#404040",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Offline",
+              "scope": "series"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
                 }
-              },
-              "type": "value"
-            }
-          ],
-          "min": 0,
-          "noValue": "No data",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "red",
-                "value": 1
               }
             ]
           },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 4,
-        "x": 4,
-        "y": 1
-      },
-      "id": 39,
-      "interval": "5s",
-      "maxDataPoints": 5000,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "orientation": "horizontal",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "text": {
-          "titleSize": 28,
-          "valueSize": 36
-        },
-        "textMode": "value",
-        "wideLayout": false
-      },
-      "pluginVersion": "13.3.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS-INFRA}"
-          },
-          "editorMode": "code",
-          "expr": "up{instance=\"${instance}\"}",
-          "instant": true,
-          "legendFormat": "Target",
-          "range": false,
-          "refId": "A"
-        }
-      ],
-      "title": "Prometheus target",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS-INFRA}"
-      },
-      "description": "Successful / present sources. Numeric value is the success fraction, used for color. With the upcoming exporter all three source rows are always present. Older exporters may expose fewer sources. No data when the target is down. API: settings/status; gRPC: runtime outbounds/balancers; expvars: traffic, memory/GC and observation.",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 0,
-          "max": 1,
-          "min": 0,
-          "noValue": "No data",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Total",
+              "scope": "series"
+            },
+            "properties": [
               {
-                "color": "red",
-                "value": 0
-              },
-              {
-                "color": "green",
-                "value": 1
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "blue",
+                      "value": 0
+                    },
+                    {
+                      "color": "green",
+                      "value": 1
+                    }
+                  ]
+                }
               }
             ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
+          }
+        ]
       },
       "gridPos": {
         "h": 3,
         "w": 3,
-        "x": 8,
-        "y": 1
-      },
-      "id": 40,
-      "interval": "5s",
-      "links": [
-        {
-          "targetBlank": false,
-          "title": "Collection history",
-          "url": "/d/${__dashboard.uid}/?viewPanel=panel-23&${__all_variables}"
-        }
-      ],
-      "maxDataPoints": 5000,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "orientation": "horizontal",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "text": {
-          "titleSize": 32,
-          "valueSize": 42
-        },
-        "textMode": "name",
-        "wideLayout": false
-      },
-      "pluginVersion": "13.3.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS-INFRA}"
-          },
-          "editorMode": "code",
-          "expr": "(sum(xui_exporter_scrape_success{instance=\"${instance}\"}) / count(xui_exporter_scrape_success{instance=\"${instance}\"}))\n* on() group_left(summary)\nlabel_join(\n  count_values(\"healthy\", sum(xui_exporter_scrape_success{instance=\"${instance}\"}))\n  * on() group_left(total)\n  count_values(\"total\", count(xui_exporter_scrape_success{instance=\"${instance}\"})),\n  \"summary\", \"/\", \"healthy\", \"total\"\n)\nand on() (up{instance=\"${instance}\"} == 1)",
-          "instant": true,
-          "legendFormat": "{{summary}}",
-          "range": false,
-          "refId": "A"
-        }
-      ],
-      "title": "Metrics sources",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS-INFRA}"
-      },
-      "description": "Online / total remote cluster nodes. Based on master panel heartbeat status. Numeric value is the availability fraction used for color. No data when no remote nodes are configured or panel API is unreachable.",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 0,
-          "max": 1,
-          "min": 0,
-          "noValue": "No data",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": 0
-              },
-              {
-                "color": "green",
-                "value": 1
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 3,
-        "x": 11,
+        "x": 9,
         "y": 1
       },
       "id": 65,
@@ -448,7 +544,7 @@
         "colorMode": "value",
         "graphMode": "none",
         "justifyMode": "center",
-        "orientation": "horizontal",
+        "orientation": "vertical",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
@@ -459,10 +555,9 @@
         },
         "showPercentChange": false,
         "text": {
-          "titleSize": 32,
-          "valueSize": 42
+          "titleSize": 10
         },
-        "textMode": "name",
+        "textMode": "value_and_name",
         "wideLayout": false
       },
       "pluginVersion": "13.3.0",
@@ -473,9 +568,22 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "(sum(xui_node_online{instance=\"${instance}\"}) / count(xui_node_online{instance=\"${instance}\"}))\n* on() group_left(summary)\nlabel_join(\n  count_values(\"healthy\", sum(xui_node_online{instance=\"${instance}\"}))\n  * on() group_left(total)\n  count_values(\"total\", count(xui_node_online{instance=\"${instance}\"})),\n  \"summary\", \"/\", \"healthy\", \"total\"\n)\nand on() (up{instance=\"${instance}\"} == 1)",
+          "exemplar": false,
+          "expr": "count(xui_node_online{instance=\"${instance}\"})\nor on()\n(0 * (xui_exporter_scrape_success{instance=\"${instance}\",source=\"api\"} == 1))",
           "instant": true,
-          "legendFormat": "{{summary}}",
+          "legendFormat": "Total",
+          "range": false,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "expr": "count(xui_node_online{instance=\"${instance}\"}) - sum(xui_node_online{instance=\"${instance}\"})",
+          "instant": true,
+          "legendFormat": "Offline",
           "range": false,
           "refId": "A"
         }
@@ -493,20 +601,20 @@
         "defaults": {
           "color": {
             "fixedColor": "blue",
-            "mode": "fixed"
+            "mode": "thresholds"
           },
           "decimals": 0,
-          "noValue": "No data",
+          "noValue": "Unknown",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "#404040",
                 "value": 0
               },
               {
-                "color": "red",
-                "value": 80
+                "color": "blue",
+                "value": 0
               }
             ]
           },
@@ -517,7 +625,7 @@
       "gridPos": {
         "h": 3,
         "w": 3,
-        "x": 14,
+        "x": 12,
         "y": 1
       },
       "id": 61,
@@ -574,19 +682,19 @@
         "defaults": {
           "color": {
             "fixedColor": "blue",
-            "mode": "fixed"
+            "mode": "thresholds"
           },
           "noValue": "No data",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "#404040",
                 "value": 0
               },
               {
-                "color": "red",
-                "value": 80
+                "color": "blue",
+                "value": 1
               }
             ]
           },
@@ -597,7 +705,7 @@
       "gridPos": {
         "h": 3,
         "w": 3,
-        "x": 17,
+        "x": 15,
         "y": 1
       },
       "id": 37,
@@ -617,10 +725,7 @@
           "values": false
         },
         "showPercentChange": false,
-        "text": {
-          "titleSize": 28,
-          "valueSize": 36
-        },
+        "text": {},
         "textMode": "name",
         "wideLayout": true
       },
@@ -632,7 +737,7 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "xui_panel_info{instance=\"${instance}\"}",
+          "expr": "xui_panel_info{instance=\"${instance}\"}\nor on()\nlabel_replace(vector(0), \"version\", \"Unknown\", \"\", \"\")",
           "instant": true,
           "legendFormat": "{{version}}",
           "range": false,
@@ -652,19 +757,19 @@
         "defaults": {
           "color": {
             "fixedColor": "blue",
-            "mode": "fixed"
+            "mode": "thresholds"
           },
           "noValue": "No data",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "#404040",
                 "value": 0
               },
               {
-                "color": "red",
-                "value": 80
+                "color": "blue",
+                "value": 1
               }
             ]
           },
@@ -674,8 +779,8 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 4,
-        "x": 20,
+        "w": 3,
+        "x": 18,
         "y": 1
       },
       "id": 36,
@@ -695,10 +800,7 @@
           "values": false
         },
         "showPercentChange": false,
-        "text": {
-          "titleSize": 28,
-          "valueSize": 36
-        },
+        "text": {},
         "textMode": "name",
         "wideLayout": true
       },
@@ -710,7 +812,7 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "xui_xray_info{instance=\"${instance}\"}",
+          "expr": "xui_xray_info{instance=\"${instance}\"}\nor on()\nlabel_replace(vector(0), \"version\", \"Unknown\", \"\", \"\")",
           "instant": true,
           "legendFormat": "{{version}}",
           "range": false,
@@ -725,26 +827,97 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS-INFRA}"
       },
-      "description": "Available: Balancers with a usable selected target or configured fallback according to the exporter. This is structural availability, not an end-to-end Internet probe. Includes balancers currently using fallback. Open availability history for detail.\n\nUnavailable: Balancers without an available selected target or usable fallback. A nonzero value calls for investigation. Open availability history.\n\nFallback: Balancers currently using their fallback. This can preserve service while primary selection is empty. A warning about operating mode, not necessarily an outage. Absent fallback metrics remain No data.\n\nOverride: Balancers currently using a manually overridden target. This is an operating mode, not automatically a failure. Open selected outbounds to identify the affected balancer.",
+      "description": "Running build version of 3x-ui-exporter.",
       "fieldConfig": {
         "defaults": {
           "color": {
-            "fixedColor": "green",
-            "mode": "fixed"
+            "fixedColor": "#404040",
+            "mode": "thresholds"
           },
-          "decimals": 0,
-          "min": 0,
           "noValue": "No data",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "#404040",
                 "value": 0
               },
               {
-                "color": "red",
+                "color": "blue",
                 "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 3,
+        "x": 21,
+        "y": 1
+      },
+      "id": 74,
+      "interval": "5s",
+      "maxDataPoints": 5000,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {},
+        "textMode": "name",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.3.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "expr": "xui_exporter_build_info{instance=\"${instance}\"}\nor on()\nlabel_replace(vector(0), \"version\", \"Unknown\", \"\", \"\")",
+          "instant": true,
+          "legendFormat": "{{version}}",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "Exporter version",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS-INFRA}"
+      },
+      "description": "Available: Balancers with a usable selected target or configured fallback according to the exporter. This is structural availability, not an end-to-end Internet probe. Includes balancers currently using fallback. Open availability history for detail.\n\nUnavailable: Balancers without an available selected target or usable fallback. A nonzero value calls for investigation. Open availability history.\n\nFallback: Balancers currently using their fallback. This can preserve service while primary selection is empty. A warning about operating mode, not necessarily an outage. Absent fallback metrics remain No data.\n\nOverride: Balancers currently using a manually overridden target. This is an operating mode, not automatically a failure. Open selected outbounds to identify the affected balancer.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "green",
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "min": 0,
+          "noValue": "Unknown",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#404040",
+                "value": 0
               }
             ]
           },
@@ -760,8 +933,8 @@
               {
                 "id": "color",
                 "value": {
-                  "fixedColor": "green",
-                  "mode": "fixed"
+                  "fixedColor": "blue",
+                  "mode": "thresholds"
                 }
               },
               {
@@ -770,11 +943,11 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green",
+                      "color": "red",
                       "value": 0
                     },
                     {
-                      "color": "red",
+                      "color": "green",
                       "value": 1
                     }
                   ]
@@ -834,7 +1007,7 @@
                       "value": 0
                     },
                     {
-                      "color": "yellow",
+                      "color": "#EAB839",
                       "value": 1
                     }
                   ]
@@ -852,7 +1025,7 @@
                 "id": "color",
                 "value": {
                   "fixedColor": "blue",
-                  "mode": "fixed"
+                  "mode": "thresholds"
                 }
               },
               {
@@ -865,7 +1038,7 @@
                       "value": 0
                     },
                     {
-                      "color": "red",
+                      "color": "blue",
                       "value": 1
                     }
                   ]
@@ -1200,21 +1373,17 @@
         "defaults": {
           "color": {
             "fixedColor": "green",
-            "mode": "fixed"
+            "mode": "thresholds"
           },
           "decimals": 0,
           "min": 0,
-          "noValue": "No data",
+          "noValue": "Unknown",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "#404040",
                 "value": 0
-              },
-              {
-                "color": "red",
-                "value": 1
               }
             ]
           },
@@ -1231,7 +1400,7 @@
                 "id": "color",
                 "value": {
                   "fixedColor": "green",
-                  "mode": "fixed"
+                  "mode": "thresholds"
                 }
               },
               {
@@ -1240,11 +1409,11 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green",
+                      "color": "red",
                       "value": 0
                     },
                     {
-                      "color": "red",
+                      "color": "green",
                       "value": 1
                     }
                   ]
@@ -1953,7 +2122,7 @@
         "x": 0,
         "y": 20
       },
-      "id": 75,
+      "id": 76,
       "panels": [
         {
           "datasource": {
@@ -2157,7 +2326,7 @@
         "x": 0,
         "y": 21
       },
-      "id": 76,
+      "id": 77,
       "panels": [
         {
           "datasource": {
@@ -2439,7 +2608,7 @@
         "x": 0,
         "y": 22
       },
-      "id": 77,
+      "id": 78,
       "panels": [
         {
           "datasource": {
@@ -2486,6 +2655,7 @@
                 }
               },
               "min": 0,
+              "noValue": "Outbound statistics disabled",
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -2573,7 +2743,7 @@
                 "uid": "${DS_PROMETHEUS-INFRA}"
               },
               "editorMode": "code",
-              "expr": "8 * (\n  sum by (outbound) (rate(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__rate_interval]))\n  and on (outbound)\n  topk(6, (sum by (outbound) (increase(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range]))) > 10 * 1024 * 1024)\n)",
+              "expr": "8 * (\n  sum by (outbound) (rate(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__rate_interval]))\n  and on (outbound)\n  topk(6, sum by (outbound) (increase(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range] @ end())) > 0)\n)",
               "interval": "5s",
               "legendFormat": "{{outbound}}",
               "range": true,
@@ -2585,7 +2755,7 @@
                 "uid": "${DS_PROMETHEUS-INFRA}"
               },
               "editorMode": "code",
-              "expr": "8 * clamp_min(\n  sum(rate(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__rate_interval]))\n  -\n  sum(\n    sum by (outbound) (rate(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__rate_interval]))\n    and on (outbound)\n    topk(6, (sum by (outbound) (increase(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range]))) > 10 * 1024 * 1024)\n  ),\n  0\n)",
+              "expr": "8 * (\n  (\n    sum(rate(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__rate_interval]))\n    -\n    sum(\n      sum by (outbound) (rate(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__rate_interval]))\n      and on (outbound)\n      topk(6, sum by (outbound) (increase(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range] @ end())) > 0)\n    )\n  ) > 0\n)",
               "interval": "5s",
               "legendFormat": "others",
               "range": true,
@@ -2605,6 +2775,7 @@
               "color": {
                 "mode": "thresholds"
               },
+              "noValue": "Outbound statistics disabled",
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -2672,7 +2843,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "topk(6, (sum by (outbound) (\n  increase(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range])\n)) > 10 * 1024 * 1024)",
+              "expr": "topk(6, sum by (outbound) (\n  increase(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range])\n) > 0)",
               "instant": true,
               "legendFormat": "{{outbound}}",
               "range": false,
@@ -2685,7 +2856,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "label_replace(\n  clamp_min(\n    sum(increase(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range]))\n    -\n    sum(topk(6, (sum by (outbound) (increase(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range]))) > 10 * 1024 * 1024)),\n    0\n  ) > 0,\n  \"outbound\", \"others\", \"\", \"\"\n)",
+              "expr": "label_replace(\n  (\n    sum(increase(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range]))\n    -\n    sum(topk(6, sum by (outbound) (increase(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range])) > 0))\n  ) > 0,\n  \"outbound\", \"others\", \"\", \"\"\n)",
               "instant": true,
               "legendFormat": "others",
               "range": false,
@@ -2713,6 +2884,7 @@
                   "viz": false
                 }
               },
+              "noValue": "Outbound statistics disabled",
               "unit": "decbytes"
             }
           },
@@ -2724,13 +2896,14 @@
           },
           "id": 11,
           "options": {
+            "displayLabels": [],
             "legend": {
               "displayMode": "table",
               "placement": "right",
               "showLegend": true,
               "values": [
-                "value",
-                "percent"
+                "percent",
+                "value"
               ]
             },
             "pieType": "donut",
@@ -2757,11 +2930,11 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "sum(increase(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range]))",
+              "expr": "sum by (outbound) (increase(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound=\"direct\"}[$__range]))",
               "instant": true,
-              "legendFormat": "Proxy",
+              "legendFormat": "{{outbound}}",
               "range": false,
-              "refId": "A"
+              "refId": "B"
             },
             {
               "datasource": {
@@ -2770,11 +2943,11 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "sum(increase(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound=\"direct\"}[$__range]))",
+              "expr": "sum(increase(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range]))",
               "instant": true,
-              "legendFormat": "Direct",
+              "legendFormat": "proxy",
               "range": false,
-              "refId": "B"
+              "refId": "A"
             }
           ],
           "title": "Traffic routing",
@@ -2792,7 +2965,7 @@
         "x": 0,
         "y": 23
       },
-      "id": 78,
+      "id": 79,
       "panels": [
         {
           "datasource": {
@@ -3623,6 +3796,7 @@
                   "Time 5": true,
                   "Time 6": true,
                   "Time 7": true,
+                  "__name__": true,
                   "__name__ 1": true,
                   "__name__ 2": true,
                   "instance": true,
@@ -3857,6 +4031,7 @@
                 }
               },
               "min": 0,
+              "noValue": "Requires burstObservatory",
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -3962,6 +4137,7 @@
               },
               "max": 1,
               "min": 0,
+              "noValue": "Requires burstObservatory",
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -4034,7 +4210,7 @@
         "x": 0,
         "y": 24
       },
-      "id": 79,
+      "id": 80,
       "panels": [
         {
           "datasource": {
@@ -4703,7 +4879,7 @@
         "x": 0,
         "y": 25
       },
-      "id": 80,
+      "id": 81,
       "panels": [
         {
           "datasource": {
@@ -5535,7 +5711,7 @@
         "x": 0,
         "y": 26
       },
-      "id": 81,
+      "id": 82,
       "panels": [
         {
           "datasource": {
@@ -6097,6 +6273,28 @@
         "regex": "",
         "regexApplyTo": "value",
         "type": "query"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {},
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS-INFRA}"
+        },
+        "definition": "label_values(xui_node_online{instance=\"$instance\"},node)",
+        "hide": 2,
+        "includeAll": false,
+        "name": "has_nodes_connected",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(xui_node_online{instance=\"$instance\"},node)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 2,
+        "regex": "",
+        "regexApplyTo": "value",
+        "type": "query"
       }
     ]
   },
@@ -6121,6 +6319,6 @@
   "timezone": "browser",
   "title": "3x-ui-classic",
   "uid": "3x-ui-exporter-classic",
-  "version": 4,
+  "version": 5,
   "weekStart": ""
 }

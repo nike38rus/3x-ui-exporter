@@ -3,7 +3,7 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "3x-ui-exporter",
-    "generation": 51,
+    "generation": 67,
     "creationTimestamp": "2026-10-14T17:05:36Z",
     "labels": {},
     "annotations": {}
@@ -193,7 +193,7 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "topk(6, (sum by (outbound) (\n  increase(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range])\n)) > 10 * 1024 * 1024)",
+                        "expr": "topk(6, sum by (outbound) (\n  increase(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range])\n) > 0)",
                         "instant": true,
                         "legendFormat": "{{outbound}}",
                         "range": false
@@ -217,7 +217,7 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "label_replace(\n  clamp_min(\n    sum(increase(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range]))\n    -\n    sum(topk(6, (sum by (outbound) (increase(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range]))) > 10 * 1024 * 1024)),\n    0\n  ) > 0,\n  \"outbound\", \"others\", \"\", \"\"\n)",
+                        "expr": "label_replace(\n  (\n    sum(increase(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range]))\n    -\n    sum(topk(6, sum by (outbound) (increase(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range])) > 0))\n  ) > 0,\n  \"outbound\", \"others\", \"\", \"\"\n)",
                         "instant": true,
                         "legendFormat": "others",
                         "range": false
@@ -281,7 +281,8 @@
                   },
                   "color": {
                     "mode": "thresholds"
-                  }
+                  },
+                  "noValue": "Outbound statistics disabled"
                 },
                 "overrides": []
               }
@@ -310,9 +311,9 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "sum(increase(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range]))",
+                        "expr": "sum by (outbound) (increase(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound=\"direct\"}[$__range]))",
                         "instant": true,
-                        "legendFormat": "Proxy",
+                        "legendFormat": "{{outbound}}",
                         "range": false
                       },
                       "labels": {
@@ -320,7 +321,7 @@
                         "grafana.app/export-datasource-name": "prometheus-infra"
                       }
                     },
-                    "refId": "A",
+                    "refId": "B",
                     "hidden": false
                   }
                 },
@@ -334,9 +335,9 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "sum(increase(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound=\"direct\"}[$__range]))",
+                        "expr": "sum(increase(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range]))",
                         "instant": true,
-                        "legendFormat": "Direct",
+                        "legendFormat": "proxy",
                         "range": false
                       },
                       "labels": {
@@ -344,7 +345,7 @@
                         "grafana.app/export-datasource-name": "prometheus-infra"
                       }
                     },
-                    "refId": "B",
+                    "refId": "A",
                     "hidden": false
                   }
                 }
@@ -359,13 +360,14 @@
             "version": "13.3.0",
             "spec": {
               "options": {
+                "displayLabels": [],
                 "legend": {
                   "displayMode": "table",
                   "placement": "right",
                   "showLegend": true,
                   "values": [
-                    "value",
-                    "percent"
+                    "percent",
+                    "value"
                   ]
                 },
                 "pieType": "donut",
@@ -390,13 +392,15 @@
                     "mode": "palette-classic",
                     "fixedColor": "#73BF69"
                   },
+                  "noValue": "Outbound statistics disabled",
                   "custom": {
                     "hideFrom": {
                       "legend": false,
                       "tooltip": false,
                       "viz": false
                     }
-                  }
+                  },
+                  "fieldMinMax": false
                 },
                 "overrides": []
               }
@@ -1553,6 +1557,7 @@
                   "color": {
                     "mode": "palette-classic"
                   },
+                  "noValue": "Requires burstObservatory",
                   "custom": {
                     "axisBorderShow": false,
                     "axisCenteredZero": false,
@@ -1823,6 +1828,7 @@
                   "color": {
                     "mode": "palette-classic"
                   },
+                  "noValue": "Requires burstObservatory",
                   "custom": {
                     "axisBorderShow": false,
                     "axisCenteredZero": false,
@@ -2532,7 +2538,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "xui_xray_info{instance=\"${instance}\"}",
+                        "expr": "xui_xray_info{instance=\"${instance}\"}\nor on()\nlabel_replace(vector(0), \"version\", \"Unknown\", \"\", \"\")",
                         "instant": true,
                         "legendFormat": "{{version}}",
                         "range": false
@@ -2573,10 +2579,7 @@
                   "values": false
                 },
                 "showPercentChange": false,
-                "text": {
-                  "titleSize": 28,
-                  "valueSize": 36
-                },
+                "text": {},
                 "textMode": "name",
                 "wideLayout": true
               },
@@ -2588,16 +2591,16 @@
                     "steps": [
                       {
                         "value": 0,
-                        "color": "green"
+                        "color": "#404040"
                       },
                       {
-                        "value": 80,
-                        "color": "red"
+                        "value": 1,
+                        "color": "blue"
                       }
                     ]
                   },
                   "color": {
-                    "mode": "fixed",
+                    "mode": "thresholds",
                     "fixedColor": "blue"
                   },
                   "noValue": "No data"
@@ -2628,7 +2631,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "xui_panel_info{instance=\"${instance}\"}",
+                        "expr": "xui_panel_info{instance=\"${instance}\"}\nor on()\nlabel_replace(vector(0), \"version\", \"Unknown\", \"\", \"\")",
                         "instant": true,
                         "legendFormat": "{{version}}",
                         "range": false
@@ -2669,10 +2672,7 @@
                   "values": false
                 },
                 "showPercentChange": false,
-                "text": {
-                  "titleSize": 28,
-                  "valueSize": 36
-                },
+                "text": {},
                 "textMode": "name",
                 "wideLayout": true
               },
@@ -2684,16 +2684,16 @@
                     "steps": [
                       {
                         "value": 0,
-                        "color": "green"
+                        "color": "#404040"
                       },
                       {
-                        "value": 80,
-                        "color": "red"
+                        "value": 1,
+                        "color": "blue"
                       }
                     ]
                   },
                   "color": {
-                    "mode": "fixed",
+                    "mode": "thresholds",
                     "fixedColor": "blue"
                   },
                   "noValue": "No data"
@@ -2724,7 +2724,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "xui_xray_state{instance=\"${instance}\"} == 1 and on(instance,job) (xui_exporter_scrape_success{instance=\"${instance}\",source=\"api\"} == 1) and on(instance,job) (up{instance=\"${instance}\"} == 1)",
+                        "expr": "(xui_xray_state{instance=\"${instance}\"} == 1)\nor on()\nlabel_replace(vector(0), \"state\", \"Unknown\", \"\", \"\")",
                         "instant": true,
                         "legendFormat": "{{state}}",
                         "range": false
@@ -2765,10 +2765,7 @@
                   "values": false
                 },
                 "showPercentChange": false,
-                "text": {
-                  "titleSize": 28,
-                  "valueSize": 36
-                },
+                "text": {},
                 "textMode": "name",
                 "wideLayout": true
               },
@@ -2780,16 +2777,12 @@
                     "steps": [
                       {
                         "value": 0,
-                        "color": "green"
-                      },
-                      {
-                        "value": 80,
-                        "color": "red"
+                        "color": "#404040"
                       }
                     ]
                   },
                   "color": {
-                    "mode": "fixed",
+                    "mode": "thresholds",
                     "fixedColor": "blue"
                   },
                   "noValue": "No data"
@@ -2907,10 +2900,7 @@
                   "values": false
                 },
                 "showPercentChange": false,
-                "text": {
-                  "titleSize": 28,
-                  "valueSize": 36
-                },
+                "text": {},
                 "textMode": "value",
                 "wideLayout": false
               },
@@ -2986,9 +2976,33 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "(sum(xui_exporter_scrape_success{instance=\"${instance}\"}) / count(xui_exporter_scrape_success{instance=\"${instance}\"}))\n* on() group_left(summary)\nlabel_join(\n  count_values(\"healthy\", sum(xui_exporter_scrape_success{instance=\"${instance}\"}))\n  * on() group_left(total)\n  count_values(\"total\", count(xui_exporter_scrape_success{instance=\"${instance}\"})),\n  \"summary\", \"/\", \"healthy\", \"total\"\n)\nand on() (up{instance=\"${instance}\"} == 1)",
+                        "exemplar": false,
+                        "expr": "count(xui_exporter_scrape_success{instance=\"${instance}\"})",
                         "instant": true,
-                        "legendFormat": "{{summary}}",
+                        "legendFormat": "Total",
+                        "range": false
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "prometheus-1",
+                        "grafana.app/export-datasource-name": "prometheus-infra"
+                      }
+                    },
+                    "refId": "B",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "count(xui_exporter_scrape_success{instance=\"${instance}\"}) - sum(xui_exporter_scrape_success{instance=\"${instance}\"})",
+                        "instant": true,
+                        "legendFormat": "Failed",
                         "range": false
                       },
                       "labels": {
@@ -3017,7 +3031,7 @@
                 "colorMode": "value",
                 "graphMode": "none",
                 "justifyMode": "center",
-                "orientation": "horizontal",
+                "orientation": "vertical",
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
                   "calcs": [
@@ -3028,24 +3042,21 @@
                 },
                 "showPercentChange": false,
                 "text": {
-                  "titleSize": 32,
-                  "valueSize": 42
+                  "titleSize": 10
                 },
-                "textMode": "name",
+                "textMode": "value_and_name",
                 "wideLayout": false
               },
               "fieldConfig": {
                 "defaults": {
                   "unit": "short",
                   "decimals": 0,
-                  "min": 0,
-                  "max": 1,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
                       {
                         "value": 0,
-                        "color": "red"
+                        "color": "#404040"
                       },
                       {
                         "value": 1,
@@ -3056,9 +3067,60 @@
                   "color": {
                     "mode": "thresholds"
                   },
-                  "noValue": "No data"
+                  "noValue": "Unknown"
                 },
-                "overrides": []
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Failed"
+                    },
+                    "properties": [
+                      {
+                        "id": "thresholds",
+                        "value": {
+                          "mode": "absolute",
+                          "steps": [
+                            {
+                              "color": "green",
+                              "value": 0
+                            },
+                            {
+                              "color": "red",
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Total"
+                    },
+                    "properties": [
+                      {
+                        "id": "thresholds",
+                        "value": {
+                          "mode": "absolute",
+                          "steps": [
+                            {
+                              "color": "red",
+                              "value": 0
+                            },
+                            {
+                              "color": "green",
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                ]
               }
             }
           }
@@ -3222,19 +3284,15 @@
                     "steps": [
                       {
                         "value": 0,
-                        "color": "green"
-                      },
-                      {
-                        "value": 1,
-                        "color": "red"
+                        "color": "#404040"
                       }
                     ]
                   },
                   "color": {
-                    "mode": "fixed",
+                    "mode": "thresholds",
                     "fixedColor": "green"
                   },
-                  "noValue": "No data"
+                  "noValue": "Unknown"
                 },
                 "overrides": [
                   {
@@ -3246,8 +3304,8 @@
                       {
                         "id": "color",
                         "value": {
-                          "fixedColor": "green",
-                          "mode": "fixed"
+                          "fixedColor": "blue",
+                          "mode": "thresholds"
                         }
                       },
                       {
@@ -3256,11 +3314,11 @@
                           "mode": "absolute",
                           "steps": [
                             {
-                              "color": "green",
+                              "color": "red",
                               "value": 0
                             },
                             {
-                              "color": "red",
+                              "color": "green",
                               "value": 1
                             }
                           ]
@@ -3320,7 +3378,7 @@
                               "value": 0
                             },
                             {
-                              "color": "yellow",
+                              "color": "#EAB839",
                               "value": 1
                             }
                           ]
@@ -3338,7 +3396,7 @@
                         "id": "color",
                         "value": {
                           "fixedColor": "blue",
-                          "mode": "fixed"
+                          "mode": "thresholds"
                         }
                       },
                       {
@@ -3351,7 +3409,7 @@
                               "value": 0
                             },
                             {
-                              "color": "red",
+                              "color": "blue",
                               "value": 1
                             }
                           ]
@@ -3996,19 +4054,15 @@
                     "steps": [
                       {
                         "value": 0,
-                        "color": "green"
-                      },
-                      {
-                        "value": 1,
-                        "color": "red"
+                        "color": "#404040"
                       }
                     ]
                   },
                   "color": {
-                    "mode": "fixed",
+                    "mode": "thresholds",
                     "fixedColor": "green"
                   },
-                  "noValue": "No data"
+                  "noValue": "Unknown"
                 },
                 "overrides": [
                   {
@@ -4021,7 +4075,7 @@
                         "id": "color",
                         "value": {
                           "fixedColor": "green",
-                          "mode": "fixed"
+                          "mode": "thresholds"
                         }
                       },
                       {
@@ -4030,11 +4084,11 @@
                           "mode": "absolute",
                           "steps": [
                             {
-                              "color": "green",
+                              "color": "red",
                               "value": 0
                             },
                             {
-                              "color": "red",
+                              "color": "green",
                               "value": 1
                             }
                           ]
@@ -4900,19 +4954,19 @@
                     "steps": [
                       {
                         "value": 0,
-                        "color": "green"
+                        "color": "#404040"
                       },
                       {
-                        "value": 80,
-                        "color": "red"
+                        "value": 0,
+                        "color": "blue"
                       }
                     ]
                   },
                   "color": {
-                    "mode": "fixed",
+                    "mode": "thresholds",
                     "fixedColor": "blue"
                   },
-                  "noValue": "No data"
+                  "noValue": "Unknown"
                 },
                 "overrides": []
               }
@@ -5237,7 +5291,7 @@
         "spec": {
           "id": 65,
           "title": "Connected nodes",
-          "description": "Online / total remote cluster nodes. Based on master panel heartbeat status. Numeric value is the availability fraction used for color. No data when no remote nodes are configured or panel API is unreachable.",
+          "description": "Offline / total remote cluster nodes. Based on master panel heartbeat status. Numeric value is the availability fraction used for color. No data when no remote nodes are configured or panel API is unreachable.",
           "links": [
             {
               "title": "Availability history",
@@ -5257,9 +5311,33 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "(sum(xui_node_online{instance=\"${instance}\"}) / count(xui_node_online{instance=\"${instance}\"}))\n* on() group_left(summary)\nlabel_join(\n  count_values(\"healthy\", sum(xui_node_online{instance=\"${instance}\"}))\n  * on() group_left(total)\n  count_values(\"total\", count(xui_node_online{instance=\"${instance}\"})),\n  \"summary\", \"/\", \"healthy\", \"total\"\n)\nand on() (up{instance=\"${instance}\"} == 1)",
+                        "exemplar": false,
+                        "expr": "count(xui_node_online{instance=\"${instance}\"})\nor on()\n(0 * (xui_exporter_scrape_success{instance=\"${instance}\",source=\"api\"} == 1))",
                         "instant": true,
-                        "legendFormat": "{{summary}}",
+                        "legendFormat": "Total",
+                        "range": false
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "prometheus-1",
+                        "grafana.app/export-datasource-name": "prometheus-infra"
+                      }
+                    },
+                    "refId": "B",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "count(xui_node_online{instance=\"${instance}\"}) - sum(xui_node_online{instance=\"${instance}\"})",
+                        "instant": true,
+                        "legendFormat": "Offline",
                         "range": false
                       },
                       "labels": {
@@ -5288,7 +5366,7 @@
                 "colorMode": "value",
                 "graphMode": "none",
                 "justifyMode": "center",
-                "orientation": "horizontal",
+                "orientation": "vertical",
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
                   "calcs": [
@@ -5299,37 +5377,81 @@
                 },
                 "showPercentChange": false,
                 "text": {
-                  "titleSize": 32,
-                  "valueSize": 42
+                  "titleSize": 10
                 },
-                "textMode": "name",
+                "textMode": "value_and_name",
                 "wideLayout": false
               },
               "fieldConfig": {
                 "defaults": {
                   "unit": "short",
                   "decimals": 0,
-                  "min": 0,
-                  "max": 1,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
                       {
                         "value": 0,
-                        "color": "red"
-                      },
-                      {
-                        "value": 1,
-                        "color": "green"
+                        "color": "#404040"
                       }
                     ]
                   },
                   "color": {
                     "mode": "thresholds"
                   },
-                  "noValue": "No data"
+                  "noValue": "Unknown"
                 },
-                "overrides": []
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Offline"
+                    },
+                    "properties": [
+                      {
+                        "id": "thresholds",
+                        "value": {
+                          "mode": "absolute",
+                          "steps": [
+                            {
+                              "color": "green",
+                              "value": 0
+                            },
+                            {
+                              "color": "red",
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Total"
+                    },
+                    "properties": [
+                      {
+                        "id": "thresholds",
+                        "value": {
+                          "mode": "absolute",
+                          "steps": [
+                            {
+                              "color": "blue",
+                              "value": 0
+                            },
+                            {
+                              "color": "green",
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                ]
               }
             }
           }
@@ -6624,6 +6746,7 @@
                         "Time 5": true,
                         "Time 6": true,
                         "Time 7": true,
+                        "__name__": true,
                         "__name__ 1": true,
                         "__name__ 2": true,
                         "instance": true,
@@ -6913,6 +7036,99 @@
           }
         }
       },
+      "panel-74": {
+        "kind": "Panel",
+        "spec": {
+          "id": 74,
+          "title": "Exporter version",
+          "description": "Running build version of 3x-ui-exporter.",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "xui_exporter_build_info{instance=\"${instance}\"}\nor on()\nlabel_replace(vector(0), \"version\", \"Unknown\", \"\", \"\")",
+                        "instant": true,
+                        "legendFormat": "{{version}}",
+                        "range": false
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "prometheus-1",
+                        "grafana.app/export-datasource-name": "prometheus-infra"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {
+                "maxDataPoints": 5000,
+                "interval": "5s"
+              }
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "stat",
+            "version": "13.3.0",
+            "spec": {
+              "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "text": {},
+                "textMode": "name",
+                "wideLayout": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "short",
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "#404040"
+                      },
+                      {
+                        "value": 1,
+                        "color": "blue"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "thresholds",
+                    "fixedColor": "#404040"
+                  },
+                  "noValue": "No data"
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
       "panel-9": {
         "kind": "Panel",
         "spec": {
@@ -6956,7 +7172,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "8 * (\n  sum by (outbound) (rate(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__rate_interval]))\n  and on (outbound)\n  topk(6, (sum by (outbound) (increase(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range]))) > 10 * 1024 * 1024)\n)",
+                        "expr": "8 * (\n  sum by (outbound) (rate(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__rate_interval]))\n  and on (outbound)\n  topk(6, sum by (outbound) (increase(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range] @ end())) > 0)\n)",
                         "interval": "5s",
                         "legendFormat": "{{outbound}}",
                         "range": true
@@ -6979,7 +7195,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "8 * clamp_min(\n  sum(rate(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__rate_interval]))\n  -\n  sum(\n    sum by (outbound) (rate(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__rate_interval]))\n    and on (outbound)\n    topk(6, (sum by (outbound) (increase(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range]))) > 10 * 1024 * 1024)\n  ),\n  0\n)",
+                        "expr": "8 * (\n  (\n    sum(rate(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__rate_interval]))\n    -\n    sum(\n      sum by (outbound) (rate(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__rate_interval]))\n      and on (outbound)\n      topk(6, sum by (outbound) (increase(xui_outbound_traffic_bytes_total{instance=\"${instance}\",outbound!~\"direct|blocked|_bl_.*\"}[$__range] @ end())) > 0)\n    )\n  ) > 0\n)",
                         "interval": "5s",
                         "legendFormat": "others",
                         "range": true
@@ -7040,6 +7256,7 @@
                   "color": {
                     "mode": "palette-classic"
                   },
+                  "noValue": "Outbound statistics disabled",
                   "custom": {
                     "axisBorderShow": false,
                     "axisCenteredZero": false,
@@ -7127,20 +7344,7 @@
                       "spec": {
                         "x": 0,
                         "y": 0,
-                        "width": 4,
-                        "height": 3,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-38"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 4,
-                        "y": 0,
-                        "width": 4,
+                        "width": 3,
                         "height": 3,
                         "element": {
                           "kind": "ElementReference",
@@ -7151,7 +7355,7 @@
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 8,
+                        "x": 3,
                         "y": 0,
                         "width": 3,
                         "height": 3,
@@ -7164,7 +7368,20 @@
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 11,
+                        "x": 6,
+                        "y": 0,
+                        "width": 3,
+                        "height": 3,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-38"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 9,
                         "y": 0,
                         "width": 3,
                         "height": 3,
@@ -7177,7 +7394,7 @@
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 14,
+                        "x": 12,
                         "y": 0,
                         "width": 3,
                         "height": 3,
@@ -7190,7 +7407,7 @@
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 17,
+                        "x": 15,
                         "y": 0,
                         "width": 3,
                         "height": 3,
@@ -7203,13 +7420,26 @@
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 20,
+                        "x": 18,
                         "y": 0,
-                        "width": 4,
+                        "width": 3,
                         "height": 3,
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-36"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 21,
+                        "y": 0,
+                        "width": 3,
+                        "height": 3,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-74"
                         }
                       }
                     },
@@ -7688,6 +7918,23 @@
             "spec": {
               "title": "Connected nodes",
               "collapse": true,
+              "conditionalRendering": {
+                "kind": "ConditionalRenderingGroup",
+                "spec": {
+                  "visibility": "show",
+                  "condition": "and",
+                  "items": [
+                    {
+                      "kind": "ConditionalRenderingVariable",
+                      "spec": {
+                        "variable": "has_nodes_connected",
+                        "operator": "matches",
+                        "value": ".+"
+                      }
+                    }
+                  ]
+                }
+              },
               "layout": {
                 "kind": "GridLayout",
                 "spec": {
@@ -7941,6 +8188,41 @@
           "options": [],
           "multi": true,
           "includeAll": true,
+          "allowCustomValue": false
+        }
+      },
+      {
+        "kind": "QueryVariable",
+        "spec": {
+          "name": "has_nodes_connected",
+          "current": {
+            "text": "",
+            "value": ""
+          },
+          "hide": "hideVariable",
+          "refresh": "onTimeRangeChanged",
+          "skipUrlSync": false,
+          "query": {
+            "kind": "DataQuery",
+            "group": "prometheus",
+            "version": "v0",
+            "spec": {
+              "qryType": 1,
+              "query": "label_values(xui_node_online{instance=\"$instance\"},node)",
+              "refId": "PrometheusVariableQueryEditor-VariableQuery"
+            },
+            "labels": {
+              "grafana.app/export-label": "prometheus-1",
+              "grafana.app/export-datasource-name": "prometheus-infra"
+            }
+          },
+          "regex": "",
+          "regexApplyTo": "value",
+          "sort": "disabled",
+          "definition": "label_values(xui_node_online{instance=\"$instance\"},node)",
+          "options": [],
+          "multi": false,
+          "includeAll": false,
           "allowCustomValue": false
         }
       }
