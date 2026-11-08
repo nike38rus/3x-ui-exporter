@@ -3,7 +3,7 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "3x-ui-exporter",
-    "generation": 72,
+    "generation": 77,
     "creationTimestamp": "2026-10-14T17:05:36Z",
     "labels": {},
     "annotations": {}
@@ -30,124 +30,6 @@
     "cursorSync": "Crosshair",
     "editable": true,
     "elements": {
-      "panel-1": {
-        "kind": "Panel",
-        "spec": {
-          "id": 1,
-          "title": "Outbound health",
-          "description": "DOWN: Xray alive=0. DEGRADED: burst window contains failed probes. UP: alive with no failed probes; ordinary observatory exposes only alive. Missing data stays missing.",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "prometheus",
-                      "version": "v0",
-                      "spec": {
-                        "editorMode": "code",
-                        "expr": "(\n  (\n    xui_observatory_outbound_alive{instance=\"${instance}\"}\n    * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))\n  )\n  or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)\n)\nand on (outbound)\nmax by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
-                        "interval": "5s",
-                        "legendFormat": "{{outbound}}",
-                        "range": true
-                      },
-                      "labels": {
-                        "grafana.app/export-label": "prometheus-1",
-                        "grafana.app/export-datasource-name": "prometheus-infra"
-                      }
-                    },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [],
-              "queryOptions": {
-                "maxDataPoints": 5000,
-                "interval": "5s"
-              }
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "state-timeline",
-            "version": "13.3.0",
-            "spec": {
-              "options": {
-                "alignValue": "left",
-                "legend": {
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": false
-                },
-                "mergeValues": true,
-                "rowHeight": 0.9,
-                "showValue": "never",
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "single",
-                  "sort": "none"
-                }
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "mappings": [
-                    {
-                      "type": "value",
-                      "options": {
-                        "0": {
-                          "text": "DOWN",
-                          "color": "red",
-                          "index": 0
-                        },
-                        "1": {
-                          "text": "DEGRADED",
-                          "color": "yellow",
-                          "index": 1
-                        },
-                        "2": {
-                          "text": "UP",
-                          "color": "green",
-                          "index": 2
-                        }
-                      }
-                    }
-                  ],
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      }
-                    ]
-                  },
-                  "color": {
-                    "mode": "fixed"
-                  },
-                  "custom": {
-                    "axisPlacement": "auto",
-                    "fillOpacity": 70,
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineWidth": 0,
-                    "spanNulls": false
-                  }
-                },
-                "overrides": []
-              }
-            }
-          }
-        }
-      },
       "panel-10": {
         "kind": "Panel",
         "spec": {
@@ -643,7 +525,7 @@
                       "type": "linear"
                     },
                     "showPoints": "auto",
-                    "showValues": true,
+                    "showValues": false,
                     "spanNulls": false,
                     "stacking": {
                       "group": "A",
@@ -707,7 +589,7 @@
                         "exemplar": false,
                         "expr": "sort_desc (\n  100 * avg_over_time(\n    xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=~\"fallback|override\"}[$__range]\n  )\n)",
                         "instant": true,
-                        "legendFormat": "{{balancer}} | {{role}}",
+                        "legendFormat": "{{role}}",
                         "range": false
                       },
                       "labels": {
@@ -781,146 +663,6 @@
                     "mode": "thresholds"
                   },
                   "noValue": "Unknown"
-                },
-                "overrides": []
-              }
-            }
-          }
-        }
-      },
-      "panel-17": {
-        "kind": "Panel",
-        "spec": {
-          "id": 17,
-          "title": "Selected outbounds",
-          "description": "Primary target membership plus fallback and override activity. Fallback uses its configured outbound tag; override has no outbound tag. Gray means confirmed inactive; gaps mean unavailable or unknown data.",
-          "links": [],
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "prometheus",
-                      "version": "v0",
-                      "spec": {
-                        "editorMode": "code",
-                        "exemplar": false,
-                        "expr": "xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role!~\"fallback|override\"}",
-                        "instant": false,
-                        "interval": "5s",
-                        "legendFormat": "{{outbound}}",
-                        "range": true
-                      },
-                      "labels": {
-                        "grafana.app/export-label": "prometheus-1",
-                        "grafana.app/export-datasource-name": "prometheus-infra"
-                      }
-                    },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                },
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "prometheus",
-                      "version": "v0",
-                      "spec": {
-                        "editorMode": "code",
-                        "expr": "xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=~\"fallback|override\"}",
-                        "instant": false,
-                        "interval": "5s",
-                        "legendFormat": "{{role}}",
-                        "range": true
-                      },
-                      "labels": {
-                        "grafana.app/export-label": "prometheus-1",
-                        "grafana.app/export-datasource-name": "prometheus-infra"
-                      }
-                    },
-                    "refId": "B",
-                    "hidden": false
-                  }
-                }
-              ],
-              "transformations": [],
-              "queryOptions": {
-                "maxDataPoints": 5000,
-                "interval": "5s"
-              }
-            }
-          },
-          "vizConfig": {
-            "kind": "VizConfig",
-            "group": "state-timeline",
-            "version": "13.3.0",
-            "spec": {
-              "options": {
-                "alignValue": "left",
-                "legend": {
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": false
-                },
-                "mergeValues": true,
-                "rowHeight": 0.9,
-                "showValue": "never",
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "single",
-                  "sort": "none"
-                }
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "unit": "short",
-                  "mappings": [
-                    {
-                      "type": "value",
-                      "options": {
-                        "0": {
-                          "text": "Not selected",
-                          "color": "#7f7f7f",
-                          "index": 0
-                        },
-                        "1": {
-                          "text": "Selected",
-                          "color": "green",
-                          "index": 1
-                        }
-                      }
-                    }
-                  ],
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": 0,
-                        "color": "green"
-                      }
-                    ]
-                  },
-                  "color": {
-                    "mode": "fixed"
-                  },
-                  "custom": {
-                    "axisPlacement": "auto",
-                    "fillOpacity": 100,
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineWidth": 0,
-                    "spanNulls": false
-                  }
                 },
                 "overrides": []
               }
@@ -1468,7 +1210,8 @@
                     "mode": "fixed"
                   },
                   "custom": {
-                    "axisPlacement": "hidden",
+                    "axisPlacement": "auto",
+                    "axisWidth": 140,
                     "fillOpacity": 100,
                     "hideFrom": {
                       "legend": false,
@@ -7174,6 +6917,170 @@
           }
         }
       },
+      "panel-75": {
+        "kind": "Panel",
+        "spec": {
+          "id": 75,
+          "title": "Outbound health & selection",
+          "description": "Combined outbound health and balancer selection state.\n\nActive: Outbound currently routing traffic (bold saturated colors: green = UP, yellow = DEGRADED, red = DOWN).\nStandby: Candidate outbounds in reserve (soft calm colors: light-green = Ready, light-yellow = Degraded, light-red = Down).\nSpecial: Active override (blue) and fallback (purple); gray when inactive.",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "10 * max by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=\"primary\"}\n)\n+ on (outbound)\nmax by (outbound) (\n  (xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0)))\n  or\n  (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)\n)",
+                        "interval": "5s",
+                        "legendFormat": "{{outbound}}",
+                        "range": true
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "(xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=\"override\"} == 1) * 20\nor\n(xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=\"fallback\"} == 1) * 30\nor\n(xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=~\"override|fallback\"} * 0 + 21)",
+                        "interval": "5s",
+                        "legendFormat": "{{role}}",
+                        "range": true
+                      }
+                    },
+                    "refId": "B",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {
+                "maxDataPoints": 5000,
+                "interval": "5s"
+              }
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "state-timeline",
+            "version": "13.3.0",
+            "spec": {
+              "options": {
+                "alignValue": "left",
+                "legend": {
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "mergeValues": true,
+                "rowHeight": 0.9,
+                "showValue": "never",
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "single",
+                  "sort": "none"
+                }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "mappings": [
+                    {
+                      "type": "value",
+                      "options": {
+                        "0": {
+                          "text": "Standby: Down",
+                          "color": "super-light-red",
+                          "index": 5
+                        },
+                        "1": {
+                          "text": "Standby: Degraded",
+                          "color": "super-light-yellow",
+                          "index": 6
+                        },
+                        "2": {
+                          "text": "Standby: Ready",
+                          "color": "super-light-green",
+                          "index": 7
+                        },
+                        "10": {
+                          "text": "Active: DOWN",
+                          "color": "dark-red",
+                          "index": 0
+                        },
+                        "11": {
+                          "text": "Active: DEGRADED",
+                          "color": "dark-yellow",
+                          "index": 1
+                        },
+                        "12": {
+                          "text": "Active: UP",
+                          "color": "dark-green",
+                          "index": 2
+                        },
+                        "20": {
+                          "text": "Active: Override",
+                          "color": "dark-blue",
+                          "index": 3
+                        },
+                        "21": {
+                          "text": "Inactive",
+                          "color": "#808080",
+                          "index": 8
+                        },
+                        "30": {
+                          "text": "Active: Fallback",
+                          "color": "dark-purple",
+                          "index": 4
+                        }
+                      }
+                    }
+                  ],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "fixed"
+                  },
+                  "custom": {
+                    "axisPlacement": "auto",
+                    "axisWidth": 140,
+                    "fillOpacity": 85,
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineWidth": 0,
+                    "spanNulls": false
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
       "panel-9": {
         "kind": "Panel",
         "spec": {
@@ -7757,7 +7664,7 @@
                                   "x": 0,
                                   "y": 0,
                                   "width": 24,
-                                  "height": 2,
+                                  "height": 3,
                                   "element": {
                                     "kind": "ElementReference",
                                     "name": "panel-25"
@@ -7768,12 +7675,12 @@
                                 "kind": "GridLayoutItem",
                                 "spec": {
                                   "x": 0,
-                                  "y": 2,
+                                  "y": 3,
                                   "width": 24,
-                                  "height": 6,
+                                  "height": 8,
                                   "element": {
                                     "kind": "ElementReference",
-                                    "name": "panel-1"
+                                    "name": "panel-75"
                                   }
                                 }
                               },
@@ -7781,8 +7688,8 @@
                                 "kind": "GridLayoutItem",
                                 "spec": {
                                   "x": 0,
-                                  "y": 8,
-                                  "width": 7,
+                                  "y": 11,
+                                  "width": 12,
                                   "height": 8,
                                   "element": {
                                     "kind": "ElementReference",
@@ -7793,22 +7700,9 @@
                               {
                                 "kind": "GridLayoutItem",
                                 "spec": {
-                                  "x": 7,
-                                  "y": 8,
-                                  "width": 10,
-                                  "height": 8,
-                                  "element": {
-                                    "kind": "ElementReference",
-                                    "name": "panel-17"
-                                  }
-                                }
-                              },
-                              {
-                                "kind": "GridLayoutItem",
-                                "spec": {
-                                  "x": 17,
-                                  "y": 8,
-                                  "width": 7,
+                                  "x": 12,
+                                  "y": 11,
+                                  "width": 12,
                                   "height": 8,
                                   "element": {
                                     "kind": "ElementReference",
@@ -7820,7 +7714,7 @@
                                 "kind": "GridLayoutItem",
                                 "spec": {
                                   "x": 0,
-                                  "y": 16,
+                                  "y": 19,
                                   "width": 24,
                                   "height": 8,
                                   "element": {
@@ -7833,7 +7727,7 @@
                                 "kind": "GridLayoutItem",
                                 "spec": {
                                   "x": 0,
-                                  "y": 24,
+                                  "y": 27,
                                   "width": 8,
                                   "height": 9,
                                   "element": {
@@ -7846,7 +7740,7 @@
                                 "kind": "GridLayoutItem",
                                 "spec": {
                                   "x": 8,
-                                  "y": 24,
+                                  "y": 27,
                                   "width": 8,
                                   "height": 9,
                                   "element": {
@@ -7859,7 +7753,7 @@
                                 "kind": "GridLayoutItem",
                                 "spec": {
                                   "x": 16,
-                                  "y": 24,
+                                  "y": 27,
                                   "width": 8,
                                   "height": 9,
                                   "element": {

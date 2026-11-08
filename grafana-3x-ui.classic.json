@@ -86,7 +86,7 @@
         "x": 0,
         "y": 0
       },
-      "id": 75,
+      "id": 76,
       "title": "Overview",
       "type": "row"
     },
@@ -1056,7 +1056,18 @@
       },
       "id": 41,
       "interval": "5s",
-      "links": [],
+      "links": [
+        {
+          "targetBlank": false,
+          "title": "Availability history",
+          "url": "/d/${__dashboard.uid}/?${__all_variables}&drow=Balancers-%2526-Observatory"
+        },
+        {
+          "targetBlank": false,
+          "title": "Selected outbounds",
+          "url": "/d/${__dashboard.uid}/?${__all_variables}&drow=Balancers-%2526-Observatory"
+        }
+      ],
       "maxDataPoints": 5000,
       "options": {
         "colorMode": "value",
@@ -1289,7 +1300,13 @@
       },
       "id": 43,
       "interval": "5s",
-      "links": [],
+      "links": [
+        {
+          "targetBlank": false,
+          "title": "Identify balancer and selected role",
+          "url": "/d/${__dashboard.uid}/?${__all_variables}&drow=Balancers-%2526-Observatory"
+        }
+      ],
       "maxDataPoints": 5000,
       "options": {
         "legend": {
@@ -1474,7 +1491,13 @@
       },
       "id": 47,
       "interval": "5s",
-      "links": [],
+      "links": [
+        {
+          "targetBlank": false,
+          "title": "Open details",
+          "url": "/d/${__dashboard.uid}/?${__all_variables}&drow=Balancers-%2526-Observatory"
+        }
+      ],
       "maxDataPoints": 5000,
       "options": {
         "colorMode": "value",
@@ -1695,7 +1718,13 @@
       },
       "id": 50,
       "interval": "5s",
-      "links": [],
+      "links": [
+        {
+          "targetBlank": false,
+          "title": "Identify outbound and inspect health",
+          "url": "/d/${__dashboard.uid}/?${__all_variables}&drow=Balancers-%2526-Observatory"
+        }
+      ],
       "maxDataPoints": 5000,
       "options": {
         "legend": {
@@ -2094,7 +2123,7 @@
         "x": 0,
         "y": 20
       },
-      "id": 76,
+      "id": 77,
       "panels": [
         {
           "datasource": {
@@ -2304,7 +2333,7 @@
         "x": 0,
         "y": 21
       },
-      "id": 77,
+      "id": 78,
       "panels": [
         {
           "datasource": {
@@ -2593,7 +2622,7 @@
         "x": 0,
         "y": 22
       },
-      "id": 78,
+      "id": 79,
       "panels": [
         {
           "datasource": {
@@ -2656,7 +2685,8 @@
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "direct"
+                  "options": "direct",
+                  "scope": "series"
                 },
                 "properties": [
                   {
@@ -2969,7 +2999,19 @@
         "x": 0,
         "y": 23
       },
-      "id": 79,
+      "id": 80,
+      "title": "Balancers & Observatory",
+      "type": "row"
+    },
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 24
+      },
+      "id": 81,
       "panels": [
         {
           "datasource": {
@@ -2983,7 +3025,8 @@
                 "mode": "fixed"
               },
               "custom": {
-                "axisPlacement": "hidden",
+                "axisPlacement": "auto",
+                "axisWidth": 140,
                 "fillOpacity": 100,
                 "hideFrom": {
                   "legend": false,
@@ -3029,10 +3072,10 @@
             }
           },
           "gridPos": {
-            "h": 2,
+            "h": 3,
             "w": 24,
             "x": 0,
-            "y": 24
+            "y": 25
           },
           "id": 25,
           "interval": "5s",
@@ -3076,7 +3119,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
-          "description": "DOWN: Xray alive=0. DEGRADED: burst window contains failed probes. UP: alive with no failed probes; ordinary observatory exposes only alive. Missing data stays missing.",
+          "description": "Combined outbound health and balancer selection state.\n\nActive: Outbound currently routing traffic (bold saturated colors: green = UP, yellow = DEGRADED, red = DOWN).\nStandby: Candidate outbounds in reserve (soft calm colors: light-green = Ready, light-yellow = Degraded, light-red = Down).\nSpecial: Active override (blue) and fallback (purple); gray when inactive.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -3084,7 +3127,8 @@
               },
               "custom": {
                 "axisPlacement": "auto",
-                "fillOpacity": 70,
+                "axisWidth": 140,
+                "fillOpacity": 85,
                 "hideFrom": {
                   "legend": false,
                   "tooltip": false,
@@ -3098,19 +3142,49 @@
                 {
                   "options": {
                     "0": {
-                      "color": "red",
-                      "index": 0,
-                      "text": "DOWN"
+                      "color": "super-light-red",
+                      "index": 5,
+                      "text": "Standby: Down"
                     },
                     "1": {
-                      "color": "yellow",
-                      "index": 1,
-                      "text": "DEGRADED"
+                      "color": "super-light-yellow",
+                      "index": 6,
+                      "text": "Standby: Degraded"
                     },
                     "2": {
-                      "color": "green",
+                      "color": "super-light-green",
+                      "index": 7,
+                      "text": "Standby: Ready"
+                    },
+                    "10": {
+                      "color": "dark-red",
+                      "index": 0,
+                      "text": "Active: DOWN"
+                    },
+                    "11": {
+                      "color": "dark-yellow",
+                      "index": 1,
+                      "text": "Active: DEGRADED"
+                    },
+                    "12": {
+                      "color": "dark-green",
                       "index": 2,
-                      "text": "UP"
+                      "text": "Active: UP"
+                    },
+                    "20": {
+                      "color": "dark-blue",
+                      "index": 3,
+                      "text": "Active: Override"
+                    },
+                    "21": {
+                      "color": "#808080",
+                      "index": 8,
+                      "text": "Inactive"
+                    },
+                    "30": {
+                      "color": "dark-purple",
+                      "index": 4,
+                      "text": "Active: Fallback"
                     }
                   },
                   "type": "value"
@@ -3128,12 +3202,12 @@
             }
           },
           "gridPos": {
-            "h": 6,
+            "h": 8,
             "w": 24,
             "x": 0,
-            "y": 26
+            "y": 28
           },
-          "id": 1,
+          "id": 75,
           "interval": "5s",
           "maxDataPoints": 5000,
           "options": {
@@ -3141,7 +3215,7 @@
             "legend": {
               "displayMode": "list",
               "placement": "bottom",
-              "showLegend": false
+              "showLegend": true
             },
             "mergeValues": true,
             "rowHeight": 0.9,
@@ -3160,14 +3234,26 @@
                 "uid": "${DS_PROMETHEUS-INFRA}"
               },
               "editorMode": "code",
-              "expr": "(\n  (\n    xui_observatory_outbound_alive{instance=\"${instance}\"}\n    * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))\n  )\n  or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)\n)\nand on (outbound)\nmax by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
+              "expr": "10 * max by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=\"primary\"}\n)\n+ on (outbound)\nmax by (outbound) (\n  (xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0)))\n  or\n  (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)\n)",
               "interval": "5s",
               "legendFormat": "{{outbound}}",
               "range": true,
               "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "expr": "(xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=\"override\"} == 1) * 20\nor\n(xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=\"fallback\"} == 1) * 30\nor\n(xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=~\"override|fallback\"} * 0 + 21)",
+              "interval": "5s",
+              "legendFormat": "{{role}}",
+              "range": true,
+              "refId": "B"
             }
           ],
-          "title": "Outbound health",
+          "title": "Outbound health & selection",
           "type": "state-timeline"
         },
         {
@@ -3202,9 +3288,9 @@
           },
           "gridPos": {
             "h": 8,
-            "w": 7,
+            "w": 12,
             "x": 0,
-            "y": 32
+            "y": 36
           },
           "id": 16,
           "interval": "10s",
@@ -3260,123 +3346,13 @@
               "exemplar": false,
               "expr": "sort_desc (\n  100 * avg_over_time(\n    xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=~\"fallback|override\"}[$__range]\n  )\n)",
               "instant": true,
-              "legendFormat": "{{balancer}} | {{role}}",
+              "legendFormat": "{{role}}",
               "range": false,
               "refId": "B"
             }
           ],
           "title": "Outbound selected time",
           "type": "bargauge"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS-INFRA}"
-          },
-          "description": "Primary target membership plus fallback and override activity. Fallback uses its configured outbound tag; override has no outbound tag. Gray means confirmed inactive; gaps mean unavailable or unknown data.",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "fixed"
-              },
-              "custom": {
-                "axisPlacement": "auto",
-                "fillOpacity": 100,
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "insertNulls": false,
-                "lineWidth": 0,
-                "spanNulls": false
-              },
-              "mappings": [
-                {
-                  "options": {
-                    "0": {
-                      "color": "#7f7f7f",
-                      "index": 0,
-                      "text": "Not selected"
-                    },
-                    "1": {
-                      "color": "green",
-                      "index": 1,
-                      "text": "Selected"
-                    }
-                  },
-                  "type": "value"
-                }
-              ],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": 0
-                  }
-                ]
-              },
-              "unit": "short"
-            }
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 10,
-            "x": 7,
-            "y": 32
-          },
-          "id": 17,
-          "interval": "5s",
-          "maxDataPoints": 5000,
-          "options": {
-            "alignValue": "left",
-            "legend": {
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": false
-            },
-            "mergeValues": true,
-            "rowHeight": 0.9,
-            "showValue": "never",
-            "tooltip": {
-              "hideZeros": false,
-              "mode": "single",
-              "sort": "none"
-            }
-          },
-          "pluginVersion": "13.3.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
-              },
-              "editorMode": "code",
-              "exemplar": false,
-              "expr": "xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role!~\"fallback|override\"}",
-              "instant": false,
-              "interval": "5s",
-              "legendFormat": "{{outbound}}",
-              "range": true,
-              "refId": "A"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
-              },
-              "editorMode": "code",
-              "expr": "xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=~\"fallback|override\"}",
-              "instant": false,
-              "interval": "5s",
-              "legendFormat": "{{role}}",
-              "range": true,
-              "refId": "B"
-            }
-          ],
-          "title": "Selected outbounds",
-          "type": "state-timeline"
         },
         {
           "datasource": {
@@ -3417,7 +3393,7 @@
                   "type": "linear"
                 },
                 "showPoints": "auto",
-                "showValues": true,
+                "showValues": false,
                 "spanNulls": false,
                 "stacking": {
                   "group": "A",
@@ -3442,9 +3418,9 @@
           },
           "gridPos": {
             "h": 8,
-            "w": 7,
-            "x": 17,
-            "y": 32
+            "w": 12,
+            "x": 12,
+            "y": 36
           },
           "id": 15,
           "interval": "1m",
@@ -3669,7 +3645,7 @@
             "h": 8,
             "w": 24,
             "x": 0,
-            "y": 40
+            "y": 44
           },
           "id": 73,
           "options": {
@@ -3955,7 +3931,7 @@
             "h": 9,
             "w": 8,
             "x": 0,
-            "y": 48
+            "y": 52
           },
           "id": 2,
           "interval": "5s",
@@ -4059,7 +4035,7 @@
             "h": 9,
             "w": 8,
             "x": 8,
-            "y": 48
+            "y": 52
           },
           "id": 3,
           "interval": "5s",
@@ -4169,7 +4145,7 @@
             "h": 9,
             "w": 8,
             "x": 16,
-            "y": 48
+            "y": 52
           },
           "id": 28,
           "interval": "5s",
@@ -4210,7 +4186,7 @@
         }
       ],
       "repeat": "balancer",
-      "title": "Balancers & Observatory - $balancer",
+      "title": "$balancer",
       "type": "row"
     },
     {
@@ -4219,9 +4195,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 24
+        "y": 25
       },
-      "id": 80,
+      "id": 82,
       "panels": [
         {
           "datasource": {
@@ -4290,7 +4266,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 25
+            "y": 26
           },
           "id": 29,
           "interval": "5s",
@@ -4407,7 +4383,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 25
+            "y": 26
           },
           "id": 30,
           "interval": "5s",
@@ -4513,7 +4489,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 33
+            "y": 34
           },
           "id": 31,
           "interval": "5s",
@@ -4618,7 +4594,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 33
+            "y": 34
           },
           "id": 32,
           "interval": "5s",
@@ -4737,7 +4713,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 41
+            "y": 42
           },
           "id": 33,
           "interval": "5s",
@@ -4844,7 +4820,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 41
+            "y": 42
           },
           "id": 34,
           "interval": "5s",
@@ -4894,9 +4870,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 25
+        "y": 26
       },
-      "id": 81,
+      "id": 83,
       "panels": [
         {
           "datasource": {
@@ -4954,7 +4930,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 26
+            "y": 27
           },
           "id": 64,
           "options": {
@@ -5057,7 +5033,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 26
+            "y": 27
           },
           "id": 66,
           "options": {
@@ -5251,7 +5227,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 34
+            "y": 35
           },
           "id": 67,
           "options": {
@@ -5495,7 +5471,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 34
+            "y": 35
           },
           "id": 68,
           "options": {
@@ -5607,7 +5583,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 42
+            "y": 43
           },
           "id": 69,
           "options": {
@@ -5679,7 +5655,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 42
+            "y": 43
           },
           "id": 70,
           "options": {
@@ -5736,9 +5712,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 26
+        "y": 27
       },
-      "id": 82,
+      "id": 84,
       "panels": [
         {
           "datasource": {
@@ -5801,7 +5777,7 @@
             "h": 4,
             "w": 24,
             "x": 0,
-            "y": 27
+            "y": 28
           },
           "id": 23,
           "interval": "5s",
@@ -5928,7 +5904,7 @@
             "h": 5,
             "w": 24,
             "x": 0,
-            "y": 31
+            "y": 32
           },
           "id": 24,
           "interval": "5s",
@@ -6058,7 +6034,7 @@
             "h": 6,
             "w": 12,
             "x": 0,
-            "y": 36
+            "y": 37
           },
           "id": 58,
           "interval": "5s",
@@ -6194,7 +6170,7 @@
             "h": 6,
             "w": 12,
             "x": 12,
-            "y": 36
+            "y": 37
           },
           "id": 59,
           "interval": "5s",
@@ -6350,6 +6326,6 @@
   "timezone": "browser",
   "title": "3x-ui-classic",
   "uid": "3x-ui-exporter-classic",
-  "version": 7,
+  "version": 9,
   "weekStart": ""
 }
