@@ -276,7 +276,7 @@
         {
           "targetBlank": false,
           "title": "Collection history",
-          "url": "/d/${__dashboard.uid}/?viewPanel=panel-23&${__all_variables}"
+          "url": "/d/${__dashboard.uid}/?${__all_variables}&drow=Exporter-stats"
         }
       ],
       "maxDataPoints": 5000,
@@ -536,7 +536,7 @@
       "links": [
         {
           "title": "Availability history",
-          "url": "/d/${__dashboard.uid}/?viewPanel=panel-64&${__all_variables}"
+          "url": "/d/${__dashboard.uid}/?${__all_variables}&drow=Connected-nodes"
         }
       ],
       "maxDataPoints": 5000,
@@ -632,7 +632,7 @@
       "links": [
         {
           "title": "Clients statuses",
-          "url": "/d/${__dashboard.uid}/?viewPanel=panel-71&${__all_variables}"
+          "url": "/d/${__dashboard.uid}/?${__all_variables}&drow=Clients"
         }
       ],
       "options": {
@@ -1056,18 +1056,7 @@
       },
       "id": 41,
       "interval": "5s",
-      "links": [
-        {
-          "targetBlank": false,
-          "title": "Availability history",
-          "url": "/d/${__dashboard.uid}/?viewPanel=panel-25&${__all_variables}"
-        },
-        {
-          "targetBlank": false,
-          "title": "Selected outbounds",
-          "url": "/d/${__dashboard.uid}/?viewPanel=panel-17&${__all_variables}"
-        }
-      ],
+      "links": [],
       "maxDataPoints": 5000,
       "options": {
         "colorMode": "value",
@@ -1300,13 +1289,7 @@
       },
       "id": 43,
       "interval": "5s",
-      "links": [
-        {
-          "targetBlank": false,
-          "title": "Identify balancer and selected role",
-          "url": "/d/${__dashboard.uid}/?viewPanel=panel-17&${__all_variables}"
-        }
-      ],
+      "links": [],
       "maxDataPoints": 5000,
       "options": {
         "legend": {
@@ -1491,13 +1474,7 @@
       },
       "id": 47,
       "interval": "5s",
-      "links": [
-        {
-          "targetBlank": false,
-          "title": "Open details",
-          "url": "/d/${__dashboard.uid}/?viewPanel=panel-1&${__all_variables}"
-        }
-      ],
+      "links": [],
       "maxDataPoints": 5000,
       "options": {
         "colorMode": "value",
@@ -1718,13 +1695,7 @@
       },
       "id": 50,
       "interval": "5s",
-      "links": [
-        {
-          "targetBlank": false,
-          "title": "Identify outbound and inspect health",
-          "url": "/d/${__dashboard.uid}/?viewPanel=panel-1&${__all_variables}"
-        }
-      ],
+      "links": [],
       "maxDataPoints": 5000,
       "options": {
         "legend": {
@@ -2061,12 +2032,12 @@
         {
           "targetBlank": false,
           "title": "Inbound traffic details",
-          "url": "/d/${__dashboard.uid}/?viewPanel=panel-12&${__all_variables}"
+          "url": "/d/${__dashboard.uid}/?${__all_variables}&drow=Inbounds"
         },
         {
           "targetBlank": false,
           "title": "Outbound traffic details",
-          "url": "/d/${__dashboard.uid}/?viewPanel=panel-9&${__all_variables}"
+          "url": "/d/${__dashboard.uid}/?${__all_variables}&drow=Outbounds"
         }
       ],
       "maxDataPoints": 5000,
@@ -2682,6 +2653,21 @@
               "unit": "binbps"
             },
             "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "direct"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "green",
+                      "mode": "fixed"
+                    }
+                  }
+                ]
+              },
               {
                 "matcher": {
                   "id": "byName",

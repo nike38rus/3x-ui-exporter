@@ -2978,7 +2978,7 @@
           "links": [
             {
               "title": "Collection history",
-              "url": "/d/${__dashboard.uid}/?viewPanel=panel-23&${__all_variables}",
+              "url": "/d/${__dashboard.uid}/?${__all_variables}&drow=Exporter-stats",
               "targetBlank": false
             }
           ],
@@ -3154,12 +3154,12 @@
           "links": [
             {
               "title": "Availability history",
-              "url": "/d/${__dashboard.uid}/?viewPanel=panel-25&${__all_variables}",
+              "url": "/d/${__dashboard.uid}/?${__all_variables}&drow=Balancers-%2526-Observatory",
               "targetBlank": false
             },
             {
               "title": "Selected outbounds",
-              "url": "/d/${__dashboard.uid}/?viewPanel=panel-17&${__all_variables}",
+              "url": "/d/${__dashboard.uid}/?${__all_variables}&drow=Balancers-%2526-Observatory",
               "targetBlank": false
             }
           ],
@@ -3451,7 +3451,7 @@
           "links": [
             {
               "title": "Identify balancer and selected role",
-              "url": "/d/${__dashboard.uid}/?viewPanel=panel-17&${__all_variables}",
+              "url": "/d/${__dashboard.uid}/?${__all_variables}&drow=Balancers-%2526-Observatory",
               "targetBlank": false
             }
           ],
@@ -3709,12 +3709,12 @@
           "links": [
             {
               "title": "Inbound traffic details",
-              "url": "/d/${__dashboard.uid}/?viewPanel=panel-12&${__all_variables}",
+              "url": "/d/${__dashboard.uid}/?${__all_variables}&drow=Inbounds",
               "targetBlank": false
             },
             {
               "title": "Outbound traffic details",
-              "url": "/d/${__dashboard.uid}/?viewPanel=panel-9&${__all_variables}",
+              "url": "/d/${__dashboard.uid}/?${__all_variables}&drow=Outbounds",
               "targetBlank": false
             }
           ],
@@ -3952,7 +3952,7 @@
           "links": [
             {
               "title": "Open details",
-              "url": "/d/${__dashboard.uid}/?viewPanel=panel-1&${__all_variables}",
+              "url": "/d/${__dashboard.uid}/?${__all_variables}&drow=Balancers-%2526-Observatory",
               "targetBlank": false
             }
           ],
@@ -4190,7 +4190,7 @@
           "links": [
             {
               "title": "Identify outbound and inspect health",
-              "url": "/d/${__dashboard.uid}/?viewPanel=panel-1&${__all_variables}",
+              "url": "/d/${__dashboard.uid}/?${__all_variables}&drow=Balancers-%2526-Observatory",
               "targetBlank": false
             }
           ],
@@ -4908,7 +4908,7 @@
           "links": [
             {
               "title": "Clients statuses",
-              "url": "/d/${__dashboard.uid}/?viewPanel=panel-71&${__all_variables}"
+              "url": "/d/${__dashboard.uid}/?${__all_variables}&drow=Clients"
             }
           ],
           "data": {
@@ -5324,7 +5324,7 @@
           "links": [
             {
               "title": "Availability history",
-              "url": "/d/${__dashboard.uid}/?viewPanel=panel-64&${__all_variables}"
+              "url": "/d/${__dashboard.uid}/?${__all_variables}&drow=Connected-nodes"
             }
           ],
           "data": {
@@ -7339,6 +7339,22 @@
                   "fieldMinMax": false
                 },
                 "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "direct"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "green",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
                   {
                     "matcher": {
                       "id": "byName",
