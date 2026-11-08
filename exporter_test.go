@@ -104,6 +104,125 @@ func TestSelectorsAndOverride(t *testing.T) {
 		t.Fatal(v)
 	}
 }
+func TestBalancerCandidateMatching(t *testing.T) {
+	t.Run("exact_tags", func(t *testing.T) {
+		cfg := configuration(t, `{"routing":{"balancers":[{"tag":"lb1","selector":["is-ch-awg","nl-ams-wg","de-fra-vless"],"strategy":{"type":"leastLoad"}}]}}`)
+		f := &fakeCore{
+			tags: map[string]bool{
+				"is-ch-awg":    true,
+				"nl-ams-wg":    true,
+				"de-fra-vless": true,
+				"direct":       true,
+			},
+			states: map[string]*BalancerState{
+				"lb1": {Targets: map[string]bool{"nl-ams-wg": true}},
+			},
+		}
+		e := &Exporter{Core: f}
+		m, err := e.balancerMetrics(context.Background(), cfg)
+		if err != nil {
+			t.Fatal(err)
+		}
+		vals := sampleValues(t, m, "xui_balancer_outbound_selected")
+		if len(vals) != 4 {
+			t.Fatalf("expected 4 metric samples, got %d: %v", len(vals), vals)
+		}
+		if vals["balancer=lb1;outbound=;role=override;"] != 0 {
+			t.Errorf("override expected 0, got %v", vals["balancer=lb1;outbound=;role=override;"])
+		}
+		if vals["balancer=lb1;outbound=nl-ams-wg;role=primary;"] != 1 {
+			t.Errorf("winner expected 1, got %v", vals["balancer=lb1;outbound=nl-ams-wg;role=primary;"])
+		}
+		if vals["balancer=lb1;outbound=is-ch-awg;role=primary;"] != 0 {
+			t.Errorf("candidate is-ch-awg expected 0, got %v", vals["balancer=lb1;outbound=is-ch-awg;role=primary;"])
+		}
+		if vals["balancer=lb1;outbound=de-fra-vless;role=primary;"] != 0 {
+			t.Errorf("candidate de-fra-vless expected 0, got %v", vals["balancer=lb1;outbound=de-fra-vless;role=primary;"])
+		}
+		if _, exists := vals["balancer=lb1;outbound=direct;role=primary;"]; exists {
+			t.Errorf("direct should not be a candidate")
+		}
+	})
+
+	t.Run("selectors_with_whitespace_and_empty", func(t *testing.T) {
+		cfg := configuration(t, `{"routing":{"balancers":[{"tag":"lb2","selector":[" tag1 ","   ","","\ttag2\t"],"strategy":{"type":"leastPing"}}]}}`)
+		f := &fakeCore{
+			tags: map[string]bool{
+				"tag1":   true,
+				"tag2":   true,
+				"other":  true,
+				"direct": true,
+			},
+			states: map[string]*BalancerState{
+				"lb2": {Targets: map[string]bool{"tag1": true}},
+			},
+		}
+		e := &Exporter{Core: f}
+		m, err := e.balancerMetrics(context.Background(), cfg)
+		if err != nil {
+			t.Fatal(err)
+		}
+		vals := sampleValues(t, m, "xui_balancer_outbound_selected")
+		if len(vals) != 3 {
+			t.Fatalf("expected 3 metric samples, got %d: %v", len(vals), vals)
+		}
+		if vals["balancer=lb2;outbound=tag1;role=primary;"] != 1 {
+			t.Errorf("winner expected 1, got %v", vals["balancer=lb2;outbound=tag1;role=primary;"])
+		}
+		if vals["balancer=lb2;outbound=tag2;role=primary;"] != 0 {
+			t.Errorf("candidate tag2 expected 0, got %v", vals["balancer=lb2;outbound=tag2;role=primary;"])
+		}
+		if _, exists := vals["balancer=lb2;outbound=other;role=primary;"]; exists {
+			t.Errorf("empty selector should not match 'other'")
+		}
+		if _, exists := vals["balancer=lb2;outbound=direct;role=primary;"]; exists {
+			t.Errorf("empty selector should not match 'direct'")
+		}
+	})
+
+	t.Run("mixed_prefixes_and_exact_with_fallback", func(t *testing.T) {
+		cfg := configuration(t, `{"routing":{"balancers":[{"tag":"lb3","selector":["pref-"," special "],"fallbackTag":"fb","strategy":{"type":"leastLoad"}}]}}`)
+		f := &fakeCore{
+			tags: map[string]bool{
+				"pref-a":  true,
+				"pref-b":  true,
+				"special": true,
+				"fb":      true,
+				"unused":  true,
+			},
+			states: map[string]*BalancerState{
+				"lb3": {Targets: map[string]bool{"pref-b": true}},
+			},
+		}
+		e := &Exporter{Core: f}
+		m, err := e.balancerMetrics(context.Background(), cfg)
+		if err != nil {
+			t.Fatal(err)
+		}
+		vals := sampleValues(t, m, "xui_balancer_outbound_selected")
+		if len(vals) != 5 {
+			t.Fatalf("expected 5 metric samples, got %d: %v", len(vals), vals)
+		}
+		if vals["balancer=lb3;outbound=;role=override;"] != 0 {
+			t.Errorf("override expected 0, got %v", vals["balancer=lb3;outbound=;role=override;"])
+		}
+		if vals["balancer=lb3;outbound=fb;role=fallback;"] != 0 {
+			t.Errorf("fallback expected 0, got %v", vals["balancer=lb3;outbound=fb;role=fallback;"])
+		}
+		if vals["balancer=lb3;outbound=pref-b;role=primary;"] != 1 {
+			t.Errorf("winner pref-b expected 1, got %v", vals["balancer=lb3;outbound=pref-b;role=primary;"])
+		}
+		if vals["balancer=lb3;outbound=pref-a;role=primary;"] != 0 {
+			t.Errorf("pref-a expected 0, got %v", vals["balancer=lb3;outbound=pref-a;role=primary;"])
+		}
+		if vals["balancer=lb3;outbound=special;role=primary;"] != 0 {
+			t.Errorf("special expected 0, got %v", vals["balancer=lb3;outbound=special;role=primary;"])
+		}
+		if _, exists := vals["balancer=lb3;outbound=unused;role=primary;"]; exists {
+			t.Errorf("unused should not be matched")
+		}
+	})
+}
 func TestFallbackChainsAndCycles(t *testing.T) {
 	cfg := configuration(t, `{"routing":{"balancers":[{"tag":"main","selector":["A"],"fallbackTag":"loop"},{"tag":"reserve","selector":["B"]}],"rules":[{"inboundTag":["loop-in"],"balancerTag":"reserve"}]},"outbounds":[{"tag":"loop","protocol":"loopback","settings":{"inboundTag":"loop-in"}}]}`)
 	states := map[string]*BalancerState{"main": {Targets: map[string]bool{}}, "reserve": {Targets: map[string]bool{"B": true}}}

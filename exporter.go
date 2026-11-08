@@ -485,11 +485,19 @@ func buildBalancerMetrics(cfg *Config, outbounds map[string]bool, states map[str
 		if !knownSelection && !state.Override {
 			continue
 		}
+		var selectors []string
+		for _, prefix := range b.Selector {
+			sel := strings.TrimSpace(prefix)
+			if sel != "" {
+				selectors = append(selectors, sel)
+			}
+		}
 		tags := map[string]bool{}
 		for t := range outbounds {
-			for _, prefix := range b.Selector {
-				if strings.HasPrefix(t, prefix) {
+			for _, sel := range selectors {
+				if t == sel || strings.HasPrefix(t, sel) {
 					tags[t] = true
+					break
 				}
 			}
 		}
