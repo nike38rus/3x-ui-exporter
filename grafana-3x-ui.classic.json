@@ -343,7 +343,7 @@
             "fixedColor": "blue",
             "mode": "thresholds"
           },
-          "noValue": "No data",
+          "noValue": "Unknown",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -684,7 +684,7 @@
             "fixedColor": "blue",
             "mode": "thresholds"
           },
-          "noValue": "No data",
+          "noValue": "Unknown",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -759,7 +759,7 @@
             "fixedColor": "blue",
             "mode": "thresholds"
           },
-          "noValue": "No data",
+          "noValue": "Unknown",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -834,7 +834,7 @@
             "fixedColor": "#404040",
             "mode": "thresholds"
           },
-          "noValue": "No data",
+          "noValue": "Unknown",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1098,7 +1098,7 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(xui_balancer_outbound_available{instance=\"${instance}\"} == bool 1) and on() (xui_exporter_scrape_success{instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{instance=\"${instance}\"} == 1)",
+          "expr": "sum(xui_balancer_outbound_available{instance=\"${instance}\"} == bool 1)",
           "instant": true,
           "legendFormat": "Available",
           "range": false,
@@ -1110,7 +1110,7 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(xui_balancer_outbound_selected{instance=\"${instance}\",role=\"fallback\"}) and on() (xui_exporter_scrape_success{instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{instance=\"${instance}\"} == 1)",
+          "expr": "sum(xui_balancer_outbound_selected{instance=\"${instance}\",role=\"fallback\"})",
           "instant": true,
           "legendFormat": "Fallback",
           "range": false,
@@ -1122,7 +1122,7 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(xui_balancer_outbound_selected{instance=\"${instance}\",role=\"override\"}) and on() (xui_exporter_scrape_success{instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{instance=\"${instance}\"} == 1)",
+          "expr": "sum(xui_balancer_outbound_selected{instance=\"${instance}\",role=\"override\"})",
           "instant": true,
           "legendFormat": "Override",
           "range": false,
@@ -1134,7 +1134,7 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(xui_balancer_outbound_available{instance=\"${instance}\"} == bool 0) and on() (xui_exporter_scrape_success{instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{instance=\"${instance}\"} == 1)",
+          "expr": "sum(xui_balancer_outbound_available{instance=\"${instance}\"} == bool 0)",
           "instant": true,
           "legendFormat": "Unavailable",
           "range": false,
@@ -1190,7 +1190,7 @@
             }
           },
           "decimals": 0,
-          "noValue": "No data",
+          "noValue": "Unknown",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1329,7 +1329,7 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(xui_balancer_outbound_available{instance=\"${instance}\"} == bool 1) and on() (xui_exporter_scrape_success{instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{instance=\"${instance}\"} == 1)",
+          "expr": "sum(xui_balancer_outbound_available{instance=\"${instance}\"} == bool 1)",
           "instant": false,
           "legendFormat": "Available",
           "range": true,
@@ -1341,7 +1341,7 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(xui_balancer_outbound_available{instance=\"${instance}\"} == bool 0) and on() (xui_exporter_scrape_success{instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{instance=\"${instance}\"} == 1)",
+          "expr": "sum(xui_balancer_outbound_available{instance=\"${instance}\"} == bool 0)",
           "instant": false,
           "legendFormat": "Unavailable",
           "range": true,
@@ -1353,7 +1353,7 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(xui_balancer_outbound_selected{instance=\"${instance}\",role=\"fallback\"}) and on() (xui_exporter_scrape_success{instance=\"${instance}\",source=\"api\"} == 1 and on(instance,job) xui_exporter_scrape_success{instance=\"${instance}\",source=\"grpc\"} == 1) and on() (up{instance=\"${instance}\"} == 1)",
+          "expr": "sum(xui_balancer_outbound_selected{instance=\"${instance}\",role=\"fallback\"})",
           "instant": false,
           "legendFormat": "Fallback active",
           "range": true,
@@ -1528,7 +1528,7 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 2) and on() (xui_exporter_scrape_success{instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{instance=\"${instance}\"} == 1)",
+          "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 2)",
           "instant": true,
           "legendFormat": "UP",
           "range": false,
@@ -1540,7 +1540,7 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 1) and on() (xui_exporter_scrape_success{instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{instance=\"${instance}\"} == 1)",
+          "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 1)",
           "instant": true,
           "legendFormat": "DEGRADED",
           "range": false,
@@ -1552,7 +1552,7 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 0) and on() (xui_exporter_scrape_success{instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{instance=\"${instance}\"} == 1)",
+          "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 0)",
           "instant": true,
           "legendFormat": "DOWN",
           "range": false,
@@ -1608,7 +1608,7 @@
             }
           },
           "decimals": 0,
-          "noValue": "No data",
+          "noValue": "Unknown",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1747,7 +1747,7 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 2) and on() (xui_exporter_scrape_success{instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{instance=\"${instance}\"} == 1)",
+          "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 2)",
           "instant": false,
           "legendFormat": "UP",
           "range": true,
@@ -1759,7 +1759,7 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 1) and on() (xui_exporter_scrape_success{instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{instance=\"${instance}\"} == 1)",
+          "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 1)",
           "instant": false,
           "legendFormat": "DEGRADED",
           "range": true,
@@ -1771,7 +1771,7 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 0) and on() (xui_exporter_scrape_success{instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{instance=\"${instance}\"} == 1)",
+          "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 0)",
           "instant": false,
           "legendFormat": "DOWN",
           "range": true,
@@ -1827,6 +1827,7 @@
             }
           },
           "decimals": 0,
+          "noValue": "Unknown",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1944,7 +1945,7 @@
               "mode": "off"
             }
           },
-          "noValue": "No data",
+          "noValue": "Unknown",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1958,7 +1959,7 @@
               }
             ]
           },
-          "unit": "bps"
+          "unit": "binbps"
         },
         "overrides": [
           {
@@ -2090,7 +2091,7 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "8 * sum (rate(xui_inbound_traffic_bytes_total{instance=\"${instance}\",direction=\"downlink\"}[$__rate_interval])) and on() (xui_exporter_scrape_success{instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{instance=\"${instance}\"} == 1)",
+          "expr": "8 * sum(rate(xui_inbound_traffic_bytes_total{instance=\"${instance}\",direction=\"downlink\"}[$__rate_interval]))",
           "instant": false,
           "interval": "5s",
           "legendFormat": "Download",
@@ -2103,7 +2104,7 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "8 * sum (rate(xui_inbound_traffic_bytes_total{instance=\"${instance}\",direction=\"uplink\"}[$__rate_interval])) and on() (xui_exporter_scrape_success{instance=\"${instance}\",source=\"expvars\"} == 1) and on() (up{instance=\"${instance}\"} == 1)",
+          "expr": "8 * sum(rate(xui_inbound_traffic_bytes_total{instance=\"${instance}\",direction=\"uplink\"}[$__rate_interval]))",
           "instant": false,
           "interval": "5s",
           "legendFormat": "Upload",
@@ -2134,13 +2135,18 @@
             "defaults": {
               "color": {
                 "fixedColor": "green",
-                "mode": "fixed"
+                "mode": "thresholds"
               },
               "decimals": 0,
               "min": 0,
+              "noValue": "Unknown",
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
+                  {
+                    "color": "#404040",
+                    "value": 0
+                  },
                   {
                     "color": "green",
                     "value": 0
@@ -2261,6 +2267,7 @@
               },
               "decimals": 0,
               "min": 0,
+              "noValue": "Unknown",
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -2373,6 +2380,7 @@
                 }
               },
               "min": 0,
+              "noValue": "Inbound statistics disabled",
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -2386,7 +2394,7 @@
                   }
                 ]
               },
-              "unit": "bps"
+              "unit": "binbps"
             }
           },
           "gridPos": {
@@ -2443,16 +2451,21 @@
                 "mode": "thresholds"
               },
               "min": 0,
+              "noValue": "Inbound statistics disabled",
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
+                  {
+                    "color": "#404040",
+                    "value": 0
+                  },
                   {
                     "color": "green",
                     "value": 0
                   }
                 ]
               },
-              "unit": "decbytes"
+              "unit": "bytes"
             }
           },
           "gridPos": {
@@ -2463,7 +2476,7 @@
           },
           "id": 63,
           "options": {
-            "displayMode": "basic",
+            "displayMode": "gradient",
             "legend": {
               "calcs": [],
               "displayMode": "list",
@@ -2545,6 +2558,7 @@
                   "type": "value"
                 }
               ],
+              "noValue": "Inbound statistics disabled",
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -2665,7 +2679,7 @@
                   }
                 ]
               },
-              "unit": "bps"
+              "unit": "binbps"
             },
             "overrides": [
               {
@@ -2780,12 +2794,16 @@
                 "mode": "absolute",
                 "steps": [
                   {
+                    "color": "#404040",
+                    "value": 0
+                  },
+                  {
                     "color": "green",
                     "value": 0
                   }
                 ]
               },
-              "unit": "decbytes"
+              "unit": "bytes"
             }
           },
           "gridPos": {
@@ -2885,7 +2903,7 @@
                 }
               },
               "noValue": "Outbound statistics disabled",
-              "unit": "decbytes"
+              "unit": "bytes"
             }
           },
           "gridPos": {
@@ -3179,9 +3197,14 @@
               },
               "max": 100,
               "min": 0,
+              "noValue": "Unknown",
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
+                  {
+                    "color": "#404040",
+                    "value": 0
+                  },
                   {
                     "color": "green",
                     "value": 0
@@ -3418,6 +3441,7 @@
                   "mode": "off"
                 }
               },
+              "noValue": "Unknown",
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -3494,6 +3518,7 @@
                 },
                 "inspect": false
               },
+              "noValue": "Unknown",
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -3923,7 +3948,7 @@
                 }
               },
               "min": 0,
-              "noValue": "0",
+              "noValue": "Unknown",
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -4258,6 +4283,7 @@
                 }
               },
               "min": 0,
+              "noValue": "Unknown",
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -4374,6 +4400,7 @@
                 }
               },
               "min": 0,
+              "noValue": "Unknown",
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -4479,6 +4506,7 @@
                 }
               },
               "min": 0,
+              "noValue": "Unknown",
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -4583,6 +4611,7 @@
                 }
               },
               "min": 0,
+              "noValue": "Unknown",
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -4701,6 +4730,7 @@
                 }
               },
               "min": 0,
+              "noValue": "Unknown",
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -4807,6 +4837,7 @@
                 }
               },
               "min": 0,
+              "noValue": "Unknown",
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -4921,6 +4952,7 @@
                   "type": "value"
                 }
               ],
+              "noValue": "Unknown",
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -5018,6 +5050,7 @@
                 }
               },
               "min": 0,
+              "noValue": "Unknown",
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -5092,6 +5125,7 @@
                 },
                 "inspect": false
               },
+              "noValue": "Unknown",
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -5443,6 +5477,7 @@
               "decimals": 1,
               "max": 100,
               "min": -100,
+              "noValue": "Unknown",
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -5565,6 +5600,7 @@
                 }
               },
               "min": 0,
+              "noValue": "Unknown",
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -5578,7 +5614,7 @@
                   }
                 ]
               },
-              "unit": "bps"
+              "unit": "binbps"
             }
           },
           "gridPos": {
@@ -5636,9 +5672,14 @@
               "color": {
                 "mode": "thresholds"
               },
+              "noValue": "Unknown",
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
+                  {
+                    "color": "#404040",
+                    "value": 0
+                  },
                   {
                     "color": "green",
                     "value": 0
@@ -5656,7 +5697,7 @@
           },
           "id": 70,
           "options": {
-            "displayMode": "basic",
+            "displayMode": "gradient",
             "legend": {
               "calcs": [],
               "displayMode": "list",
@@ -5753,6 +5794,7 @@
                 }
               ],
               "min": 0,
+              "noValue": "Unknown",
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -5858,6 +5900,7 @@
                 }
               },
               "min": 0,
+              "noValue": "Unknown",
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -6008,6 +6051,7 @@
                 }
               },
               "min": 0,
+              "noValue": "Unknown",
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -6125,6 +6169,7 @@
                 }
               },
               "min": 0,
+              "noValue": "Unknown",
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -6319,6 +6364,6 @@
   "timezone": "browser",
   "title": "3x-ui-classic",
   "uid": "3x-ui-exporter-classic",
-  "version": 5,
+  "version": 7,
   "weekStart": ""
 }
