@@ -83,7 +83,6 @@ jobs:
           build-args: |
             BINARY_SOURCE=prebuilt
           cache-from: type=gha,scope=exporter-ci
-          cache-to: type=gha,mode=max,scope=exporter-ci
   architecture-tags:
     needs: image
     permissions:

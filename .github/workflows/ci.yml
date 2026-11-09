@@ -30,7 +30,7 @@ env:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   test:
@@ -68,6 +68,7 @@ jobs:
           git diff --exit-code -- THIRD_PARTY_NOTICES.md third_party_licenses
           test -z "$(git ls-files --others --exclude-standard -- third_party_licenses)"
       - name: Build Linux amd64 and arm64 binaries
+        if: github.event_name == 'pull_request'
         run: make linux VERSION=ci
 
   repository:
@@ -231,4 +232,3 @@ jobs:
           build-args: |
             BINARY_SOURCE=prebuilt
           cache-from: type=gha,scope=exporter-ci
-          cache-to: type=gha,mode=max,scope=exporter-ci
