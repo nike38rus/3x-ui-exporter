@@ -6,7 +6,6 @@ on:
     paths-ignore:
       - 'docs/**'
       - '*.md'
-      - 'grafana-3x-ui.*.json'
       - 'examples/**'
       - '.gitignore'
       - '.gitleaks.toml'
@@ -15,7 +14,6 @@ on:
     paths-ignore:
       - 'docs/**'
       - '*.md'
-      - 'grafana-3x-ui.*.json'
       - 'examples/**'
       - '.gitignore'
       - '.gitleaks.toml'
