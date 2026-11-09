@@ -231,7 +231,7 @@ To switch to a specific release version, downgrade, or install the rolling bleed
 
 ```sh
 # Pin specific version:
-curl -sSL https://raw.githubusercontent.com/nike38rus/3x-ui-exporter/main/install.sh | sudo bash -s update -v v1.4.4
+curl -sSL https://raw.githubusercontent.com/nike38rus/3x-ui-exporter/main/install.sh | sudo bash -s update -v v1.5.0
 
 # Install or update to edge build (latest commit on main):
 curl -sSL https://raw.githubusercontent.com/nike38rus/3x-ui-exporter/main/install.sh | sudo bash -s update -v edge
@@ -726,7 +726,7 @@ make linux
 make licenses
 
 # Package release archives with checksums
-make release VERSION=v1.4.4
+make release VERSION=v1.5.0
 ```
 
 ---
