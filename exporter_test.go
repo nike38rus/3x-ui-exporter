@@ -625,6 +625,17 @@ func TestBalancerOperationalHealth(t *testing.T) {
 			expectedState:  map[string]float64{"balancer=lb;": 2},
 		},
 		{
+			name:    "primary unmonitored is blind",
+			cfgJSON: `{"routing":{"balancers":[{"tag":"lb","selector":["A"],"fallbackTag":"direct","strategy":{"type":"leastLoad"}}]}}`,
+			tags:    map[string]bool{"A": true, "direct": true},
+			states:  map[string]*BalancerState{"lb": {Targets: map[string]bool{"A": true}}},
+			observations: map[string]bool{
+				"other": true,
+			},
+			expectedHealth: map[string]float64{"balancer=lb;": 1},
+			expectedState:  map[string]float64{"balancer=lb;": 2},
+		},
+		{
 			name:    "primary dead in observatory drops to down",
 			cfgJSON: `{"routing":{"balancers":[{"tag":"lb","selector":["A"],"fallbackTag":"direct","strategy":{"type":"leastLoad"}}]}}`,
 			tags:    map[string]bool{"A": true, "direct": true},
@@ -636,7 +647,7 @@ func TestBalancerOperationalHealth(t *testing.T) {
 			expectedState:  map[string]float64{"balancer=lb;": 2},
 		},
 		{
-			name:    "fallback to unprobed direct is degraded",
+			name:    "fallback to unprobed direct is blind",
 			cfgJSON: `{"routing":{"balancers":[{"tag":"lb","selector":["A"],"fallbackTag":"direct","strategy":{"type":"leastLoad"}}]}}`,
 			tags:    map[string]bool{"A": true, "direct": true},
 			states:  map[string]*BalancerState{"lb": {Targets: map[string]bool{}}},
@@ -644,6 +655,18 @@ func TestBalancerOperationalHealth(t *testing.T) {
 				"A": false,
 			},
 			expectedHealth: map[string]float64{"balancer=lb;": 1},
+			expectedState:  map[string]float64{"balancer=lb;": 1},
+		},
+		{
+			name:    "fallback to probed alive proxy is up",
+			cfgJSON: `{"routing":{"balancers":[{"tag":"lb","selector":["A"],"fallbackTag":"backup","strategy":{"type":"leastLoad"}}]}}`,
+			tags:    map[string]bool{"A": true, "backup": true},
+			states:  map[string]*BalancerState{"lb": {Targets: map[string]bool{}}},
+			observations: map[string]bool{
+				"A":      false,
+				"backup": true,
+			},
+			expectedHealth: map[string]float64{"balancer=lb;": 2},
 			expectedState:  map[string]float64{"balancer=lb;": 1},
 		},
 		{
@@ -670,7 +693,7 @@ func TestBalancerOperationalHealth(t *testing.T) {
 				"A": false,
 				"B": true,
 			},
-			expectedHealth: map[string]float64{"balancer=lb-main;": 1, "balancer=lb-sub;": 2},
+			expectedHealth: map[string]float64{"balancer=lb-main;": 2, "balancer=lb-sub;": 2},
 			expectedState:  map[string]float64{"balancer=lb-main;": 1, "balancer=lb-sub;": 2},
 		},
 		{
@@ -710,6 +733,17 @@ func TestBalancerOperationalHealth(t *testing.T) {
 				"override-out": true,
 			},
 			expectedHealth: map[string]float64{"balancer=lb;": 2},
+			expectedState:  map[string]float64{"balancer=lb;": 3},
+		},
+		{
+			name:    "override target unmonitored is blind",
+			cfgJSON: `{"routing":{"balancers":[{"tag":"lb","selector":["A"],"fallbackTag":"direct","strategy":{"type":"leastLoad"}}]}}`,
+			tags:    map[string]bool{"A": true, "override-out": true, "direct": true},
+			states:  map[string]*BalancerState{"lb": {Targets: map[string]bool{"override-out": true}, Override: true}},
+			observations: map[string]bool{
+				"other": true,
+			},
+			expectedHealth: map[string]float64{"balancer=lb;": 1},
 			expectedState:  map[string]float64{"balancer=lb;": 3},
 		},
 		{

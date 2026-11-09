@@ -494,7 +494,7 @@ func buildBalancerMetrics(cfg *Config, outbounds map[string]bool, states map[str
 		if hErr != nil {
 			return nil, hErr
 		}
-		gauge(&result, "xui_balancer_health", "Current balancer egress operational health: 0=down, 1=degraded, 2=up.", float64(health), []string{"balancer"}, b.Tag)
+		gauge(&result, "xui_balancer_health", "Current balancer egress operational health: 0=down, 1=blind, 2=up.", float64(health), []string{"balancer"}, b.Tag)
 		labels := []string{"balancer", "outbound", "role"}
 		const help = "Current primary target membership, configured fallback selection, or override activity."
 		gauge(&result, "xui_balancer_outbound_selected", help, number(state.Override), labels, b.Tag, "", "override")

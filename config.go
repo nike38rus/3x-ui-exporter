@@ -245,7 +245,7 @@ func resolveOutbound(tag string, cfg *Config, states map[string]*BalancerState, 
 	return true, nil
 }
 
-// resolveBalancerOperationalHealth returns 2 (up), 1 (degraded), or 0 (down).
+// resolveBalancerOperationalHealth returns 2 (up), 1 (blind), or 0 (down).
 func resolveBalancerOperationalHealth(tag string, cfg *Config, states map[string]*BalancerState, outbounds map[string]bool, observations map[string]bool, visiting map[string]bool) (int, error) {
 	key := "balancer:" + tag
 	if visiting[key] {
@@ -268,8 +268,6 @@ func resolveBalancerOperationalHealth(tag string, cfg *Config, states map[string
 	}
 
 	var targets []string
-	var mode int // 2 for primary/override, 1 for fallback
-
 	var currentBalancer *BalancerConfig
 	for i := range cfg.Routing.Balancers {
 		if cfg.Routing.Balancers[i].Tag == tag {
@@ -279,15 +277,12 @@ func resolveBalancerOperationalHealth(tag string, cfg *Config, states map[string
 	}
 
 	if state.Override {
-		mode = 2
 		for t := range state.Targets {
 			targets = append(targets, t)
 		}
 	} else if currentBalancer != nil && currentBalancer.Fallback != "" && len(state.Targets) == 0 {
-		mode = 1
 		targets = append(targets, currentBalancer.Fallback)
 	} else {
-		mode = 2
 		for t := range state.Targets {
 			targets = append(targets, t)
 		}
@@ -298,31 +293,30 @@ func resolveBalancerOperationalHealth(tag string, cfg *Config, states map[string
 	}
 
 	sort.Strings(targets)
-	anyAlive := false
+	maxHealth := 0
 	for _, target := range targets {
-		alive, err := resolveOutboundHealth(target, cfg, states, outbounds, observations, visiting)
+		health, err := resolveOutboundHealth(target, cfg, states, outbounds, observations, visiting)
 		if err != nil {
 			return 0, err
 		}
-		if alive {
-			anyAlive = true
+		if health > maxHealth {
+			maxHealth = health
+		}
+		if maxHealth == 2 {
 			break
 		}
 	}
 
-	if !anyAlive {
-		return 0, nil
-	}
-	return mode, nil
+	return maxHealth, nil
 }
 
-func resolveOutboundHealth(tag string, cfg *Config, states map[string]*BalancerState, outbounds map[string]bool, observations map[string]bool, visiting map[string]bool) (bool, error) {
+func resolveOutboundHealth(tag string, cfg *Config, states map[string]*BalancerState, outbounds map[string]bool, observations map[string]bool, visiting map[string]bool) (int, error) {
 	if tag == "" || !outbounds[tag] {
-		return false, nil
+		return 0, nil
 	}
 	key := "outbound:" + tag
 	if visiting[key] {
-		return false, nil
+		return 0, nil
 	}
 	visiting[key] = true
 	defer delete(visiting, key)
@@ -347,7 +341,7 @@ func resolveOutboundHealth(tag string, cfg *Config, states map[string]*BalancerS
 			}
 			for k := range r {
 				if k != "type" && k != "inboundTag" && k != "outboundTag" && k != "balancerTag" && k != "ruleTag" {
-					return false, errors.New("conditional loopback cannot be resolved")
+					return 0, errors.New("conditional loopback cannot be resolved")
 				}
 			}
 			var target, balancer string
@@ -357,22 +351,21 @@ func resolveOutboundHealth(tag string, cfg *Config, states map[string]*BalancerS
 				return resolveOutboundHealth(target, cfg, states, outbounds, observations, visiting)
 			}
 			if balancer != "" {
-				health, err := resolveBalancerOperationalHealth(balancer, cfg, states, outbounds, observations, visiting)
-				if err != nil {
-					return false, err
-				}
-				return health > 0, nil
+				return resolveBalancerOperationalHealth(balancer, cfg, states, outbounds, observations, visiting)
 			}
-			return false, nil
+			return 0, nil
 		}
-		return false, nil
+		return 0, nil
 	}
 
 	// Terminal physical outbound reached.
 	if observations != nil {
 		if alive, ok := observations[tag]; ok {
-			return alive, nil
+			if alive {
+				return 2, nil
+			}
+			return 0, nil
 		}
 	}
-	return true, nil
+	return 1, nil // unmonitored / unprobed -> BLIND
 }
