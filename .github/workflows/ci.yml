@@ -37,16 +37,10 @@ jobs:
     name: Go checks and Linux builds
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    env:
-      GOPATH: ${{ github.workspace }}/.cache/gopath
-      GOMODCACHE: ${{ github.workspace }}/.cache/mod
-      GOCACHE: ${{ github.workspace }}/.cache/build
-      GOTMPDIR: ${{ github.workspace }}/.cache/tmp
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - run: make prepare
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
@@ -171,16 +165,10 @@ jobs:
       packages: write
       id-token: write
       attestations: write
-    env:
-      GOPATH: ${{ github.workspace }}/.cache/gopath
-      GOMODCACHE: ${{ github.workspace }}/.cache/mod
-      GOCACHE: ${{ github.workspace }}/.cache/build
-      GOTMPDIR: ${{ github.workspace }}/.cache/tmp
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - run: make prepare
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod

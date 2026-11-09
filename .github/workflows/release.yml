@@ -19,10 +19,13 @@ jobs:
         with:
           go-version-file: go.mod
           cache-dependency-path: go.sum
-      - run: make test licenses
-      - run: git diff --exit-code -- THIRD_PARTY_NOTICES.md third_party_licenses
+      - name: Run tests with race detector and go vet
+        run: make test
+      - name: Verify third-party notices
+        run: |
+          make licenses
+          git diff --exit-code -- THIRD_PARTY_NOTICES.md third_party_licenses
   binaries:
-    needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -47,7 +50,7 @@ jobs:
           if-no-files-found: error
           compression-level: 0
   image:
-    needs: binaries
+    needs: [verify, binaries]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -96,7 +99,7 @@ jobs:
     with:
       version: ${{ github.ref_name }}
   publish:
-    needs: [binaries, image, architecture-tags]
+    needs: [verify, binaries, image, architecture-tags]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:

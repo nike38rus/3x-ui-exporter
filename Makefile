@@ -1,14 +1,9 @@
-export GOPATH := $(CURDIR)/.cache/gopath
-export GOMODCACHE := $(CURDIR)/.cache/mod
-export GOCACHE := $(CURDIR)/.cache/build
-export GOTMPDIR := $(CURDIR)/.cache/tmp
-
 VERSION ?= dev
 LDFLAGS := -s -w -X main.version=$(VERSION)
 
 .PHONY: test build linux prepare download licenses release
 prepare:
-	mkdir -p .cache/tmp .cache/build .cache/mod .cache/gopath bin
+	mkdir -p bin
 download: prepare
 	go mod download
 test: prepare
