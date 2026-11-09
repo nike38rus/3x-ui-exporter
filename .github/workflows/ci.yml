@@ -169,6 +169,8 @@ jobs:
     permissions:
       contents: write
       packages: write
+      id-token: write
+      attestations: write
     env:
       GOPATH: ${{ github.workspace }}/.cache/gopath
       GOMODCACHE: ${{ github.workspace }}/.cache/mod
@@ -231,4 +233,6 @@ jobs:
             org.opencontainers.image.revision=${{ github.sha }}
           build-args: |
             BINARY_SOURCE=prebuilt
+          provenance: mode=max
+          sbom: true
           cache-from: type=gha,scope=exporter-ci
