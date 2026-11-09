@@ -40,9 +40,9 @@ Unmodified Xray source is available under MPL-2.0 at its exact archive link.
 
 - [LICENSE](third_party_licenses/github.com__juju__ratelimit__LICENSE)
 
-## github.com/klauspost/compress v1.18.0
+## github.com/klauspost/compress v1.20.1
 
-[Exact source archive](https://proxy.golang.org/github.com/klauspost/compress/@v/v1.18.0.zip)
+[Exact source archive](https://proxy.golang.org/github.com/klauspost/compress/@v/v1.20.1.zip)
 
 - [LICENSE](third_party_licenses/github.com__klauspost__compress__LICENSE)
 
@@ -72,30 +72,30 @@ Unmodified Xray source is available under MPL-2.0 at its exact archive link.
 
 - [LICENSE](third_party_licenses/github.com__pires__go-proxyproto__LICENSE)
 
-## github.com/prometheus/client_golang v1.23.2
+## github.com/prometheus/client_golang v1.25.0
 
-[Exact source archive](https://proxy.golang.org/github.com/prometheus/client_golang/@v/v1.23.2.zip)
+[Exact source archive](https://proxy.golang.org/github.com/prometheus/client_golang/@v/v1.25.0.zip)
 
 - [LICENSE](third_party_licenses/github.com__prometheus__client_golang__LICENSE)
 - [NOTICE](third_party_licenses/github.com__prometheus__client_golang__NOTICE)
 
-## github.com/prometheus/client_model v0.6.2
+## github.com/prometheus/client_model v0.6.3
 
-[Exact source archive](https://proxy.golang.org/github.com/prometheus/client_model/@v/v0.6.2.zip)
+[Exact source archive](https://proxy.golang.org/github.com/prometheus/client_model/@v/v0.6.3.zip)
 
 - [LICENSE](third_party_licenses/github.com__prometheus__client_model__LICENSE)
 - [NOTICE](third_party_licenses/github.com__prometheus__client_model__NOTICE)
 
-## github.com/prometheus/common v0.66.1
+## github.com/prometheus/common v0.72.0
 
-[Exact source archive](https://proxy.golang.org/github.com/prometheus/common/@v/v0.66.1.zip)
+[Exact source archive](https://proxy.golang.org/github.com/prometheus/common/@v/v0.72.0.zip)
 
 - [LICENSE](third_party_licenses/github.com__prometheus__common__LICENSE)
 - [NOTICE](third_party_licenses/github.com__prometheus__common__NOTICE)
 
-## github.com/prometheus/procfs v0.16.1
+## github.com/prometheus/procfs v0.22.0
 
-[Exact source archive](https://proxy.golang.org/github.com/prometheus/procfs/@v/v0.16.1.zip)
+[Exact source archive](https://proxy.golang.org/github.com/prometheus/procfs/@v/v0.22.0.zip)
 
 - [LICENSE](third_party_licenses/github.com__prometheus__procfs__LICENSE)
 - [NOTICE](third_party_licenses/github.com__prometheus__procfs__NOTICE)
@@ -119,14 +119,6 @@ Unmodified Xray source is available under MPL-2.0 at its exact archive link.
 
 - [LICENSE](third_party_licenses/github.com__xtls__xray-core__LICENSE)
 
-## go.yaml.in/yaml/v2 v2.4.2
-
-[Exact source archive](https://proxy.golang.org/go.yaml.in/yaml/v2/@v/v2.4.2.zip)
-
-- [LICENSE](third_party_licenses/go.yaml.in__yaml__v2__LICENSE)
-- [LICENSE.libyaml](third_party_licenses/go.yaml.in__yaml__v2__LICENSE.libyaml)
-- [NOTICE](third_party_licenses/go.yaml.in__yaml__v2__NOTICE)
-
 ## go4.org/netipx v0.0.0-20231129151722-fdeea329fbba
 
 [Exact source archive](https://proxy.golang.org/go4.org/netipx/@v/v0.0.0-20231129151722-fdeea329fbba.zip)
@@ -141,9 +133,9 @@ Unmodified Xray source is available under MPL-2.0 at its exact archive link.
 - [LICENSE](third_party_licenses/golang.org__x__crypto__LICENSE)
 - [PATENTS](third_party_licenses/golang.org__x__crypto__PATENTS)
 
-## golang.org/x/net v0.59.0
+## golang.org/x/net v0.60.0
 
-[Exact source archive](https://proxy.golang.org/golang.org/x/net/@v/v0.59.0.zip)
+[Exact source archive](https://proxy.golang.org/golang.org/x/net/@v/v0.60.0.zip)
 
 - [LICENSE](third_party_licenses/golang.org__x__net__LICENSE)
 - [PATENTS](third_party_licenses/golang.org__x__net__PATENTS)
@@ -169,15 +161,15 @@ Unmodified Xray source is available under MPL-2.0 at its exact archive link.
 - [LICENSE](third_party_licenses/golang.org__x__text__LICENSE)
 - [PATENTS](third_party_licenses/golang.org__x__text__PATENTS)
 
-## google.golang.org/genproto/googleapis/rpc v0.0.0-20260706201446-f0a921348800
+## google.golang.org/genproto/googleapis/rpc v0.0.0-20260817212433-ac3dfec99bb1
 
-[Exact source archive](https://proxy.golang.org/google.golang.org/genproto/googleapis/rpc/@v/v0.0.0-20260706201446-f0a921348800.zip)
+[Exact source archive](https://proxy.golang.org/google.golang.org/genproto/googleapis/rpc/@v/v0.0.0-20260817212433-ac3dfec99bb1.zip)
 
 - [LICENSE](third_party_licenses/google.golang.org__genproto__googleapis__rpc__LICENSE)
 
-## google.golang.org/grpc v1.84.0
+## google.golang.org/grpc v1.85.0
 
-[Exact source archive](https://proxy.golang.org/google.golang.org/grpc/@v/v1.84.0.zip)
+[Exact source archive](https://proxy.golang.org/google.golang.org/grpc/@v/v1.85.0.zip)
 
 - [AUTHORS](third_party_licenses/google.golang.org__grpc__AUTHORS)
 - [LICENSE](third_party_licenses/google.golang.org__grpc__LICENSE)
