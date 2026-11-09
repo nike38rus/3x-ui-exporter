@@ -1,5 +1,6 @@
 .cache
 bin
+!bin/3x-ui-exporter-linux-*
 .git
 .env
 .env.*

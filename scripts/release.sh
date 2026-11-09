@@ -7,16 +7,18 @@ if [[ "$version" != "edge" && ! "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0
   exit 1
 fi
 
-mkdir -p dist
+mkdir -p dist bin
 
 build_archive() {
   local arch="$1"
+  local bin="bin/3x-ui-exporter-linux-${arch}"
   local archive="3x-ui-exporter_${version}_linux_${arch}"
   local stage
   stage="$(mktemp -d "${TMPDIR:-/tmp}/xui-release.${arch}.XXXXXX")"
   trap 'rm -rf "$stage"' EXIT
   CGO_ENABLED=0 GOOS=linux GOARCH="$arch" go build -trimpath \
     -ldflags="-s -w -X main.version=$version" -o "$stage/3x-ui-exporter" .
+  cp "$stage/3x-ui-exporter" "$bin"
   cp LICENSE THIRD_PARTY_NOTICES.md README.md grafana-3x-ui.*.json "$stage/"
   cp -R third_party_licenses "$stage/"
   cp -R docs "$stage/"
