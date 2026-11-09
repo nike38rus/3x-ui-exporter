@@ -268,7 +268,7 @@ func resolveBalancerOperationalHealth(tag string, cfg *Config, states map[string
 	}
 
 	var targets []string
-	var mode int // 2 for primary, 1 for fallback/override
+	var mode int // 2 for primary/override, 1 for fallback
 
 	var currentBalancer *BalancerConfig
 	for i := range cfg.Routing.Balancers {
@@ -279,7 +279,7 @@ func resolveBalancerOperationalHealth(tag string, cfg *Config, states map[string
 	}
 
 	if state.Override {
-		mode = 1
+		mode = 2
 		for t := range state.Targets {
 			targets = append(targets, t)
 		}

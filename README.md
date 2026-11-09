@@ -532,7 +532,7 @@ Derived from panel routing configuration, runtime Xray gRPC `RoutingService`, an
 
 | Metric | Type | Labels | Description |
 | --- | --- | --- | --- |
-| `xui_balancer_health` | Gauge | `balancer` | Current balancer egress operational health: `0` = down (no route or active target probe failed), `1` = degraded (fallback or override active), `2` = up (primary target alive). |
+| `xui_balancer_health` | Gauge | `balancer` | Current balancer egress operational health: `0` = down (no route or active target probe failed), `1` = degraded (fallback active), `2` = up (primary target or override alive). |
 | `xui_balancer_state` | Gauge | `balancer` | Current balancer operational routing state: `0` (unavailable), `1` (fallback), `2` (primary), `3` (override). |
 | `xui_balancer_outbound_selected` | Gauge | `balancer`, `outbound`, `role` (`primary`, `fallback`, `override`) | `1` if selected/active; `0` if inactive. |
 | `xui_balancer_outbound_available` | Gauge | `balancer` | `1` if balancer resolves to an available runtime outbound (structural check). |

@@ -702,14 +702,14 @@ func TestBalancerOperationalHealth(t *testing.T) {
 			expectedState:  map[string]float64{"balancer=lb;": 2},
 		},
 		{
-			name:    "override target alive is degraded",
+			name:    "override target alive is up",
 			cfgJSON: `{"routing":{"balancers":[{"tag":"lb","selector":["A"],"fallbackTag":"direct","strategy":{"type":"leastLoad"}}]}}`,
 			tags:    map[string]bool{"A": true, "override-out": true, "direct": true},
 			states:  map[string]*BalancerState{"lb": {Targets: map[string]bool{"override-out": true}, Override: true}},
 			observations: map[string]bool{
 				"override-out": true,
 			},
-			expectedHealth: map[string]float64{"balancer=lb;": 1},
+			expectedHealth: map[string]float64{"balancer=lb;": 2},
 			expectedState:  map[string]float64{"balancer=lb;": 3},
 		},
 		{
