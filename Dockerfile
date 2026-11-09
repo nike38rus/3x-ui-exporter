@@ -1,3 +1,5 @@
+ARG BINARY_SOURCE=source
+
 FROM --platform=$BUILDPLATFORM golang:1.27.2-alpine AS base-files
 RUN echo "nonroot:x:65532:65532:nonroot:/:/sbin/nologin" > /etc/passwd.minimal
 
@@ -18,7 +20,6 @@ FROM scratch AS binary-prebuilt
 ARG TARGETARCH
 COPY bin/3x-ui-exporter-linux-${TARGETARCH} /exporter
 
-ARG BINARY_SOURCE=source
 FROM binary-${BINARY_SOURCE} AS binary-selected
 
 FROM scratch
