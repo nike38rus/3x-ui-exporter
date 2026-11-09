@@ -507,6 +507,100 @@ func TestPartialBalancerFailurePreservesSuccessfulMeasurements(t *testing.T) {
 			t.Fatalf("failed balancer must not emit selected metric: %v", sel)
 		}
 	}
+	states := sampleValues(t, m, "xui_balancer_state")
+	if len(states) != 1 || states["balancer=lb-ok;"] != 2 {
+		t.Fatalf("expected lb-ok state metric to be preserved, got: %v", states)
+	}
+	for k := range states {
+		if strings.Contains(k, "lb-err") {
+			t.Fatalf("failed balancer must not emit state metric: %v", states)
+		}
+	}
+}
+
+func TestBalancerState(t *testing.T) {
+	tests := []struct {
+		name          string
+		cfgJSON       string
+		tags          map[string]bool
+		state         *BalancerState
+		expectedState float64
+		expectMetric  bool
+	}{
+		{
+			name:          "primary active",
+			cfgJSON:       `{"routing":{"balancers":[{"tag":"lb","selector":["A"],"fallbackTag":"fb","strategy":{"type":"leastLoad"}}]}}`,
+			tags:          map[string]bool{"A": true, "fb": true},
+			state:         &BalancerState{Targets: map[string]bool{"A": true}},
+			expectedState: 2,
+			expectMetric:  true,
+		},
+		{
+			name:          "fallback active",
+			cfgJSON:       `{"routing":{"balancers":[{"tag":"lb","selector":["A"],"fallbackTag":"fb","strategy":{"type":"leastLoad"}}]}}`,
+			tags:          map[string]bool{"A": true, "fb": true},
+			state:         &BalancerState{Targets: map[string]bool{}},
+			expectedState: 1,
+			expectMetric:  true,
+		},
+		{
+			name:          "override active",
+			cfgJSON:       `{"routing":{"balancers":[{"tag":"lb","selector":["A"],"fallbackTag":"fb","strategy":{"type":"leastLoad"}}]}}`,
+			tags:          map[string]bool{"A": true, "fb": true, "direct": true},
+			state:         &BalancerState{Targets: map[string]bool{"direct": true}, Override: true},
+			expectedState: 3,
+			expectMetric:  true,
+		},
+		{
+			name:          "unavailable no fallback",
+			cfgJSON:       `{"routing":{"balancers":[{"tag":"lb","selector":["A"],"strategy":{"type":"leastLoad"}}]}}`,
+			tags:          map[string]bool{"A": true},
+			state:         &BalancerState{Targets: map[string]bool{}},
+			expectedState: 0,
+			expectMetric:  true,
+		},
+		{
+			name:          "unavailable fallback dead or missing",
+			cfgJSON:       `{"routing":{"balancers":[{"tag":"lb","selector":["A"],"fallbackTag":"nonexistent","strategy":{"type":"leastLoad"}}]}}`,
+			tags:          map[string]bool{"A": true},
+			state:         &BalancerState{Targets: map[string]bool{}},
+			expectedState: 0,
+			expectMetric:  true,
+		},
+		{
+			name:          "nil state emits no metric",
+			cfgJSON:       `{"routing":{"balancers":[{"tag":"lb","selector":["A"],"strategy":{"type":"leastLoad"}}]}}`,
+			tags:          map[string]bool{"A": true},
+			state:         nil,
+			expectedState: 0,
+			expectMetric:  false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := configuration(t, tc.cfgJSON)
+			e := &Exporter{Core: &fakeCore{tags: tc.tags, states: map[string]*BalancerState{"lb": tc.state}}}
+			m, err := e.balancerMetrics(context.Background(), cfg)
+			if err != nil {
+				t.Fatal(err)
+			}
+			vals := sampleValues(t, m, "xui_balancer_state")
+			if !tc.expectMetric {
+				if len(vals) != 0 {
+					t.Fatalf("expected no xui_balancer_state metric, got: %v", vals)
+				}
+				return
+			}
+			val, ok := vals["balancer=lb;"]
+			if !ok {
+				t.Fatalf("missing xui_balancer_state for balancer=lb, got: %v", vals)
+			}
+			if val != tc.expectedState {
+				t.Fatalf("expected state %v, got %v", tc.expectedState, val)
+			}
+		})
+	}
 }
 
 func TestExporterProcessAndGoMetrics(t *testing.T) {

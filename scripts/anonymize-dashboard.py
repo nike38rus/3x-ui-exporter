@@ -222,7 +222,7 @@ def patch_dashboard(data: dict) -> dict:
                         obj["expr"] = anonymize_outbound_query(expr, agg="sum", sort_desc_wrap=True)
 
                 # D. Balancer availability: panel-25 (aggregate BEFORE label_replace so it never collides)
-                elif "xui_balancer_outbound_available" in expr and (
+                elif ("xui_balancer_outbound_available" in expr or "xui_balancer_state" in expr) and (
                     legend == "{{balancer}}" or "balancer" in (legend or "")
                 ):
                     obj["legendFormat"] = "balancer-1"
@@ -241,6 +241,13 @@ def patch_dashboard(data: dict) -> dict:
                     and legend == "{{outbound}}"
                 ):
                     obj["expr"] = anonymize_outbound_query(expr, agg="max", sort_desc_wrap=True)
+
+                # Outbound status summary table:
+                elif (
+                    ("Status" in title or "Outbound status" in title)
+                    and "xui_observatory_outbound_alive" in expr
+                ):
+                    obj["expr"] = anonymize_outbound_query(expr, agg="max")
 
                 # F. Outbound health & selection:
                 elif (

@@ -473,6 +473,18 @@ func buildBalancerMetrics(cfg *Config, outbounds map[string]bool, states map[str
 		if state == nil {
 			continue
 		}
+		var balancerState float64
+		switch {
+		case !available:
+			balancerState = 0
+		case state.Override:
+			balancerState = 3
+		case b.Fallback != "" && len(state.Targets) == 0:
+			balancerState = 1
+		default:
+			balancerState = 2
+		}
+		gauge(&result, "xui_balancer_state", "Current balancer operational state: 0=unavailable, 1=fallback, 2=primary, 3=override.", balancerState, []string{"balancer"}, b.Tag)
 		labels := []string{"balancer", "outbound", "role"}
 		const help = "Current primary target membership, configured fallback selection, or override activity."
 		gauge(&result, "xui_balancer_outbound_selected", help, number(state.Override), labels, b.Tag, "", "override")

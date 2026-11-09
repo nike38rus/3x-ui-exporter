@@ -86,7 +86,7 @@
         "x": 0,
         "y": 0
       },
-      "id": 76,
+      "id": 86,
       "title": "Overview",
       "type": "row"
     },
@@ -2123,7 +2123,7 @@
         "x": 0,
         "y": 20
       },
-      "id": 77,
+      "id": 87,
       "panels": [
         {
           "datasource": {
@@ -2333,7 +2333,7 @@
         "x": 0,
         "y": 21
       },
-      "id": 78,
+      "id": 88,
       "panels": [
         {
           "datasource": {
@@ -2622,7 +2622,7 @@
         "x": 0,
         "y": 22
       },
-      "id": 79,
+      "id": 89,
       "panels": [
         {
           "datasource": {
@@ -2800,6 +2800,205 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
+          "description": "Operational status (UP/DOWN) of monitored outbounds and time elapsed since the last status change.",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "align": "auto",
+                "cellOptions": {
+                  "type": "auto"
+                },
+                "footer": {
+                  "reducers": []
+                },
+                "inspect": false
+              },
+              "noValue": "> 7d ago",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Status",
+                  "scope": "series"
+                },
+                "properties": [
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-text"
+                    }
+                  },
+                  {
+                    "id": "mappings",
+                    "value": [
+                      {
+                        "options": {
+                          "0": {
+                            "color": "red",
+                            "index": 0,
+                            "text": "DOWN"
+                          },
+                          "1": {
+                            "color": "green",
+                            "index": 1,
+                            "text": "UP"
+                          }
+                        },
+                        "type": "value"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Since",
+                  "scope": "series"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "dateTimeFromNow"
+                  },
+                  {
+                    "id": "noValue",
+                    "value": "> 7d ago"
+                  },
+                  {
+                    "id": "custom.align",
+                    "value": "center"
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 0,
+            "y": 31
+          },
+          "id": 85,
+          "options": {
+            "cellHeight": "sm",
+            "footer": {
+              "countRows": false,
+              "fields": "",
+              "reducer": [
+                "sum"
+              ],
+              "show": false
+            },
+            "showHeader": true,
+            "sortBy": [
+              {
+                "desc": false,
+                "displayName": "Status"
+              }
+            ],
+            "wrapHeaderText": false,
+            "zebraStriping": false
+          },
+          "pluginVersion": "13.3.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "xui_observatory_outbound_alive{instance=\"${instance}\"}",
+              "format": "table",
+              "instant": true,
+              "range": false,
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "(\n  1000 * last_over_time(\n    (\n      timestamp(changes(xui_observatory_outbound_alive{instance=\"${instance}\"}[3m]) > 0)\n    )[7d:2m]\n  )\n)\nand on (outbound)\nxui_observatory_outbound_alive{instance=\"${instance}\"}",
+              "format": "table",
+              "instant": true,
+              "range": false,
+              "refId": "B"
+            }
+          ],
+          "title": "Status",
+          "transformations": [
+            {
+              "id": "joinByField",
+              "options": {
+                "byField": "outbound",
+                "mode": "outer"
+              }
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "Time 1": true,
+                  "__name__": true,
+                  "__name__ 1": true,
+                  "instance": true,
+                  "instance 1": true,
+                  "job": true,
+                  "job 1": true,
+                  "outbound 1": true
+                },
+                "includeByName": {},
+                "indexByName": {
+                  "Value #A": 1,
+                  "Value #B": 2,
+                  "outbound": 0
+                },
+                "orderByMode": "manual",
+                "renameByName": {
+                  "Value #A": "Status",
+                  "Value #B": "Since",
+                  "outbound": "Outbound"
+                }
+              }
+            },
+            {
+              "id": "sortBy",
+              "options": {
+                "fields": {},
+                "sort": [
+                  {
+                    "desc": false,
+                    "field": "Status"
+                  }
+                ]
+              }
+            }
+          ],
+          "type": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -2824,8 +3023,8 @@
           },
           "gridPos": {
             "h": 8,
-            "w": 12,
-            "x": 0,
+            "w": 8,
+            "x": 8,
             "y": 31
           },
           "id": 10,
@@ -2924,8 +3123,8 @@
           },
           "gridPos": {
             "h": 8,
-            "w": 12,
-            "x": 12,
+            "w": 8,
+            "x": 16,
             "y": 31
           },
           "id": 11,
@@ -2992,1202 +3191,1219 @@
       "type": "row"
     },
     {
-      "collapsed": true,
+      "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
         "y": 23
       },
-      "id": 80,
+      "id": 90,
+      "panels": [],
       "title": "Balancers & Observatory",
       "type": "row"
     },
     {
-      "collapsed": true,
+      "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
         "y": 24
       },
-      "id": 81,
-      "panels": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS-INFRA}"
+      "id": 91,
+      "panels": [],
+      "repeat": "balancer",
+      "title": "$balancer",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS-INFRA}"
+      },
+      "description": "Current operational routing state: 0=Unavailable (down), 1=Fallback active, 2=Primary active (normal), 3=Override active.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed"
           },
-          "description": "A selected target or fallback resolves to a runtime outbound. Structural availability, not a test of internet access.",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "fixed"
-              },
-              "custom": {
-                "axisPlacement": "auto",
-                "axisWidth": 140,
-                "fillOpacity": 100,
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "insertNulls": false,
-                "lineWidth": 0,
-                "spanNulls": false
-              },
-              "mappings": [
-                {
-                  "options": {
-                    "0": {
-                      "color": "red",
-                      "index": 0,
-                      "text": "Unavailable"
-                    },
-                    "1": {
-                      "color": "green",
-                      "index": 1,
-                      "text": "Available"
-                    }
-                  },
-                  "type": "value"
-                }
-              ],
-              "min": 0,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": 0
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "short"
-            }
-          },
-          "gridPos": {
-            "h": 3,
-            "w": 24,
-            "x": 0,
-            "y": 25
-          },
-          "id": 25,
-          "interval": "5s",
-          "maxDataPoints": 5000,
-          "options": {
-            "alignValue": "left",
-            "legend": {
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": false
+          "custom": {
+            "axisPlacement": "auto",
+            "axisWidth": 140,
+            "fillOpacity": 100,
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
             },
-            "mergeValues": true,
-            "rowHeight": 0.9,
-            "showValue": "never",
-            "tooltip": {
-              "hideZeros": false,
-              "mode": "single",
-              "sort": "none"
-            }
+            "insertNulls": false,
+            "lineWidth": 0,
+            "spanNulls": false
           },
-          "pluginVersion": "13.3.0",
-          "targets": [
+          "mappings": [
             {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
-              },
-              "editorMode": "code",
-              "expr": "xui_balancer_outbound_available{instance=\"${instance}\",balancer=~\"${balancer}\"}",
-              "instant": false,
-              "legendFormat": "{{balancer}}",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "Balancer availability",
-          "type": "state-timeline"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS-INFRA}"
-          },
-          "description": "Combined outbound health and balancer selection state.\n\nActive: Outbound currently routing traffic (bold saturated colors: green = UP, yellow = DEGRADED, red = DOWN).\nStandby: Candidate outbounds in reserve (soft calm colors: light-green = Ready, light-yellow = Degraded, light-red = Down).\nSpecial: Active override (blue) and fallback (purple); gray when inactive.",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "fixed"
-              },
-              "custom": {
-                "axisPlacement": "auto",
-                "axisWidth": 140,
-                "fillOpacity": 85,
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "Unavailable",
+                  "color": "red",
+                  "index": 0
                 },
-                "insertNulls": false,
-                "lineWidth": 0,
-                "spanNulls": false
-              },
-              "mappings": [
-                {
-                  "options": {
-                    "0": {
-                      "color": "super-light-red",
-                      "index": 5,
-                      "text": "Standby: Down"
-                    },
-                    "1": {
-                      "color": "super-light-yellow",
-                      "index": 6,
-                      "text": "Standby: Degraded"
-                    },
-                    "2": {
-                      "color": "super-light-green",
-                      "index": 7,
-                      "text": "Standby: Ready"
-                    },
-                    "10": {
-                      "color": "dark-red",
-                      "index": 0,
-                      "text": "Active: DOWN"
-                    },
-                    "11": {
-                      "color": "dark-yellow",
-                      "index": 1,
-                      "text": "Active: DEGRADED"
-                    },
-                    "12": {
-                      "color": "dark-green",
-                      "index": 2,
-                      "text": "Active: UP"
-                    },
-                    "20": {
-                      "color": "dark-blue",
-                      "index": 3,
-                      "text": "Active: Override"
-                    },
-                    "21": {
-                      "color": "#808080",
-                      "index": 8,
-                      "text": "Inactive"
-                    },
-                    "30": {
-                      "color": "dark-purple",
-                      "index": 4,
-                      "text": "Active: Fallback"
-                    }
-                  },
-                  "type": "value"
+                "1": {
+                  "text": "Fallback active",
+                  "color": "yellow",
+                  "index": 1
+                },
+                "2": {
+                  "text": "Available",
+                  "color": "green",
+                  "index": 2
+                },
+                "3": {
+                  "text": "Override",
+                  "color": "blue",
+                  "index": 3
                 }
-              ],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": 0
-                  }
-                ]
               }
             }
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 24,
-            "x": 0,
-            "y": 28
-          },
-          "id": 75,
-          "interval": "5s",
-          "maxDataPoints": 5000,
-          "options": {
-            "alignValue": "left",
-            "legend": {
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "mergeValues": true,
-            "rowHeight": 0.9,
-            "showValue": "never",
-            "tooltip": {
-              "hideZeros": false,
-              "mode": "single",
-              "sort": "none"
-            }
-          },
-          "pluginVersion": "13.3.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
-              },
-              "editorMode": "code",
-              "expr": "10 * max by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=\"primary\"}\n)\n+ on (outbound)\nmax by (outbound) (\n  (xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0)))\n  or\n  (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)\n)",
-              "interval": "5s",
-              "legendFormat": "{{outbound}}",
-              "range": true,
-              "refId": "A"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
-              },
-              "editorMode": "code",
-              "expr": "(xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=\"override\"} == 1) * 20\nor\n(xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=\"fallback\"} == 1) * 30\nor\n(xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=~\"override|fallback\"} * 0 + 21)",
-              "interval": "5s",
-              "legendFormat": "{{role}}",
-              "range": true,
-              "refId": "B"
-            }
           ],
-          "title": "Outbound health & selection",
-          "type": "state-timeline"
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
         },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 24,
+        "x": 0,
+        "y": 25
+      },
+      "id": 25,
+      "interval": "5s",
+      "maxDataPoints": 5000,
+      "options": {
+        "alignValue": "left",
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "mergeValues": true,
+        "rowHeight": 0.9,
+        "showValue": "never",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "13.3.0",
+      "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
-          "description": "Fraction of observed samples in which a target was selected, not its share of traffic. Multiple selected targets can sum above 100%. Missing scrapes do not count as zero.",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "max": 100,
-              "min": 0,
-              "noValue": "Unknown",
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "#404040",
-                    "value": 0
-                  },
-                  {
-                    "color": "green",
-                    "value": 0
-                  }
-                ]
-              },
-              "unit": "percent"
-            }
+          "editorMode": "code",
+          "expr": "xui_balancer_state{instance=\"${instance}\",balancer=~\"${balancer}\"}",
+          "instant": false,
+          "legendFormat": "{{balancer}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Balancer availability",
+      "type": "state-timeline"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS-INFRA}"
+      },
+      "description": "Combined outbound health and balancer selection state.\n\nActive: Outbound currently routing traffic (bold saturated colors: green = UP, yellow = DEGRADED, red = DOWN).\nStandby: Candidate outbounds in reserve (soft calm colors: light-green = Ready, light-yellow = Degraded, light-red = Down).\nSpecial: Active override (blue) and fallback (purple); gray when inactive.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed"
           },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 36
+          "custom": {
+            "axisPlacement": "auto",
+            "axisWidth": 140,
+            "fillOpacity": 85,
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineWidth": 0,
+            "spanNulls": false
           },
-          "id": 16,
-          "interval": "10s",
-          "options": {
-            "displayMode": "gradient",
-            "legend": {
-              "calcs": [],
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": false
-            },
-            "maxVizHeight": 48,
-            "minVizHeight": 32,
-            "minVizWidth": 8,
-            "namePlacement": "top",
-            "orientation": "horizontal",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "showUnfilled": true,
-            "sizing": "manual",
-            "text": {
-              "valueSize": 16
-            },
-            "textMode": "auto",
-            "valueMode": "color"
-          },
-          "pluginVersion": "13.3.0",
-          "targets": [
+          "mappings": [
             {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
-              },
-              "editorMode": "code",
-              "exemplar": false,
-              "expr": "sort_desc (\n  100 * avg_over_time(\n    xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role!~\"fallback|override\"}[$__range]\n  )\n)",
-              "instant": true,
-              "legendFormat": "{{outbound}}",
-              "range": false,
-              "refId": "A"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
-              },
-              "editorMode": "code",
-              "exemplar": false,
-              "expr": "sort_desc (\n  100 * avg_over_time(\n    xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=~\"fallback|override\"}[$__range]\n  )\n)",
-              "instant": true,
-              "legendFormat": "{{role}}",
-              "range": false,
-              "refId": "B"
-            }
-          ],
-          "title": "Outbound selected time",
-          "type": "bargauge"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS-INFRA}"
-          },
-          "description": "Number of observed 0/1 transitions across primary, fallback and override series in each minute. One target replacement can cause multiple transitions. Missing data and minute boundaries limit completeness; this is not a connection log. The window is centered on each minute; the latest bucket is incomplete.",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic",
-                "seriesBy": "last"
-              },
-              "custom": {
-                "axisBorderShow": false,
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "barWidthFactor": 1,
-                "drawStyle": "bars",
-                "fillOpacity": 100,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
+              "options": {
+                "0": {
+                  "color": "super-light-red",
+                  "index": 5,
+                  "text": "Standby: Down"
                 },
-                "insertNulls": false,
-                "lineInterpolation": "linear",
-                "lineStyle": {
-                  "fill": "solid"
+                "1": {
+                  "color": "super-light-yellow",
+                  "index": 6,
+                  "text": "Standby: Degraded"
                 },
-                "lineWidth": 0,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
+                "2": {
+                  "color": "super-light-green",
+                  "index": 7,
+                  "text": "Standby: Ready"
                 },
-                "showPoints": "auto",
-                "showValues": false,
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "normal"
+                "10": {
+                  "color": "dark-red",
+                  "index": 0,
+                  "text": "Active: DOWN"
                 },
-                "thresholdsStyle": {
-                  "mode": "off"
+                "11": {
+                  "color": "dark-yellow",
+                  "index": 1,
+                  "text": "Active: DEGRADED"
+                },
+                "12": {
+                  "color": "dark-green",
+                  "index": 2,
+                  "text": "Active: UP"
+                },
+                "20": {
+                  "color": "dark-blue",
+                  "index": 3,
+                  "text": "Active: Override"
+                },
+                "21": {
+                  "color": "#808080",
+                  "index": 8,
+                  "text": "Inactive"
+                },
+                "30": {
+                  "color": "dark-purple",
+                  "index": 4,
+                  "text": "Active: Fallback"
                 }
               },
-              "noValue": "Unknown",
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": 0
-                  }
-                ]
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 28
+      },
+      "id": 75,
+      "interval": "5s",
+      "maxDataPoints": 5000,
+      "options": {
+        "alignValue": "left",
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "mergeValues": true,
+        "rowHeight": 0.9,
+        "showValue": "never",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "13.3.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "expr": "10 * max by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=\"primary\"}\n)\n+ on (outbound)\nmax by (outbound) (\n  (xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0)))\n  or\n  (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)\n)",
+          "interval": "5s",
+          "legendFormat": "{{outbound}}",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "expr": "(xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=\"override\"} == 1) * 20\nor\n(xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=\"fallback\"} == 1) * 30\nor\n(xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=~\"override|fallback\"} * 0 + 21)",
+          "interval": "5s",
+          "legendFormat": "{{role}}",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Outbound health & selection",
+      "type": "state-timeline"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS-INFRA}"
+      },
+      "description": "Fraction of observed samples in which a target was selected, not its share of traffic. Multiple selected targets can sum above 100%. Missing scrapes do not count as zero.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "max": 100,
+          "min": 0,
+          "noValue": "Unknown",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#404040",
+                "value": 0
               },
-              "unit": "short"
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 36
+      },
+      "id": 16,
+      "interval": "10s",
+      "options": {
+        "displayMode": "gradient",
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "maxVizHeight": 48,
+        "minVizHeight": 32,
+        "minVizWidth": 8,
+        "namePlacement": "top",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "manual",
+        "text": {
+          "valueSize": 16
+        },
+        "textMode": "auto",
+        "valueMode": "color"
+      },
+      "pluginVersion": "13.3.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sort_desc (\n  100 * avg_over_time(\n    xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role!~\"fallback|override\"}[$__range]\n  )\n)",
+          "instant": true,
+          "legendFormat": "{{outbound}}",
+          "range": false,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sort_desc (\n  100 * avg_over_time(\n    xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=~\"fallback|override\"}[$__range]\n  )\n)",
+          "instant": true,
+          "legendFormat": "{{role}}",
+          "range": false,
+          "refId": "B"
+        }
+      ],
+      "title": "Outbound selected time",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS-INFRA}"
+      },
+      "description": "Number of observed 0/1 transitions across primary, fallback and override series in each minute. One target replacement can cause multiple transitions. Missing data and minute boundaries limit completeness; this is not a connection log. The window is centered on each minute; the latest bucket is incomplete.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic",
+            "seriesBy": "last"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 1,
+            "drawStyle": "bars",
+            "fillOpacity": 100,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 0,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
             }
           },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 36
+          "noValue": "Unknown",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
           },
-          "id": 15,
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 36
+      },
+      "id": 15,
+      "interval": "1m",
+      "maxDataPoints": 5000,
+      "options": {
+        "legend": {
+          "calcs": [
+            "last",
+            "mean"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": false
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "13.3.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "expr": "sum by (instance, balancer) (\n  changes(\n    xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\"}[1m] offset -30s\n  )\n)",
           "interval": "1m",
-          "maxDataPoints": 5000,
-          "options": {
-            "legend": {
-              "calcs": [
-                "last",
-                "mean"
-              ],
-              "displayMode": "table",
-              "placement": "right",
-              "showLegend": false
+          "legendFormat": "{{balancer}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Selection state changes",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS-INFRA}"
+      },
+      "description": "Consolidated runtime health, network latency, jitter, probe reliability, and overall quality score for outbounds in the selected balancer.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
             },
-            "tooltip": {
-              "hideZeros": false,
-              "mode": "single",
-              "sort": "none"
-            }
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
           },
-          "pluginVersion": "13.3.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
-              },
-              "editorMode": "code",
-              "expr": "sum by (instance, balancer) (\n  changes(\n    xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\"}[1m] offset -30s\n  )\n)",
-              "interval": "1m",
-              "legendFormat": "{{balancer}}",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "Selection state changes",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS-INFRA}"
-          },
-          "description": "Consolidated runtime health, network latency, jitter, probe reliability, and overall quality score for outbounds in the selected balancer.",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "custom": {
-                "align": "auto",
-                "cellOptions": {
-                  "type": "auto"
-                },
-                "footer": {
-                  "reducers": []
-                },
-                "inspect": false
-              },
-              "noValue": "Unknown",
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": 0
-                  }
-                ]
+          "noValue": "Unknown",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
               }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Quality",
+              "scope": "series"
             },
-            "overrides": [
+            "properties": [
               {
-                "matcher": {
-                  "id": "byName",
-                  "options": "Quality",
-                  "scope": "series"
-                },
-                "properties": [
-                  {
-                    "id": "custom.cellOptions",
-                    "value": {
-                      "type": "color-text"
-                    }
-                  },
-                  {
-                    "id": "thresholds",
-                    "value": {
-                      "mode": "absolute",
-                      "steps": [
-                        {
-                          "color": "red",
-                          "value": 0
-                        },
-                        {
-                          "color": "orange",
-                          "value": 40
-                        },
-                        {
-                          "color": "yellow",
-                          "value": 70
-                        },
-                        {
-                          "color": "green",
-                          "value": 90
-                        }
-                      ]
-                    }
-                  }
-                ]
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
               },
               {
-                "matcher": {
-                  "id": "byName",
-                  "options": "Health",
-                  "scope": "series"
-                },
-                "properties": [
-                  {
-                    "id": "custom.cellOptions",
-                    "value": {
-                      "type": "color-text"
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": 0
+                    },
+                    {
+                      "color": "orange",
+                      "value": 40
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 70
+                    },
+                    {
+                      "color": "green",
+                      "value": 90
                     }
-                  },
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Health",
+              "scope": "series"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
                   {
-                    "id": "mappings",
-                    "value": [
-                      {
-                        "options": {
-                          "0": {
-                            "color": "red",
-                            "index": 0,
-                            "text": "DOWN"
-                          },
-                          "1": {
-                            "color": "yellow",
-                            "index": 1,
-                            "text": "DEGRADED"
-                          },
-                          "2": {
-                            "color": "green",
-                            "index": 2,
-                            "text": "UP"
-                          }
-                        },
-                        "type": "value"
+                    "options": {
+                      "0": {
+                        "color": "red",
+                        "index": 0,
+                        "text": "DOWN"
+                      },
+                      "1": {
+                        "color": "yellow",
+                        "index": 1,
+                        "text": "DEGRADED"
+                      },
+                      "2": {
+                        "color": "green",
+                        "index": 2,
+                        "text": "UP"
                       }
-                    ]
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "Deviation",
-                  "scope": "series"
-                },
-                "properties": [
-                  {
-                    "id": "unit",
-                    "value": "s"
-                  },
-                  {
-                    "id": "decimals",
-                    "value": 0
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "Probe success",
-                  "scope": "series"
-                },
-                "properties": [
-                  {
-                    "id": "unit",
-                    "value": "percentunit"
-                  },
-                  {
-                    "id": "decimals",
-                    "value": 1
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "Alive time",
-                  "scope": "series"
-                },
-                "properties": [
-                  {
-                    "id": "unit",
-                    "value": "percentunit"
-                  },
-                  {
-                    "id": "decimals",
-                    "value": 1
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byRegexp",
-                  "options": "/RTT/",
-                  "scope": "series"
-                },
-                "properties": [
-                  {
-                    "id": "unit",
-                    "value": "s"
-                  },
-                  {
-                    "id": "decimals",
-                    "value": 0
+                    },
+                    "type": "value"
                   }
                 ]
               }
             ]
           },
-          "gridPos": {
-            "h": 8,
-            "w": 24,
-            "x": 0,
-            "y": 44
-          },
-          "id": 73,
-          "options": {
-            "cellHeight": "sm",
-            "footer": {
-              "countRows": false,
-              "fields": "",
-              "reducer": [
-                "sum"
-              ],
-              "show": false
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Deviation",
+              "scope": "series"
             },
-            "showHeader": true,
-            "sortBy": [
+            "properties": [
               {
-                "desc": true,
-                "displayName": "Quality"
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "decimals",
+                "value": 0
               }
-            ],
-            "wrapHeaderText": false,
-            "zebraStriping": false
+            ]
           },
-          "pluginVersion": "13.3.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
-              },
-              "editorMode": "code",
-              "exemplar": false,
-              "expr": "(100 * exp(\n  -5 * (sum_over_time(xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"}[$__range]) / sum_over_time(xui_observatory_outbound_probe_samples{instance=\"${instance}\"}[$__range]))\n  - 0.6 * (quantile_over_time(0.95, xui_observatory_outbound_rtt_mean_seconds{instance=\"${instance}\"}[$__range]) - quantile_over_time(0.50, xui_observatory_outbound_rtt_mean_seconds{instance=\"${instance}\"}[$__range]))\n) * (clamp(130 - 100 * quantile_over_time(0.50, xui_observatory_outbound_rtt_mean_seconds{instance=\"${instance}\"}[$__range]), 0, 100) / 100) ^ 0.20)\nand on (outbound) max by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
-              "format": "table",
-              "instant": true,
-              "range": false,
-              "refId": "A"
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Probe success",
+              "scope": "series"
             },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
               },
-              "editorMode": "code",
-              "exemplar": false,
-              "expr": "((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0)))\nor (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2))\nand on (outbound) max by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
-              "format": "table",
-              "instant": true,
-              "range": false,
-              "refId": "B"
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Alive time",
+              "scope": "series"
             },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
               },
-              "editorMode": "code",
-              "exemplar": false,
-              "expr": "(xui_observatory_outbound_rtt_mean_seconds{instance=\"${instance}\"} or xui_observatory_outbound_delay_seconds{instance=\"${instance}\"})\nand on (outbound) max by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
-              "format": "table",
-              "instant": true,
-              "range": false,
-              "refId": "C"
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "/RTT/",
+              "scope": "series"
             },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
               },
-              "editorMode": "code",
-              "exemplar": false,
-              "expr": "quantile_over_time(0.95, xui_observatory_outbound_rtt_mean_seconds{instance=\"${instance}\"}[$__range])\nand on (outbound) max by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
-              "format": "table",
-              "instant": true,
-              "range": false,
-              "refId": "D"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
-              },
-              "editorMode": "code",
-              "exemplar": false,
-              "expr": "xui_observatory_outbound_rtt_deviation_seconds{instance=\"${instance}\"}\nand on (outbound) max by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
-              "format": "table",
-              "instant": true,
-              "range": false,
-              "refId": "E"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
-              },
-              "editorMode": "code",
-              "exemplar": false,
-              "expr": "(1 - (sum_over_time(xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"}[$__range]) / sum_over_time(xui_observatory_outbound_probe_samples{instance=\"${instance}\"}[$__range])))\nand on (outbound) max by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
-              "format": "table",
-              "instant": true,
-              "range": false,
-              "refId": "F"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
-              },
-              "editorMode": "code",
-              "exemplar": false,
-              "expr": "avg_over_time(xui_observatory_outbound_alive{instance=\"${instance}\"}[$__range])\nand on (outbound) max by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
-              "format": "table",
-              "instant": true,
-              "range": false,
-              "refId": "G"
-            }
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 44
+      },
+      "id": 73,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
           ],
-          "title": "Outbound quality & health",
-          "transformations": [
-            {
-              "id": "joinByField",
-              "options": {
-                "byField": "outbound",
-                "mode": "outer"
-              }
-            },
-            {
-              "id": "organize",
-              "options": {
-                "excludeByName": {
-                  "Time": true,
-                  "Time 1": true,
-                  "Time 2": true,
-                  "Time 3": true,
-                  "Time 4": true,
-                  "Time 5": true,
-                  "Time 6": true,
-                  "Time 7": true,
-                  "__name__": true,
-                  "__name__ 1": true,
-                  "__name__ 2": true,
-                  "instance": true,
-                  "instance 1": true,
-                  "instance 2": true,
-                  "instance 3": true,
-                  "instance 4": true,
-                  "instance 5": true,
-                  "instance 6": true,
-                  "instance 7": true,
-                  "job": true,
-                  "job 1": true,
-                  "job 2": true,
-                  "job 3": true,
-                  "job 4": true,
-                  "job 5": true,
-                  "job 6": true,
-                  "job 7": true
-                },
-                "includeByName": {},
-                "indexByName": {
-                  "Time 1": 8,
-                  "Time 2": 11,
-                  "Time 3": 14,
-                  "Time 4": 18,
-                  "Time 5": 21,
-                  "Time 6": 25,
-                  "Time 7": 28,
-                  "Value #A": 2,
-                  "Value #B": 1,
-                  "Value #C": 5,
-                  "Value #D": 6,
-                  "Value #E": 7,
-                  "Value #F": 4,
-                  "Value #G": 3,
-                  "__name__ 1": 15,
-                  "__name__ 2": 22,
-                  "instance 1": 9,
-                  "instance 2": 12,
-                  "instance 3": 16,
-                  "instance 4": 19,
-                  "instance 5": 23,
-                  "instance 6": 26,
-                  "instance 7": 29,
-                  "job 1": 10,
-                  "job 2": 13,
-                  "job 3": 17,
-                  "job 4": 20,
-                  "job 5": 24,
-                  "job 6": 27,
-                  "job 7": 30,
-                  "outbound": 0
-                },
-                "renameByName": {
-                  "Value #A": "Quality",
-                  "Value #B": "Health",
-                  "Value #C": "Current RTT",
-                  "Value #D": "P95 RTT",
-                  "Value #E": "Deviation",
-                  "Value #F": "Probe success",
-                  "Value #G": "Alive time",
-                  "outbound": "Outbound"
-                }
-              }
-            },
-            {
-              "id": "sortBy",
-              "options": {
-                "fields": {},
-                "sort": [
-                  {
-                    "desc": true,
-                    "field": "Quality"
-                  }
-                ]
-              }
-            }
-          ],
-          "type": "table"
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Quality"
+          }
+        ],
+        "wrapHeaderText": false,
+        "zebraStriping": false
+      },
+      "pluginVersion": "13.3.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "(100 * exp(\n  -5 * (sum_over_time(xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"}[$__range]) / sum_over_time(xui_observatory_outbound_probe_samples{instance=\"${instance}\"}[$__range]))\n  - 0.6 * (quantile_over_time(0.95, xui_observatory_outbound_rtt_mean_seconds{instance=\"${instance}\"}[$__range]) - quantile_over_time(0.50, xui_observatory_outbound_rtt_mean_seconds{instance=\"${instance}\"}[$__range]))\n) * (clamp(130 - 100 * quantile_over_time(0.50, xui_observatory_outbound_rtt_mean_seconds{instance=\"${instance}\"}[$__range]), 0, 100) / 100) ^ 0.20)\nand on (outbound) max by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "A"
         },
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
-          "description": "Burst: mean RTT of successful samples in the observation window. Ordinary observatory: last successful delay. Seconds; no fabricated values on failure.",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisBorderShow": false,
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "barWidthFactor": 0.6,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "insertNulls": false,
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "never",
-                "showValues": false,
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "dashed"
-                }
-              },
-              "min": 0,
-              "noValue": "Unknown",
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": 0
-                  },
-                  {
-                    "color": "red",
-                    "value": 0.6
-                  }
-                ]
-              },
-              "unit": "s"
-            }
-          },
-          "gridPos": {
-            "h": 9,
-            "w": 8,
-            "x": 0,
-            "y": 52
-          },
-          "id": 2,
-          "interval": "5s",
-          "maxDataPoints": 5000,
-          "options": {
-            "legend": {
-              "calcs": [
-                "last",
-                "mean",
-                "max"
-              ],
-              "displayMode": "table",
-              "placement": "right",
-              "showLegend": false,
-              "sortBy": "Mean",
-              "sortDesc": false
-            },
-            "tooltip": {
-              "hideZeros": false,
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "pluginVersion": "13.3.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
-              },
-              "editorMode": "code",
-              "expr": "(\n  xui_observatory_outbound_rtt_mean_seconds{instance=\"${instance}\"}\n  or xui_observatory_outbound_delay_seconds{instance=\"${instance}\"}\n)\nand on (outbound)\nmax by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
-              "interval": "5s",
-              "legendFormat": "{{outbound}}",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "Outbound latency",
-          "type": "timeseries"
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0)))\nor (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2))\nand on (outbound) max by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "B"
         },
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisBorderShow": false,
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "barWidthFactor": 0.6,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "insertNulls": false,
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "never",
-                "showValues": false,
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "dashed"
-                }
-              },
-              "min": 0,
-              "noValue": "Requires burstObservatory",
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": 0
-                  }
-                ]
-              },
-              "unit": "s"
-            }
-          },
-          "gridPos": {
-            "h": 9,
-            "w": 8,
-            "x": 8,
-            "y": 52
-          },
-          "id": 3,
-          "interval": "5s",
-          "maxDataPoints": 5000,
-          "options": {
-            "legend": {
-              "calcs": [
-                "last",
-                "mean",
-                "max"
-              ],
-              "displayMode": "table",
-              "placement": "right",
-              "showLegend": false,
-              "sortBy": "Mean",
-              "sortDesc": false
-            },
-            "tooltip": {
-              "hideZeros": false,
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "pluginVersion": "13.3.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
-              },
-              "editorMode": "code",
-              "expr": "xui_observatory_outbound_rtt_deviation_seconds{instance=\"${instance}\"}\nand on (outbound)\nmax by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
-              "interval": "5s",
-              "legendFormat": "{{outbound}}",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "Outbound latency deviation",
-          "type": "timeseries"
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "(xui_observatory_outbound_rtt_mean_seconds{instance=\"${instance}\"} or xui_observatory_outbound_delay_seconds{instance=\"${instance}\"})\nand on (outbound) max by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "C"
         },
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
-          "description": "Failed fraction in the current burst window, not a cumulative counter. Empty measurements remain absent.",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisBorderShow": false,
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "barWidthFactor": 0.6,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "insertNulls": false,
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "never",
-                "showValues": false,
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "max": 1,
-              "min": 0,
-              "noValue": "Requires burstObservatory",
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": 0
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "percentunit"
-            }
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "quantile_over_time(0.95, xui_observatory_outbound_rtt_mean_seconds{instance=\"${instance}\"}[$__range])\nand on (outbound) max by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
           },
-          "gridPos": {
-            "h": 9,
-            "w": 8,
-            "x": 16,
-            "y": 52
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "xui_observatory_outbound_rtt_deviation_seconds{instance=\"${instance}\"}\nand on (outbound) max by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "E"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
           },
-          "id": 28,
-          "interval": "5s",
-          "maxDataPoints": 5000,
-          "options": {
-            "legend": {
-              "calcs": [
-                "lastNotNull",
-                "max"
-              ],
-              "displayMode": "table",
-              "placement": "bottom",
-              "showLegend": false
-            },
-            "tooltip": {
-              "hideZeros": false,
-              "mode": "multi",
-              "sort": "desc"
-            }
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "(1 - (sum_over_time(xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"}[$__range]) / sum_over_time(xui_observatory_outbound_probe_samples{instance=\"${instance}\"}[$__range])))\nand on (outbound) max by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "F"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
           },
-          "pluginVersion": "13.3.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS-INFRA}"
-              },
-              "editorMode": "code",
-              "expr": "(\n  xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"}\n  / xui_observatory_outbound_probe_samples{instance=\"${instance}\"}\n)\nand on (outbound)\nmax by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
-              "instant": false,
-              "legendFormat": "{{outbound}}",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "Burst failed probes",
-          "type": "timeseries"
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "avg_over_time(xui_observatory_outbound_alive{instance=\"${instance}\"}[$__range])\nand on (outbound) max by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "G"
         }
       ],
-      "repeat": "balancer",
-      "title": "$balancer",
-      "type": "row"
+      "title": "Outbound quality & health",
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "outbound",
+            "mode": "outer"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Time 1": true,
+              "Time 2": true,
+              "Time 3": true,
+              "Time 4": true,
+              "Time 5": true,
+              "Time 6": true,
+              "Time 7": true,
+              "__name__": true,
+              "__name__ 1": true,
+              "__name__ 2": true,
+              "instance": true,
+              "instance 1": true,
+              "instance 2": true,
+              "instance 3": true,
+              "instance 4": true,
+              "instance 5": true,
+              "instance 6": true,
+              "instance 7": true,
+              "job": true,
+              "job 1": true,
+              "job 2": true,
+              "job 3": true,
+              "job 4": true,
+              "job 5": true,
+              "job 6": true,
+              "job 7": true
+            },
+            "includeByName": {},
+            "indexByName": {
+              "Time 1": 8,
+              "Time 2": 11,
+              "Time 3": 14,
+              "Time 4": 18,
+              "Time 5": 21,
+              "Time 6": 25,
+              "Time 7": 28,
+              "Value #A": 2,
+              "Value #B": 1,
+              "Value #C": 5,
+              "Value #D": 6,
+              "Value #E": 7,
+              "Value #F": 4,
+              "Value #G": 3,
+              "__name__ 1": 15,
+              "__name__ 2": 22,
+              "instance 1": 9,
+              "instance 2": 12,
+              "instance 3": 16,
+              "instance 4": 19,
+              "instance 5": 23,
+              "instance 6": 26,
+              "instance 7": 29,
+              "job 1": 10,
+              "job 2": 13,
+              "job 3": 17,
+              "job 4": 20,
+              "job 5": 24,
+              "job 6": 27,
+              "job 7": 30,
+              "outbound": 0
+            },
+            "renameByName": {
+              "Value #A": "Quality",
+              "Value #B": "Health",
+              "Value #C": "Current RTT",
+              "Value #D": "P95 RTT",
+              "Value #E": "Deviation",
+              "Value #F": "Probe success",
+              "Value #G": "Alive time",
+              "outbound": "Outbound"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": true,
+                "field": "Quality"
+              }
+            ]
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS-INFRA}"
+      },
+      "description": "Burst: mean RTT of successful samples in the observation window. Ordinary observatory: last successful delay. Seconds; no fabricated values on failure.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "min": 0,
+          "noValue": "Unknown",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 0.6
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 8,
+        "x": 0,
+        "y": 52
+      },
+      "id": 2,
+      "interval": "5s",
+      "maxDataPoints": 5000,
+      "options": {
+        "legend": {
+          "calcs": [
+            "last",
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": false,
+          "sortBy": "Mean",
+          "sortDesc": false
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "13.3.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "expr": "(\n  xui_observatory_outbound_rtt_mean_seconds{instance=\"${instance}\"}\n  or xui_observatory_outbound_delay_seconds{instance=\"${instance}\"}\n)\nand on (outbound)\nmax by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
+          "interval": "5s",
+          "legendFormat": "{{outbound}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Outbound latency",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS-INFRA}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "min": 0,
+          "noValue": "Requires burstObservatory",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 8,
+        "x": 8,
+        "y": 52
+      },
+      "id": 3,
+      "interval": "5s",
+      "maxDataPoints": 5000,
+      "options": {
+        "legend": {
+          "calcs": [
+            "last",
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": false,
+          "sortBy": "Mean",
+          "sortDesc": false
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "13.3.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "expr": "xui_observatory_outbound_rtt_deviation_seconds{instance=\"${instance}\"}\nand on (outbound)\nmax by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
+          "interval": "5s",
+          "legendFormat": "{{outbound}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Outbound latency deviation",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS-INFRA}"
+      },
+      "description": "Failed fraction in the current burst window, not a cumulative counter. Empty measurements remain absent.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "max": 1,
+          "min": 0,
+          "noValue": "Requires burstObservatory",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 8,
+        "x": 16,
+        "y": 52
+      },
+      "id": 28,
+      "interval": "5s",
+      "maxDataPoints": 5000,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "13.3.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "expr": "(\n  xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"}\n  / xui_observatory_outbound_probe_samples{instance=\"${instance}\"}\n)\nand on (outbound)\nmax by (outbound) (\n  xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",outbound!=\"\"}\n)",
+          "instant": false,
+          "legendFormat": "{{outbound}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Burst failed probes",
+      "type": "timeseries"
     },
     {
       "collapsed": true,
@@ -4195,9 +4411,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 25
+        "y": 61
       },
-      "id": 82,
+      "id": 92,
       "panels": [
         {
           "datasource": {
@@ -4266,7 +4482,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 26
+            "y": 62
           },
           "id": 29,
           "interval": "5s",
@@ -4383,7 +4599,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 26
+            "y": 62
           },
           "id": 30,
           "interval": "5s",
@@ -4489,7 +4705,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 34
+            "y": 70
           },
           "id": 31,
           "interval": "5s",
@@ -4594,7 +4810,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 34
+            "y": 70
           },
           "id": 32,
           "interval": "5s",
@@ -4713,7 +4929,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 42
+            "y": 78
           },
           "id": 33,
           "interval": "5s",
@@ -4820,7 +5036,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 42
+            "y": 78
           },
           "id": 34,
           "interval": "5s",
@@ -4870,9 +5086,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 26
+        "y": 62
       },
-      "id": 83,
+      "id": 93,
       "panels": [
         {
           "datasource": {
@@ -4930,7 +5146,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 27
+            "y": 63
           },
           "id": 64,
           "options": {
@@ -5033,7 +5249,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 27
+            "y": 63
           },
           "id": 66,
           "options": {
@@ -5227,7 +5443,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 35
+            "y": 71
           },
           "id": 67,
           "options": {
@@ -5471,7 +5687,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 35
+            "y": 71
           },
           "id": 68,
           "options": {
@@ -5583,7 +5799,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 43
+            "y": 79
           },
           "id": 69,
           "options": {
@@ -5655,7 +5871,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 43
+            "y": 79
           },
           "id": 70,
           "options": {
@@ -5712,9 +5928,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 27
+        "y": 63
       },
-      "id": 84,
+      "id": 94,
       "panels": [
         {
           "datasource": {
@@ -5777,7 +5993,7 @@
             "h": 4,
             "w": 24,
             "x": 0,
-            "y": 28
+            "y": 64
           },
           "id": 23,
           "interval": "5s",
@@ -5904,7 +6120,7 @@
             "h": 5,
             "w": 24,
             "x": 0,
-            "y": 32
+            "y": 68
           },
           "id": 24,
           "interval": "5s",
@@ -6034,7 +6250,7 @@
             "h": 6,
             "w": 12,
             "x": 0,
-            "y": 37
+            "y": 73
           },
           "id": 58,
           "interval": "5s",
@@ -6170,7 +6386,7 @@
             "h": 6,
             "w": 12,
             "x": 12,
-            "y": 37
+            "y": 73
           },
           "id": 59,
           "interval": "5s",
@@ -6324,8 +6540,8 @@
     ]
   },
   "timezone": "browser",
-  "title": "3x-ui-classic",
-  "uid": "3x-ui-exporter-classic",
-  "version": 9,
+  "title": "3x-ui",
+  "uid": "3x-ui-exporter",
+  "version": 85,
   "weekStart": ""
 }

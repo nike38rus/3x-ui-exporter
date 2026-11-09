@@ -3,7 +3,7 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "3x-ui-exporter",
-    "generation": 77,
+    "generation": 85,
     "creationTimestamp": "2026-10-14T17:05:36Z",
     "labels": {},
     "annotations": {}
@@ -1114,7 +1114,7 @@
         "spec": {
           "id": 25,
           "title": "Balancer availability",
-          "description": "A selected target or fallback resolves to a runtime outbound. Structural availability, not a test of internet access.",
+          "description": "Current operational routing state: 0=Unavailable (down), 1=Fallback active, 2=Primary active (normal), 3=Override active.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -1129,7 +1129,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "xui_balancer_outbound_available{instance=\"${instance}\",balancer=~\"${balancer}\"}",
+                        "expr": "xui_balancer_state{instance=\"${instance}\",balancer=~\"${balancer}\"}",
                         "instant": false,
                         "legendFormat": "{{balancer}}",
                         "range": true
@@ -1186,9 +1186,19 @@
                           "index": 0
                         },
                         "1": {
+                          "text": "Fallback active",
+                          "color": "yellow",
+                          "index": 1
+                        },
+                        "2": {
                           "text": "Available",
                           "color": "green",
-                          "index": 1
+                          "index": 2
+                        },
+                        "3": {
+                          "text": "Override",
+                          "color": "blue",
+                          "index": 3
                         }
                       }
                     }
@@ -7081,6 +7091,233 @@
           }
         }
       },
+      "panel-85": {
+        "kind": "Panel",
+        "spec": {
+          "id": 85,
+          "title": "Status",
+          "description": "Operational status (UP/DOWN) of monitored outbounds and time elapsed since the last status change.",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "exemplar": false,
+                        "expr": "xui_observatory_outbound_alive{instance=\"${instance}\"}",
+                        "format": "table",
+                        "instant": true,
+                        "range": false
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "exemplar": false,
+                        "expr": "(\n  1000 * last_over_time(\n    (\n      timestamp(changes(xui_observatory_outbound_alive{instance=\"${instance}\"}[3m]) > 0)\n    )[7d:2m]\n  )\n)\nand on (outbound)\nxui_observatory_outbound_alive{instance=\"${instance}\"}",
+                        "format": "table",
+                        "instant": true,
+                        "range": false
+                      }
+                    },
+                    "refId": "B",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [
+                {
+                  "kind": "Transformation",
+                  "group": "joinByField",
+                  "spec": {
+                    "options": {
+                      "byField": "outbound",
+                      "mode": "outer"
+                    }
+                  }
+                },
+                {
+                  "kind": "Transformation",
+                  "group": "organize",
+                  "spec": {
+                    "options": {
+                      "excludeByName": {
+                        "Time": true,
+                        "Time 1": true,
+                        "__name__": true,
+                        "__name__ 1": true,
+                        "instance": true,
+                        "instance 1": true,
+                        "job": true,
+                        "job 1": true,
+                        "outbound 1": true
+                      },
+                      "includeByName": {},
+                      "indexByName": {
+                        "Value #A": 1,
+                        "Value #B": 2,
+                        "outbound": 0
+                      },
+                      "orderByMode": "manual",
+                      "renameByName": {
+                        "Value #A": "Status",
+                        "Value #B": "Since",
+                        "outbound": "Outbound"
+                      }
+                    }
+                  }
+                },
+                {
+                  "kind": "Transformation",
+                  "group": "sortBy",
+                  "spec": {
+                    "options": {
+                      "fields": {},
+                      "sort": [
+                        {
+                          "desc": false,
+                          "field": "Status"
+                        }
+                      ]
+                    }
+                  }
+                }
+              ],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "table",
+            "version": "13.3.0",
+            "spec": {
+              "options": {
+                "cellHeight": "sm",
+                "footer": {
+                  "countRows": false,
+                  "fields": "",
+                  "reducer": [
+                    "sum"
+                  ],
+                  "show": false
+                },
+                "showHeader": true,
+                "sortBy": [
+                  {
+                    "desc": false,
+                    "displayName": "Status"
+                  }
+                ],
+                "wrapHeaderText": false,
+                "zebraStriping": false
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "noValue": "> 7d ago",
+                  "custom": {
+                    "align": "auto",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "footer": {
+                      "reducers": []
+                    },
+                    "inspect": false
+                  }
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Status"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.cellOptions",
+                        "value": {
+                          "type": "color-text"
+                        }
+                      },
+                      {
+                        "id": "mappings",
+                        "value": [
+                          {
+                            "options": {
+                              "0": {
+                                "color": "red",
+                                "index": 0,
+                                "text": "DOWN"
+                              },
+                              "1": {
+                                "color": "green",
+                                "index": 1,
+                                "text": "UP"
+                              }
+                            },
+                            "type": "value"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Since"
+                    },
+                    "properties": [
+                      {
+                        "id": "unit",
+                        "value": "dateTimeFromNow"
+                      },
+                      {
+                        "id": "noValue",
+                        "value": "> 7d ago"
+                      },
+                      {
+                        "id": "custom.align",
+                        "value": "center"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
       "panel-9": {
         "kind": "Panel",
         "spec": {
@@ -7614,7 +7851,20 @@
                       "spec": {
                         "x": 0,
                         "y": 8,
-                        "width": 12,
+                        "width": 8,
+                        "height": 8,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-85"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 8,
+                        "y": 8,
+                        "width": 8,
                         "height": 8,
                         "element": {
                           "kind": "ElementReference",
@@ -7625,9 +7875,9 @@
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 12,
+                        "x": 16,
                         "y": 8,
-                        "width": 12,
+                        "width": 8,
                         "height": 8,
                         "element": {
                           "kind": "ElementReference",
