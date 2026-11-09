@@ -20,10 +20,10 @@ Provides real-time visibility into traffic throughput, multi-node cluster health
 - [Quick Start](#quick-start)
   - [Docker Compose (Recommended)](#docker-compose-recommended)
   - [Prometheus Configuration](#prometheus-configuration)
-  - [Systemd Service Installation](#systemd-service-installation-standalone-host--vm)
+  - [Systemd Service Installation](#systemd-service-installation-standalone-host-vm)
   - [Manual Binary Execution](#manual-binary-execution)
 - [Configuration Reference](#configuration-reference)
-- [Security & Remote Access: TLS and Authentication](#security--remote-access-tls-and-authentication)
+- [Security & Remote Access: TLS and Authentication](#security-remote-access-tls-and-authentication)
 - [Metrics Reference](#metrics-reference)
   - [Exporter Diagnostics](#exporter-diagnostics)
   - [Panel, Node Cluster, and Inbound Status](#panel-node-cluster-and-inbound-status)
@@ -231,7 +231,7 @@ To switch to a specific release version, downgrade, or install the rolling bleed
 
 ```sh
 # Pin specific version:
-curl -sSL https://raw.githubusercontent.com/nike38rus/3x-ui-exporter/main/install.sh | sudo bash -s update -v v1.4.3
+curl -sSL https://raw.githubusercontent.com/nike38rus/3x-ui-exporter/main/install.sh | sudo bash -s update -v v1.4.4
 
 # Install or update to edge build (latest commit on main):
 curl -sSL https://raw.githubusercontent.com/nike38rus/3x-ui-exporter/main/install.sh | sudo bash -s update -v edge
@@ -591,6 +591,9 @@ The default view surfaces Xray state, versions, target health, balancer modes, o
 #### Clients
 ![Clients](docs/images/clients.png)
 
+#### Inbounds
+![Inbounds](docs/images/inbounds.png)
+
 #### Outbounds
 ![Outbounds](docs/images/outbounds.png)
 
@@ -722,7 +725,7 @@ make linux
 make licenses
 
 # Package release archives with checksums
-make release VERSION=v1.4.3
+make release VERSION=v1.4.4
 ```
 
 ---
