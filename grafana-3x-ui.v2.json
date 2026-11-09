@@ -3,7 +3,7 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "3x-ui-exporter",
-    "generation": 85,
+    "generation": 86,
     "creationTimestamp": "2026-10-14T17:05:36Z",
     "labels": {},
     "annotations": {}
@@ -547,7 +547,7 @@
         "spec": {
           "id": 16,
           "title": "Outbound selected time",
-          "description": "Fraction of observed samples in which a target was selected, not its share of traffic. Multiple selected targets can sum above 100%. Missing scrapes do not count as zero.",
+          "description": "Percentage of time each target was selected by the balancer. Does not represent traffic volume share.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -1113,8 +1113,8 @@
         "kind": "Panel",
         "spec": {
           "id": 25,
-          "title": "Balancer availability",
-          "description": "Current operational routing state: 0=Unavailable (down), 1=Fallback active, 2=Primary active (normal), 3=Override active.",
+          "title": "Balancer routing state",
+          "description": "Active routing mode for each balancer. Normally Primary; Fallback or No route indicates that the primary pool is empty or traffic is dropped.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -1129,7 +1129,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "xui_balancer_state{instance=\"${instance}\",balancer=~\"${balancer}\"}",
+                        "expr": "xui_balancer_state{instance=\"${instance}\", balancer=~\"${balancer}\"}",
                         "instant": false,
                         "legendFormat": "{{balancer}}",
                         "range": true
@@ -1181,17 +1181,17 @@
                       "type": "value",
                       "options": {
                         "0": {
-                          "text": "Unavailable",
+                          "text": "No route",
                           "color": "red",
                           "index": 0
                         },
                         "1": {
-                          "text": "Fallback active",
+                          "text": "Fallback",
                           "color": "yellow",
                           "index": 1
                         },
                         "2": {
-                          "text": "Available",
+                          "text": "Primary",
                           "color": "green",
                           "index": 2
                         },
@@ -2727,7 +2727,7 @@
         "spec": {
           "id": 40,
           "title": "Metrics sources",
-          "description": "Successful / present sources. Numeric value is the success fraction, used for color. With the upcoming exporter all three source rows are always present. Older exporters may expose fewer sources. No data when the target is down. API: settings/status; gRPC: runtime outbounds/balancers; expvars: traffic, memory/GC and observation.",
+          "description": "Scrape status across exporter data sources: API (panel settings/status), gRPC (runtime outbounds/balancers), and Expvars (traffic and observatory).",
           "links": [
             {
               "title": "Collection history",
@@ -2903,7 +2903,7 @@
         "spec": {
           "id": 41,
           "title": "Balancers",
-          "description": "Available: Balancers with a usable selected target or configured fallback according to the exporter. This is structural availability, not an end-to-end Internet probe. Includes balancers currently using fallback. Open availability history for detail.\n\nUnavailable: Balancers without an available selected target or usable fallback. A nonzero value calls for investigation. Open availability history.\n\nFallback: Balancers currently using their fallback. This can preserve service while primary selection is empty. A warning about operating mode, not necessarily an outage. Absent fallback metrics remain No data.\n\nOverride: Balancers currently using a manually overridden target. This is an operating mode, not automatically a failure. Open selected outbounds to identify the affected balancer.",
+          "description": "Summary of Xray balancer routing modes.\n\nNormally all balancers remain in Primary. Non-zero Fallback or No route indicates that traffic has switched to backup or is being dropped. See the balancers section below for details.",
           "links": [
             {
               "title": "Availability history",
@@ -2929,9 +2929,9 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(xui_balancer_outbound_available{instance=\"${instance}\"} == bool 1)",
+                        "expr": "sum(xui_balancer_state{instance=\"${instance}\"} == bool 2)",
                         "instant": true,
-                        "legendFormat": "Available",
+                        "legendFormat": "Primary",
                         "range": false
                       },
                       "labels": {
@@ -2952,7 +2952,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(xui_balancer_outbound_selected{instance=\"${instance}\",role=\"fallback\"})",
+                        "expr": "sum(xui_balancer_state{instance=\"${instance}\"} == bool 1)",
                         "instant": true,
                         "legendFormat": "Fallback",
                         "range": false
@@ -2975,7 +2975,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(xui_balancer_outbound_selected{instance=\"${instance}\",role=\"override\"})",
+                        "expr": "sum(xui_balancer_state{instance=\"${instance}\"} == bool 3)",
                         "instant": true,
                         "legendFormat": "Override",
                         "range": false
@@ -2998,9 +2998,9 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(xui_balancer_outbound_available{instance=\"${instance}\"} == bool 0)",
+                        "expr": "sum(xui_balancer_state{instance=\"${instance}\"} == bool 0)",
                         "instant": true,
-                        "legendFormat": "Unavailable",
+                        "legendFormat": "No route",
                         "range": false
                       },
                       "labels": {
@@ -3070,7 +3070,8 @@
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "Available"
+                      "scope": "series",
+                      "options": "Primary"
                     },
                     "properties": [
                       {
@@ -3101,7 +3102,8 @@
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "Unavailable"
+                      "scope": "series",
+                      "options": "No route"
                     },
                     "properties": [
                       {
@@ -3199,8 +3201,8 @@
         "kind": "Panel",
         "spec": {
           "id": 43,
-          "title": "Balancers availability and attention",
-          "description": "Above zero: available balancers, including those served by fallback. Below zero: unavailable balancers and active fallback, stacked as independent attention indicators. These are not a partition: an available balancer can also use fallback, so do not subtract the lower stack from the upper one. Override is shown separately in the summary. Counts describe sampled states, not replacement events or outage duration. Missing source data produces gaps. Open selected outbounds to identify the affected balancer.",
+          "title": "Balancers routing and attention",
+          "description": "Timeline of balancer routing modes. Above zero: normal operation on primary targets. Below zero: modes requiring attention (yellow = fallback, red = no route).",
           "links": [
             {
               "title": "Identify balancer and selected role",
@@ -3221,9 +3223,9 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(xui_balancer_outbound_available{instance=\"${instance}\"} == bool 1)",
+                        "expr": "sum(xui_balancer_state{instance=\"${instance}\"} == bool 2)",
                         "instant": false,
-                        "legendFormat": "Available",
+                        "legendFormat": "Primary",
                         "range": true
                       },
                       "labels": {
@@ -3244,9 +3246,9 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(xui_balancer_outbound_available{instance=\"${instance}\"} == bool 0)",
+                        "expr": "sum(xui_balancer_state{instance=\"${instance}\"} == bool 0)",
                         "instant": false,
-                        "legendFormat": "Unavailable",
+                        "legendFormat": "No route",
                         "range": true
                       },
                       "labels": {
@@ -3267,7 +3269,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(xui_balancer_outbound_selected{instance=\"${instance}\",role=\"fallback\"})",
+                        "expr": "sum(xui_balancer_state{instance=\"${instance}\"} == bool 1)",
                         "instant": false,
                         "legendFormat": "Fallback active",
                         "range": true
@@ -3317,10 +3319,6 @@
                       {
                         "value": 0,
                         "color": "green"
-                      },
-                      {
-                        "value": 80,
-                        "color": "red"
                       }
                     ]
                   },
@@ -3420,7 +3418,8 @@
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "Unavailable"
+                      "scope": "series",
+                      "options": "No route"
                     },
                     "properties": [
                       {
@@ -3701,7 +3700,7 @@
         "spec": {
           "id": 47,
           "title": "Observed outbounds",
-          "description": "UP: Observed outbounds that are alive and, when burst probe samples exist, have no failed samples. This is the observation population, not all configured outbounds.\n\nDEGRADED: Alive observed outbounds with failed samples in the current burst observation window. They can still carry traffic. Ordinary observatory does not provide this degradation detail.\n\nDOWN: Observed outbounds reported not alive. Open outbound health for tags and timing. An observation result does not by itself prove which traffic was affected.",
+          "description": "Health breakdown of monitored outbounds based on Xray Observatory probes. Non-zero DEGRADED or DOWN requires attention. Details below.",
           "links": [
             {
               "title": "Open details",
@@ -3939,7 +3938,7 @@
         "spec": {
           "id": 50,
           "title": "Observed outbounds health history",
-          "description": "Above zero: UP outbounds. Below zero: DEGRADED and DOWN, stacked. These three states partition the observed population at each sample; their absolute counts sum to the number of observed outbounds. DEGRADED requires burst probe samples. Missing observations or failed collection produce gaps, never healthy zeroes. Open outbound health to see tags, latency and quality.",
+          "description": "Timeline of monitored outbound health. Above zero: healthy outbounds (UP). Below zero: outbounds requiring attention (yellow = degraded, red = down).",
           "links": [
             {
               "title": "Identify outbound and inspect health",

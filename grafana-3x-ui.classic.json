@@ -188,7 +188,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS-INFRA}"
       },
-      "description": "Successful / present sources. Numeric value is the success fraction, used for color. With the upcoming exporter all three source rows are always present. Older exporters may expose fewer sources. No data when the target is down. API: settings/status; gRPC: runtime outbounds/balancers; expvars: traffic, memory/GC and observation.",
+      "description": "Scrape status across exporter data sources: API (panel settings/status), gRPC (runtime outbounds/balancers), and Expvars (traffic and observatory).",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -902,7 +902,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS-INFRA}"
       },
-      "description": "Available: Balancers with a usable selected target or configured fallback according to the exporter. This is structural availability, not an end-to-end Internet probe. Includes balancers currently using fallback. Open availability history for detail.\n\nUnavailable: Balancers without an available selected target or usable fallback. A nonzero value calls for investigation. Open availability history.\n\nFallback: Balancers currently using their fallback. This can preserve service while primary selection is empty. A warning about operating mode, not necessarily an outage. Absent fallback metrics remain No data.\n\nOverride: Balancers currently using a manually overridden target. This is an operating mode, not automatically a failure. Open selected outbounds to identify the affected balancer.",
+      "description": "Summary of Xray balancer routing modes.\n\nNormally all balancers remain in Primary. Non-zero Fallback or No route indicates that traffic has switched to backup or is being dropped. See the balancers section below for details.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -927,7 +927,8 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Available"
+              "options": "Primary",
+              "scope": "series"
             },
             "properties": [
               {
@@ -958,7 +959,8 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Unavailable"
+              "options": "No route",
+              "scope": "series"
             },
             "properties": [
               {
@@ -1098,9 +1100,9 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(xui_balancer_outbound_available{instance=\"${instance}\"} == bool 1)",
+          "expr": "sum(xui_balancer_state{instance=\"${instance}\"} == bool 2)",
           "instant": true,
-          "legendFormat": "Available",
+          "legendFormat": "Primary",
           "range": false,
           "refId": "A"
         },
@@ -1110,7 +1112,7 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(xui_balancer_outbound_selected{instance=\"${instance}\",role=\"fallback\"})",
+          "expr": "sum(xui_balancer_state{instance=\"${instance}\"} == bool 1)",
           "instant": true,
           "legendFormat": "Fallback",
           "range": false,
@@ -1122,7 +1124,7 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(xui_balancer_outbound_selected{instance=\"${instance}\",role=\"override\"})",
+          "expr": "sum(xui_balancer_state{instance=\"${instance}\"} == bool 3)",
           "instant": true,
           "legendFormat": "Override",
           "range": false,
@@ -1134,9 +1136,9 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(xui_balancer_outbound_available{instance=\"${instance}\"} == bool 0)",
+          "expr": "sum(xui_balancer_state{instance=\"${instance}\"} == bool 0)",
           "instant": true,
-          "legendFormat": "Unavailable",
+          "legendFormat": "No route",
           "range": false,
           "refId": "B"
         }
@@ -1149,7 +1151,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS-INFRA}"
       },
-      "description": "Above zero: available balancers, including those served by fallback. Below zero: unavailable balancers and active fallback, stacked as independent attention indicators. These are not a partition: an available balancer can also use fallback, so do not subtract the lower stack from the upper one. Override is shown separately in the summary. Counts describe sampled states, not replacement events or outage duration. Missing source data produces gaps. Open selected outbounds to identify the affected balancer.",
+      "description": "Timeline of balancer routing modes. Above zero: normal operation on primary targets. Below zero: modes requiring attention (yellow = fallback, red = no route).",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1197,10 +1199,6 @@
               {
                 "color": "green",
                 "value": 0
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
           },
@@ -1263,7 +1261,8 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Unavailable"
+              "options": "No route",
+              "scope": "series"
             },
             "properties": [
               {
@@ -1329,9 +1328,9 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(xui_balancer_outbound_available{instance=\"${instance}\"} == bool 1)",
+          "expr": "sum(xui_balancer_state{instance=\"${instance}\"} == bool 2)",
           "instant": false,
-          "legendFormat": "Available",
+          "legendFormat": "Primary",
           "range": true,
           "refId": "A"
         },
@@ -1341,9 +1340,9 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(xui_balancer_outbound_available{instance=\"${instance}\"} == bool 0)",
+          "expr": "sum(xui_balancer_state{instance=\"${instance}\"} == bool 0)",
           "instant": false,
-          "legendFormat": "Unavailable",
+          "legendFormat": "No route",
           "range": true,
           "refId": "B"
         },
@@ -1353,14 +1352,14 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(xui_balancer_outbound_selected{instance=\"${instance}\",role=\"fallback\"})",
+          "expr": "sum(xui_balancer_state{instance=\"${instance}\"} == bool 1)",
           "instant": false,
           "legendFormat": "Fallback active",
           "range": true,
           "refId": "C"
         }
       ],
-      "title": "Balancers availability and attention",
+      "title": "Balancers routing and attention",
       "type": "timeseries"
     },
     {
@@ -1368,7 +1367,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS-INFRA}"
       },
-      "description": "UP: Observed outbounds that are alive and, when burst probe samples exist, have no failed samples. This is the observation population, not all configured outbounds.\n\nDEGRADED: Alive observed outbounds with failed samples in the current burst observation window. They can still carry traffic. Ordinary observatory does not provide this degradation detail.\n\nDOWN: Observed outbounds reported not alive. Open outbound health for tags and timing. An observation result does not by itself prove which traffic was affected.",
+      "description": "Health breakdown of monitored outbounds based on Xray Observatory probes. Non-zero DEGRADED or DOWN requires attention. Details below.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1567,7 +1566,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS-INFRA}"
       },
-      "description": "Above zero: UP outbounds. Below zero: DEGRADED and DOWN, stacked. These three states partition the observed population at each sample; their absolute counts sum to the number of observed outbounds. DEGRADED requires burst probe samples. Missing observations or failed collection produce gaps, never healthy zeroes. Open outbound health to see tags, latency and quality.",
+      "description": "Timeline of monitored outbound health. Above zero: healthy outbounds (UP). Below zero: outbounds requiring attention (yellow = degraded, red = down).",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -3222,7 +3221,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS-INFRA}"
       },
-      "description": "Current operational routing state: 0=Unavailable (down), 1=Fallback active, 2=Primary active (normal), 3=Override active.",
+      "description": "Active routing mode for each balancer. Normally Primary; Fallback or No route indicates that the primary pool is empty or traffic is dropped.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -3243,29 +3242,29 @@
           },
           "mappings": [
             {
-              "type": "value",
               "options": {
                 "0": {
-                  "text": "Unavailable",
                   "color": "red",
-                  "index": 0
+                  "index": 0,
+                  "text": "No route"
                 },
                 "1": {
-                  "text": "Fallback active",
                   "color": "yellow",
-                  "index": 1
+                  "index": 1,
+                  "text": "Fallback"
                 },
                 "2": {
-                  "text": "Available",
                   "color": "green",
-                  "index": 2
+                  "index": 2,
+                  "text": "Primary"
                 },
                 "3": {
-                  "text": "Override",
                   "color": "blue",
-                  "index": 3
+                  "index": 3,
+                  "text": "Override"
                 }
-              }
+              },
+              "type": "value"
             }
           ],
           "min": 0,
@@ -3319,14 +3318,14 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "xui_balancer_state{instance=\"${instance}\",balancer=~\"${balancer}\"}",
+          "expr": "xui_balancer_state{instance=\"${instance}\", balancer=~\"${balancer}\"}",
           "instant": false,
           "legendFormat": "{{balancer}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Balancer availability",
+      "title": "Balancer routing state",
       "type": "state-timeline"
     },
     {
@@ -3477,7 +3476,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS-INFRA}"
       },
-      "description": "Fraction of observed samples in which a target was selected, not its share of traffic. Multiple selected targets can sum above 100%. Missing scrapes do not count as zero.",
+      "description": "Percentage of time each target was selected by the balancer. Does not represent traffic volume share.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -6542,6 +6541,6 @@
   "timezone": "browser",
   "title": "3x-ui",
   "uid": "3x-ui-exporter",
-  "version": 85,
+  "version": 87,
   "weekStart": ""
 }
