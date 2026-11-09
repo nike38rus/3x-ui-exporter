@@ -1,0 +1,38 @@
+name: Dependabot License Sync
+
+on:
+  pull_request_target:
+    branches: [main]
+    types: [opened, synchronize]
+
+permissions:
+  contents: write
+
+jobs:
+  licenses:
+    name: Sync third-party notices
+    if: github.actor == 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - name: Download Go modules
+        run: go mod download
+      - name: Regenerate third-party notices
+        run: make licenses
+      - name: Commit and push changes if any
+        run: |
+          if [ -n "$(git status --porcelain THIRD_PARTY_NOTICES.md third_party_licenses)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add -A THIRD_PARTY_NOTICES.md third_party_licenses
+            git commit -m "chore(licenses): auto-update third-party notices"
+            git push
+          fi
