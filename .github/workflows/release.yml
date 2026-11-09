@@ -18,7 +18,7 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
-          cache: false
+          cache-dependency-path: go.sum
       - run: make test licenses
       - run: git diff --exit-code -- THIRD_PARTY_NOTICES.md third_party_licenses
   binaries:
@@ -30,7 +30,7 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
-          cache: false
+          cache-dependency-path: go.sum
       - run: make release VERSION="$RELEASE_VERSION"
         env:
           RELEASE_VERSION: ${{ github.ref_name }}
