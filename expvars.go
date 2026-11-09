@@ -21,6 +21,7 @@ type ExpvarsSnapshot struct {
 	Traffic             []*TrafficCounter
 	TrafficPresent      bool
 	Memory, Observation samples
+	Observations        map[string]bool
 	Err                 error
 }
 type Expvars struct {
@@ -85,15 +86,15 @@ func decodeExpvars(body []byte, collectClient bool) (*ExpvarsSnapshot, error) {
 		r.Err = errors.Join(r.Err, err)
 	}
 	if configured(envelope["observatory"]) {
-		r.Observation, err = expvarsObservation(envelope["observatory"])
+		r.Observation, r.Observations, err = expvarsObservation(envelope["observatory"])
 		r.Err = errors.Join(r.Err, err)
 	}
 	return r, nil
 }
-func expvarsObservation(raw json.RawMessage) (samples, error) {
+func expvarsObservation(raw json.RawMessage) (samples, map[string]bool, error) {
 	var entries map[string]json.RawMessage
 	if json.Unmarshal(raw, &entries) != nil || entries == nil {
-		return nil, errors.New("invalid observatory object")
+		return nil, nil, errors.New("invalid observatory object")
 	}
 	keys := make([]string, 0, len(entries))
 	for key := range entries {
@@ -104,7 +105,7 @@ func expvarsObservation(raw json.RawMessage) (samples, error) {
 	for _, key := range keys {
 		var entry *obs.OutboundStatus
 		if json.Unmarshal(entries[key], &entry) != nil || entry == nil {
-			return nil, errors.New("invalid observatory entry")
+			return nil, nil, errors.New("invalid observatory entry")
 		}
 		// Protobuf JSON omits default scalar values (for example fail=0).
 		if entry.OutboundTag == "" {

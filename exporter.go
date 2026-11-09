@@ -258,6 +258,8 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 		}()
 	}
 	var data *ExpvarsSnapshot
+	var outbounds map[string]bool
+	var states map[string]*BalancerState
 	var expErr, grpcErr, balancerErr, trafficErr error
 	var expDuration, grpcDuration time.Duration
 	var balancer, traffic samples
@@ -321,13 +323,16 @@ func (e *Exporter) scrape(ctx context.Context) samples {
 		defer wg.Done()
 		start := time.Now()
 		defer func() { grpcDuration = time.Since(start) }()
-		outbounds, states, err := e.readGRPC(ctx, cfg)
-		grpcErr = err
-		if outbounds != nil && cfg != nil {
-			balancer, balancerErr = buildBalancerMetrics(cfg, outbounds, states)
-		}
+		outbounds, states, grpcErr = e.readGRPC(ctx, cfg)
 	}()
 	wg.Wait()
+	var observations map[string]bool
+	if data != nil && expErr == nil {
+		observations = data.Observations
+	}
+	if outbounds != nil && cfg != nil {
+		balancer, balancerErr = buildBalancerMetrics(cfg, outbounds, states, observations)
+	}
 	apiDuration := max(configElapsed, statusElapsed, onlinesElapsed, inboundsElapsed, nodesElapsed).Seconds()
 	if data != nil {
 		traffic, trafficErr = trafficMetrics(data.Traffic)
@@ -454,11 +459,11 @@ func (e *Exporter) balancerMetrics(ctx context.Context, cfg *Config) (samples, e
 	if outbounds == nil || cfg == nil {
 		return nil, err
 	}
-	res, bErr := buildBalancerMetrics(cfg, outbounds, states)
+	res, bErr := buildBalancerMetrics(cfg, outbounds, states, nil)
 	return res, errors.Join(err, bErr)
 }
 
-func buildBalancerMetrics(cfg *Config, outbounds map[string]bool, states map[string]*BalancerState) (samples, error) {
+func buildBalancerMetrics(cfg *Config, outbounds map[string]bool, states map[string]*BalancerState, observations map[string]bool) (samples, error) {
 	var result samples
 	for _, b := range cfg.Routing.Balancers {
 		state, known := states[b.Tag]
@@ -485,6 +490,11 @@ func buildBalancerMetrics(cfg *Config, outbounds map[string]bool, states map[str
 			balancerState = 2
 		}
 		gauge(&result, "xui_balancer_state", "Current balancer operational state: 0=unavailable, 1=fallback, 2=primary, 3=override.", balancerState, []string{"balancer"}, b.Tag)
+		health, hErr := resolveBalancerOperationalHealth(b.Tag, cfg, states, outbounds, observations, map[string]bool{})
+		if hErr != nil {
+			return nil, hErr
+		}
+		gauge(&result, "xui_balancer_health", "Current balancer egress operational health: 0=down, 1=degraded, 2=up.", float64(health), []string{"balancer"}, b.Tag)
 		labels := []string{"balancer", "outbound", "role"}
 		const help = "Current primary target membership, configured fallback selection, or override activity."
 		gauge(&result, "xui_balancer_outbound_selected", help, number(state.Override), labels, b.Tag, "", "override")
@@ -552,17 +562,19 @@ func trafficMetrics(stats []*TrafficCounter) (samples, error) {
 	}
 	return result, nil
 }
-func observationMetrics(v *obs.ObservationResult) (samples, error) {
+func observationMetrics(v *obs.ObservationResult) (samples, map[string]bool, error) {
 	if v == nil {
-		return nil, errors.New("missing observation")
+		return nil, nil, errors.New("missing observation")
 	}
 	var result samples
 	seen := map[string]bool{}
+	obsMap := make(map[string]bool, len(v.Status))
 	for _, s := range v.Status {
 		if s == nil || s.OutboundTag == "" || seen[s.OutboundTag] {
-			return nil, errors.New("invalid or duplicate observation")
+			return nil, nil, errors.New("invalid or duplicate observation")
 		}
 		seen[s.OutboundTag] = true
+		obsMap[s.OutboundTag] = s.Alive
 		labels := []string{"outbound"}
 		tag := s.OutboundTag
 		gauge(&result, "xui_observatory_outbound_alive", "Xray observer alive state; latest probe for ordinary observer, window state for burst.", number(s.Alive), labels, tag)
@@ -575,7 +587,7 @@ func observationMetrics(v *obs.ObservationResult) (samples, error) {
 			continue
 		}
 		if h.All < 0 || h.Fail < 0 || h.Fail > h.All {
-			return nil, errors.New("invalid probe counts")
+			return nil, nil, errors.New("invalid probe counts")
 		}
 		gauge(&result, "xui_observatory_outbound_probe_samples", "Probe count in the current Xray window.", float64(h.All), labels, tag)
 		gauge(&result, "xui_observatory_outbound_probe_failed_samples", "Failed probe count in the current Xray window.", float64(h.Fail), labels, tag)
@@ -587,10 +599,10 @@ func observationMetrics(v *obs.ObservationResult) (samples, error) {
 			value int64
 		}{{"mean", h.Average}, {"min", h.Min}, {"max", h.Max}, {"deviation", h.Deviation}} {
 			if item.value < 0 {
-				return nil, errors.New("invalid RTT")
+				return nil, nil, errors.New("invalid RTT")
 			}
 			gauge(&result, "xui_observatory_outbound_rtt_"+item.name+"_seconds", "Xray burst window RTT statistic in seconds.", float64(item.value)/1e9, labels, tag)
 		}
 	}
-	return result, nil
+	return result, obsMap, nil
 }

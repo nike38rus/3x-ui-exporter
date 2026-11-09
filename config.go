@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 )
 
@@ -240,6 +241,138 @@ func resolveOutbound(tag string, cfg *Config, states map[string]*BalancerState, 
 			return false, nil
 		}
 		return false, nil
+	}
+	return true, nil
+}
+
+// resolveBalancerOperationalHealth returns 2 (up), 1 (degraded), or 0 (down).
+func resolveBalancerOperationalHealth(tag string, cfg *Config, states map[string]*BalancerState, outbounds map[string]bool, observations map[string]bool, visiting map[string]bool) (int, error) {
+	key := "balancer:" + tag
+	if visiting[key] {
+		return 0, nil
+	}
+	visiting[key] = true
+	defer delete(visiting, key)
+
+	state, known := states[tag]
+	if !known || state == nil {
+		return 0, nil
+	}
+
+	available, err := resolveAvailable(tag, cfg, states, outbounds, map[string]bool{})
+	if err != nil {
+		return 0, err
+	}
+	if !available {
+		return 0, nil
+	}
+
+	var targets []string
+	var mode int // 2 for primary, 1 for fallback/override
+
+	var currentBalancer *BalancerConfig
+	for i := range cfg.Routing.Balancers {
+		if cfg.Routing.Balancers[i].Tag == tag {
+			currentBalancer = &cfg.Routing.Balancers[i]
+			break
+		}
+	}
+
+	if state.Override {
+		mode = 1
+		for t := range state.Targets {
+			targets = append(targets, t)
+		}
+	} else if currentBalancer != nil && currentBalancer.Fallback != "" && len(state.Targets) == 0 {
+		mode = 1
+		targets = append(targets, currentBalancer.Fallback)
+	} else {
+		mode = 2
+		for t := range state.Targets {
+			targets = append(targets, t)
+		}
+	}
+
+	if len(targets) == 0 {
+		return 0, nil
+	}
+
+	sort.Strings(targets)
+	anyAlive := false
+	for _, target := range targets {
+		alive, err := resolveOutboundHealth(target, cfg, states, outbounds, observations, visiting)
+		if err != nil {
+			return 0, err
+		}
+		if alive {
+			anyAlive = true
+			break
+		}
+	}
+
+	if !anyAlive {
+		return 0, nil
+	}
+	return mode, nil
+}
+
+func resolveOutboundHealth(tag string, cfg *Config, states map[string]*BalancerState, outbounds map[string]bool, observations map[string]bool, visiting map[string]bool) (bool, error) {
+	if tag == "" || !outbounds[tag] {
+		return false, nil
+	}
+	key := "outbound:" + tag
+	if visiting[key] {
+		return false, nil
+	}
+	visiting[key] = true
+	defer delete(visiting, key)
+
+	for _, o := range cfg.Outbounds {
+		if o.Tag != tag || o.Protocol != "loopback" {
+			continue
+		}
+		for _, r := range cfg.Routing.Rules {
+			var inbound []string
+			if json.Unmarshal(r["inboundTag"], &inbound) != nil {
+				continue
+			}
+			matched := false
+			for _, v := range inbound {
+				if v == o.Settings.InboundTag && v != "" {
+					matched = true
+				}
+			}
+			if !matched {
+				continue
+			}
+			for k := range r {
+				if k != "type" && k != "inboundTag" && k != "outboundTag" && k != "balancerTag" && k != "ruleTag" {
+					return false, errors.New("conditional loopback cannot be resolved")
+				}
+			}
+			var target, balancer string
+			_ = json.Unmarshal(r["outboundTag"], &target)
+			_ = json.Unmarshal(r["balancerTag"], &balancer)
+			if target != "" {
+				return resolveOutboundHealth(target, cfg, states, outbounds, observations, visiting)
+			}
+			if balancer != "" {
+				health, err := resolveBalancerOperationalHealth(balancer, cfg, states, outbounds, observations, visiting)
+				if err != nil {
+					return false, err
+				}
+				return health > 0, nil
+			}
+			return false, nil
+		}
+		return false, nil
+	}
+
+	// Terminal physical outbound reached.
+	if observations != nil {
+		if alive, ok := observations[tag]; ok {
+			return alive, nil
+		}
 	}
 	return true, nil
 }

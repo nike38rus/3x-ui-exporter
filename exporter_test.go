@@ -248,7 +248,7 @@ func TestFallbackChainsAndCycles(t *testing.T) {
 	}
 }
 func TestObservationOptionalFieldsAndSentinels(t *testing.T) {
-	m, err := observationMetrics(&obs.ObservationResult{Status: []*obs.OutboundStatus{{OutboundTag: "ordinary", Alive: true, Delay: 400}, {OutboundTag: "dead", Delay: 99999999}, {OutboundTag: "burst", Alive: true, Delay: 300, HealthPing: &obs.HealthPingMeasurementResult{All: 3, Fail: 1, Average: 300000000, Deviation: 10000000}}}})
+	m, _, err := observationMetrics(&obs.ObservationResult{Status: []*obs.OutboundStatus{{OutboundTag: "ordinary", Alive: true, Delay: 400}, {OutboundTag: "dead", Delay: 99999999}, {OutboundTag: "burst", Alive: true, Delay: 300, HealthPing: &obs.HealthPingMeasurementResult{All: 3, Fail: 1, Average: 300000000, Deviation: 10000000}}}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -598,6 +598,171 @@ func TestBalancerState(t *testing.T) {
 			}
 			if val != tc.expectedState {
 				t.Fatalf("expected state %v, got %v", tc.expectedState, val)
+			}
+		})
+	}
+}
+
+func TestBalancerOperationalHealth(t *testing.T) {
+	tests := []struct {
+		name           string
+		cfgJSON        string
+		tags           map[string]bool
+		states         map[string]*BalancerState
+		observations   map[string]bool
+		expectedHealth map[string]float64
+		expectedState  map[string]float64
+	}{
+		{
+			name:    "primary alive in observatory",
+			cfgJSON: `{"routing":{"balancers":[{"tag":"lb","selector":["A"],"fallbackTag":"direct","strategy":{"type":"leastLoad"}}]}}`,
+			tags:    map[string]bool{"A": true, "direct": true},
+			states:  map[string]*BalancerState{"lb": {Targets: map[string]bool{"A": true}}},
+			observations: map[string]bool{
+				"A": true,
+			},
+			expectedHealth: map[string]float64{"balancer=lb;": 2},
+			expectedState:  map[string]float64{"balancer=lb;": 2},
+		},
+		{
+			name:    "primary dead in observatory drops to down",
+			cfgJSON: `{"routing":{"balancers":[{"tag":"lb","selector":["A"],"fallbackTag":"direct","strategy":{"type":"leastLoad"}}]}}`,
+			tags:    map[string]bool{"A": true, "direct": true},
+			states:  map[string]*BalancerState{"lb": {Targets: map[string]bool{"A": true}}},
+			observations: map[string]bool{
+				"A": false,
+			},
+			expectedHealth: map[string]float64{"balancer=lb;": 0},
+			expectedState:  map[string]float64{"balancer=lb;": 2},
+		},
+		{
+			name:    "fallback to unprobed direct is degraded",
+			cfgJSON: `{"routing":{"balancers":[{"tag":"lb","selector":["A"],"fallbackTag":"direct","strategy":{"type":"leastLoad"}}]}}`,
+			tags:    map[string]bool{"A": true, "direct": true},
+			states:  map[string]*BalancerState{"lb": {Targets: map[string]bool{}}},
+			observations: map[string]bool{
+				"A": false,
+			},
+			expectedHealth: map[string]float64{"balancer=lb;": 1},
+			expectedState:  map[string]float64{"balancer=lb;": 1},
+		},
+		{
+			name:    "fallback to probed dead outbound drops to down",
+			cfgJSON: `{"routing":{"balancers":[{"tag":"lb","selector":["A"],"fallbackTag":"backup","strategy":{"type":"leastLoad"}}]}}`,
+			tags:    map[string]bool{"A": true, "backup": true},
+			states:  map[string]*BalancerState{"lb": {Targets: map[string]bool{}}},
+			observations: map[string]bool{
+				"A":      false,
+				"backup": false,
+			},
+			expectedHealth: map[string]float64{"balancer=lb;": 0},
+			expectedState:  map[string]float64{"balancer=lb;": 1},
+		},
+		{
+			name:    "cascaded balancers via loopback - sub alive",
+			cfgJSON: `{"routing":{"balancers":[{"tag":"lb-main","selector":["A"],"fallbackTag":"to-sub","strategy":{"type":"leastLoad"}},{"tag":"lb-sub","selector":["B"],"fallbackTag":"direct","strategy":{"type":"leastLoad"}}],"rules":[{"inboundTag":["sub-in"],"balancerTag":"lb-sub"}]},"outbounds":[{"tag":"to-sub","protocol":"loopback","settings":{"inboundTag":"sub-in"}}]}`,
+			tags:    map[string]bool{"A": true, "to-sub": true, "B": true, "direct": true},
+			states: map[string]*BalancerState{
+				"lb-main": {Targets: map[string]bool{}},
+				"lb-sub":  {Targets: map[string]bool{"B": true}},
+			},
+			observations: map[string]bool{
+				"A": false,
+				"B": true,
+			},
+			expectedHealth: map[string]float64{"balancer=lb-main;": 1, "balancer=lb-sub;": 2},
+			expectedState:  map[string]float64{"balancer=lb-main;": 1, "balancer=lb-sub;": 2},
+		},
+		{
+			name:    "cascaded balancers via loopback - sub dead drops main to down",
+			cfgJSON: `{"routing":{"balancers":[{"tag":"lb-main","selector":["A"],"fallbackTag":"to-sub","strategy":{"type":"leastLoad"}},{"tag":"lb-sub","selector":["B"],"fallbackTag":"backup-dead","strategy":{"type":"leastLoad"}}],"rules":[{"inboundTag":["sub-in"],"balancerTag":"lb-sub"}]},"outbounds":[{"tag":"to-sub","protocol":"loopback","settings":{"inboundTag":"sub-in"}}]}`,
+			tags:    map[string]bool{"A": true, "to-sub": true, "B": true, "backup-dead": true},
+			states: map[string]*BalancerState{
+				"lb-main": {Targets: map[string]bool{}},
+				"lb-sub":  {Targets: map[string]bool{"B": true}},
+			},
+			observations: map[string]bool{
+				"A":           false,
+				"B":           false,
+				"backup-dead": false,
+			},
+			expectedHealth: map[string]float64{"balancer=lb-main;": 0, "balancer=lb-sub;": 0},
+			expectedState:  map[string]float64{"balancer=lb-main;": 1, "balancer=lb-sub;": 2},
+		},
+		{
+			name:    "multi-target candidate partial health (random/roundrobin)",
+			cfgJSON: `{"routing":{"balancers":[{"tag":"lb","selector":["A","B"],"fallbackTag":"direct","strategy":{"type":"random"}}]}}`,
+			tags:    map[string]bool{"A": true, "B": true, "direct": true},
+			states:  map[string]*BalancerState{"lb": {Targets: map[string]bool{"A": true, "B": true}}},
+			observations: map[string]bool{
+				"A": false,
+				"B": true,
+			},
+			expectedHealth: map[string]float64{"balancer=lb;": 2},
+			expectedState:  map[string]float64{"balancer=lb;": 2},
+		},
+		{
+			name:    "override target alive is degraded",
+			cfgJSON: `{"routing":{"balancers":[{"tag":"lb","selector":["A"],"fallbackTag":"direct","strategy":{"type":"leastLoad"}}]}}`,
+			tags:    map[string]bool{"A": true, "override-out": true, "direct": true},
+			states:  map[string]*BalancerState{"lb": {Targets: map[string]bool{"override-out": true}, Override: true}},
+			observations: map[string]bool{
+				"override-out": true,
+			},
+			expectedHealth: map[string]float64{"balancer=lb;": 1},
+			expectedState:  map[string]float64{"balancer=lb;": 3},
+		},
+		{
+			name:    "override target dead drops to down",
+			cfgJSON: `{"routing":{"balancers":[{"tag":"lb","selector":["A"],"fallbackTag":"direct","strategy":{"type":"leastLoad"}}]}}`,
+			tags:    map[string]bool{"A": true, "override-out": true, "direct": true},
+			states:  map[string]*BalancerState{"lb": {Targets: map[string]bool{"override-out": true}, Override: true}},
+			observations: map[string]bool{
+				"override-out": false,
+			},
+			expectedHealth: map[string]float64{"balancer=lb;": 0},
+			expectedState:  map[string]float64{"balancer=lb;": 3},
+		},
+		{
+			name:    "cascaded cycle detection drops to down",
+			cfgJSON: `{"routing":{"balancers":[{"tag":"lb-a","selector":["A"],"fallbackTag":"to-b","strategy":{"type":"leastLoad"}},{"tag":"lb-b","selector":["B"],"fallbackTag":"to-a","strategy":{"type":"leastLoad"}}],"rules":[{"inboundTag":["b-in"],"balancerTag":"lb-b"},{"inboundTag":["a-in"],"balancerTag":"lb-a"}]},"outbounds":[{"tag":"to-b","protocol":"loopback","settings":{"inboundTag":"b-in"}},{"tag":"to-a","protocol":"loopback","settings":{"inboundTag":"a-in"}}]}`,
+			tags:    map[string]bool{"A": true, "B": true, "to-b": true, "to-a": true},
+			states: map[string]*BalancerState{
+				"lb-a": {Targets: map[string]bool{}},
+				"lb-b": {Targets: map[string]bool{}},
+			},
+			observations:   map[string]bool{},
+			expectedHealth: map[string]float64{"balancer=lb-a;": 0, "balancer=lb-b;": 0},
+			expectedState:  map[string]float64{"balancer=lb-a;": 0, "balancer=lb-b;": 0},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := configuration(t, tc.cfgJSON)
+			m, err := buildBalancerMetrics(cfg, tc.tags, tc.states, tc.observations)
+			if err != nil {
+				t.Fatal(err)
+			}
+			healthVals := sampleValues(t, m, "xui_balancer_health")
+			for k, want := range tc.expectedHealth {
+				got, ok := healthVals[k]
+				if !ok {
+					t.Fatalf("missing xui_balancer_health for %s, got: %v", k, healthVals)
+				}
+				if got != want {
+					t.Fatalf("for %s health expected %v, got %v", k, want, got)
+				}
+			}
+			stateVals := sampleValues(t, m, "xui_balancer_state")
+			for k, want := range tc.expectedState {
+				got, ok := stateVals[k]
+				if !ok {
+					t.Fatalf("missing xui_balancer_state for %s, got: %v", k, stateVals)
+				}
+				if got != want {
+					t.Fatalf("for %s state expected %v, got %v", k, want, got)
+				}
 			}
 		})
 	}
