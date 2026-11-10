@@ -587,9 +587,9 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "sort_desc (\n  100 * avg_over_time(\n    xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=~\"fallback|override\"}[$__range]\n  )\n)",
+                        "expr": "sort_desc (\n  100 * avg_over_time(\n    xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=~\"fallback|override\",outbound!=\"\"}[$__range]\n  )\n)",
                         "instant": true,
-                        "legendFormat": "{{role}}",
+                        "legendFormat": "{{outbound}} ({{role}})",
                         "range": false
                       },
                       "labels": {
@@ -6909,9 +6909,9 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "(xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=\"override\"} == 1) * 20\nor\n(xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=\"fallback\"} == 1) * 30\nor\n(xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=~\"override|fallback\"} * 0 + 21)",
+                        "expr": "(xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=\"override\",outbound!=\"\"} == 1) * 20\nor\n(xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=\"fallback\",outbound!=\"\"} == 1) * 30\nor\n(xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=~\"override|fallback\",outbound!=\"\"} * 0 + 21)",
                         "interval": "5s",
-                        "legendFormat": "{{role}}",
+                        "legendFormat": "{{outbound}} ({{role}})",
                         "range": true
                       }
                     },
@@ -7472,6 +7472,127 @@
             }
           }
         }
+      },
+      "panel-95": {
+        "kind": "Panel",
+        "spec": {
+          "id": 95,
+          "title": "Balancer egress health",
+          "description": "Operational egress health for each balancer: UP (confirmed alive by Observatory probes), BLIND (unmonitored or direct route), DOWN (route probe failed or structurally unavailable).",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "xui_balancer_health{instance=\"${instance}\", balancer=~\"${balancer}\"}",
+                        "instant": false,
+                        "legendFormat": "{{balancer}}",
+                        "range": true
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "prometheus-1",
+                        "grafana.app/export-datasource-name": "prometheus-infra"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {
+                "maxDataPoints": 5000,
+                "interval": "5s"
+              }
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "state-timeline",
+            "version": "13.3.0",
+            "spec": {
+              "options": {
+                "alignValue": "left",
+                "legend": {
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": false
+                },
+                "mergeValues": true,
+                "rowHeight": 0.9,
+                "showValue": "never",
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "single",
+                  "sort": "none"
+                }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "short",
+                  "min": 0,
+                  "mappings": [
+                    {
+                      "type": "value",
+                      "options": {
+                        "0": {
+                          "text": "DOWN",
+                          "color": "red",
+                          "index": 0
+                        },
+                        "1": {
+                          "text": "BLIND",
+                          "color": "blue",
+                          "index": 1
+                        },
+                        "2": {
+                          "text": "UP",
+                          "color": "green",
+                          "index": 2
+                        }
+                      }
+                    }
+                  ],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "fixed"
+                  },
+                  "custom": {
+                    "axisPlacement": "auto",
+                    "axisWidth": 140,
+                    "fillOpacity": 100,
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineWidth": 0,
+                    "spanNulls": false
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
       }
     },
     "layout": {
@@ -7856,7 +7977,20 @@
                                 "spec": {
                                   "x": 0,
                                   "y": 0,
-                                  "width": 24,
+                                  "width": 12,
+                                  "height": 3,
+                                  "element": {
+                                    "kind": "ElementReference",
+                                    "name": "panel-95"
+                                  }
+                                }
+                              },
+                              {
+                                "kind": "GridLayoutItem",
+                                "spec": {
+                                  "x": 12,
+                                  "y": 0,
+                                  "width": 12,
                                   "height": 3,
                                   "element": {
                                     "kind": "ElementReference",

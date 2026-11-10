@@ -3176,6 +3176,109 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS-INFRA}"
       },
+      "description": "Operational egress health for each balancer: UP (confirmed alive by Observatory probes), BLIND (unmonitored or direct route), DOWN (route probe failed or structurally unavailable).",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed"
+          },
+          "custom": {
+            "axisPlacement": "auto",
+            "axisWidth": 140,
+            "fillOpacity": 100,
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineWidth": 0,
+            "spanNulls": false
+          },
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "red",
+                  "index": 0,
+                  "text": "DOWN"
+                },
+                "1": {
+                  "color": "blue",
+                  "index": 1,
+                  "text": "BLIND"
+                },
+                "2": {
+                  "color": "green",
+                  "index": 2,
+                  "text": "UP"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 12,
+        "x": 0,
+        "y": 25
+      },
+      "id": 95,
+      "interval": "5s",
+      "maxDataPoints": 5000,
+      "options": {
+        "alignValue": "left",
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "mergeValues": true,
+        "rowHeight": 0.9,
+        "showValue": "never",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "13.3.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "expr": "xui_balancer_health{instance=\"${instance}\", balancer=~\"${balancer}\"}",
+          "instant": false,
+          "legendFormat": "{{balancer}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Balancer egress health",
+      "type": "state-timeline"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS-INFRA}"
+      },
       "description": "Active routing mode for each balancer. Normally Primary; Fallback or No route indicates that the primary pool is empty or traffic is dropped.",
       "fieldConfig": {
         "defaults": {
@@ -3242,8 +3345,8 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 24,
-        "x": 0,
+        "w": 12,
+        "x": 12,
         "y": 25
       },
       "id": 25,
@@ -3416,9 +3519,9 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "(xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=\"override\"} == 1) * 20\nor\n(xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=\"fallback\"} == 1) * 30\nor\n(xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=~\"override|fallback\"} * 0 + 21)",
+          "expr": "(xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=\"override\",outbound!=\"\"} == 1) * 20\nor\n(xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=\"fallback\",outbound!=\"\"} == 1) * 30\nor\n(xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=~\"override|fallback\",outbound!=\"\"} * 0 + 21)",
           "interval": "5s",
-          "legendFormat": "{{role}}",
+          "legendFormat": "{{outbound}} ({{role}})",
           "range": true,
           "refId": "B"
         }
@@ -3515,9 +3618,9 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sort_desc (\n  100 * avg_over_time(\n    xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=~\"fallback|override\"}[$__range]\n  )\n)",
+          "expr": "sort_desc (\n  100 * avg_over_time(\n    xui_balancer_outbound_selected{instance=\"${instance}\",balancer=~\"${balancer}\",role=~\"fallback|override\",outbound!=\"\"}[$__range]\n  )\n)",
           "instant": true,
-          "legendFormat": "{{role}}",
+          "legendFormat": "{{outbound}} ({{role}})",
           "range": false,
           "refId": "B"
         }
