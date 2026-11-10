@@ -902,7 +902,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS-INFRA}"
       },
-      "description": "Summary of Xray balancer routing modes.\n\nNormally all balancers remain in Primary. Non-zero Fallback or No route indicates that traffic has switched to backup or is being dropped. See the balancers section below for details.",
+      "description": "Summary of Xray balancer egress operational health. UP: active route confirmed alive by Observatory probes. BLIND: active route is unmonitored (e.g. direct). DOWN: active route probe failed or no route available. See the balancers section below for details.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -927,14 +927,13 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Primary",
-              "scope": "series"
+              "options": "UP"
             },
             "properties": [
               {
                 "id": "color",
                 "value": {
-                  "fixedColor": "blue",
+                  "fixedColor": "green",
                   "mode": "thresholds"
                 }
               },
@@ -959,68 +958,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "No route",
-              "scope": "series"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "thresholds"
-                }
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": 0
-                    },
-                    {
-                      "color": "red",
-                      "value": 1
-                    }
-                  ]
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Fallback"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "thresholds"
-                }
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": 0
-                    },
-                    {
-                      "color": "#EAB839",
-                      "value": 1
-                    }
-                  ]
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Override"
+              "options": "BLIND"
             },
             "properties": [
               {
@@ -1041,6 +979,36 @@
                     },
                     {
                       "color": "blue",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "DOWN"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
                       "value": 1
                     }
                   ]
@@ -1100,9 +1068,9 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(xui_balancer_state{instance=\"${instance}\"} == bool 2)",
+          "expr": "sum(xui_balancer_health{instance=\"${instance}\"} == bool 2)",
           "instant": true,
-          "legendFormat": "Primary",
+          "legendFormat": "UP",
           "range": false,
           "refId": "A"
         },
@@ -1112,38 +1080,26 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(xui_balancer_state{instance=\"${instance}\"} == bool 1)",
+          "expr": "sum(xui_balancer_health{instance=\"${instance}\"} == bool 1)",
           "instant": true,
-          "legendFormat": "Fallback",
-          "range": false,
-          "refId": "C"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS-INFRA}"
-          },
-          "editorMode": "code",
-          "expr": "sum(xui_balancer_state{instance=\"${instance}\"} == bool 3)",
-          "instant": true,
-          "legendFormat": "Override",
-          "range": false,
-          "refId": "D"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS-INFRA}"
-          },
-          "editorMode": "code",
-          "expr": "sum(xui_balancer_state{instance=\"${instance}\"} == bool 0)",
-          "instant": true,
-          "legendFormat": "No route",
+          "legendFormat": "BLIND",
           "range": false,
           "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "editorMode": "code",
+          "expr": "sum(xui_balancer_health{instance=\"${instance}\"} == bool 0)",
+          "instant": true,
+          "legendFormat": "DOWN",
+          "range": false,
+          "refId": "C"
         }
       ],
-      "title": "Balancers",
+      "title": "Balancers egress health",
       "type": "stat"
     },
     {
@@ -1151,7 +1107,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS-INFRA}"
       },
-      "description": "Timeline of balancer routing modes. Above zero: normal operation on primary targets. Below zero: modes requiring attention (yellow = fallback, red = no route).",
+      "description": "Timeline of balancer egress operational health. Above zero: verified egress (UP). Below zero: unmonitored egress (blue = blind) and dropped traffic (red = down).",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1246,7 +1202,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Available"
+              "options": "UP"
             },
             "properties": [
               {
@@ -1261,14 +1217,13 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "No route",
-              "scope": "series"
+              "options": "BLIND"
             },
             "properties": [
               {
                 "id": "color",
                 "value": {
-                  "fixedColor": "red",
+                  "fixedColor": "blue",
                   "mode": "fixed"
                 }
               }
@@ -1277,13 +1232,13 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Fallback active"
+              "options": "DOWN"
             },
             "properties": [
               {
                 "id": "color",
                 "value": {
-                  "fixedColor": "yellow",
+                  "fixedColor": "red",
                   "mode": "fixed"
                 }
               }
@@ -1328,9 +1283,9 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(xui_balancer_state{instance=\"${instance}\"} == bool 2)",
+          "expr": "sum(xui_balancer_health{instance=\"${instance}\"} == bool 2)",
           "instant": false,
-          "legendFormat": "Primary",
+          "legendFormat": "UP",
           "range": true,
           "refId": "A"
         },
@@ -1340,9 +1295,9 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(xui_balancer_state{instance=\"${instance}\"} == bool 0)",
+          "expr": "sum(xui_balancer_health{instance=\"${instance}\"} == bool 1)",
           "instant": false,
-          "legendFormat": "No route",
+          "legendFormat": "BLIND",
           "range": true,
           "refId": "B"
         },
@@ -1352,14 +1307,14 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(xui_balancer_state{instance=\"${instance}\"} == bool 1)",
+          "expr": "sum(xui_balancer_health{instance=\"${instance}\"} == bool 0)",
           "instant": false,
-          "legendFormat": "Fallback active",
+          "legendFormat": "DOWN",
           "range": true,
           "refId": "C"
         }
       ],
-      "title": "Balancers routing and attention",
+      "title": "Balancers egress health history",
       "type": "timeseries"
     },
     {

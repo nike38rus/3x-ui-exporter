@@ -2902,8 +2902,8 @@
         "kind": "Panel",
         "spec": {
           "id": 41,
-          "title": "Balancers",
-          "description": "Summary of Xray balancer routing modes.\n\nNormally all balancers remain in Primary. Non-zero Fallback or No route indicates that traffic has switched to backup or is being dropped. See the balancers section below for details.",
+          "title": "Balancers egress health",
+          "description": "Summary of Xray balancer egress operational health. UP: active route confirmed alive by Observatory probes. BLIND: active route is unmonitored (e.g. direct). DOWN: active route probe failed or no route available. See the balancers section below for details.",
           "links": [
             {
               "title": "Availability history",
@@ -2929,9 +2929,9 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(xui_balancer_state{instance=\"${instance}\"} == bool 2)",
+                        "expr": "sum(xui_balancer_health{instance=\"${instance}\"} == bool 2)",
                         "instant": true,
-                        "legendFormat": "Primary",
+                        "legendFormat": "UP",
                         "range": false
                       },
                       "labels": {
@@ -2952,55 +2952,9 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(xui_balancer_state{instance=\"${instance}\"} == bool 1)",
+                        "expr": "sum(xui_balancer_health{instance=\"${instance}\"} == bool 1)",
                         "instant": true,
-                        "legendFormat": "Fallback",
-                        "range": false
-                      },
-                      "labels": {
-                        "grafana.app/export-label": "prometheus-1",
-                        "grafana.app/export-datasource-name": "prometheus-infra"
-                      }
-                    },
-                    "refId": "C",
-                    "hidden": false
-                  }
-                },
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "prometheus",
-                      "version": "v0",
-                      "spec": {
-                        "editorMode": "code",
-                        "expr": "sum(xui_balancer_state{instance=\"${instance}\"} == bool 3)",
-                        "instant": true,
-                        "legendFormat": "Override",
-                        "range": false
-                      },
-                      "labels": {
-                        "grafana.app/export-label": "prometheus-1",
-                        "grafana.app/export-datasource-name": "prometheus-infra"
-                      }
-                    },
-                    "refId": "D",
-                    "hidden": false
-                  }
-                },
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "prometheus",
-                      "version": "v0",
-                      "spec": {
-                        "editorMode": "code",
-                        "expr": "sum(xui_balancer_state{instance=\"${instance}\"} == bool 0)",
-                        "instant": true,
-                        "legendFormat": "No route",
+                        "legendFormat": "BLIND",
                         "range": false
                       },
                       "labels": {
@@ -3009,6 +2963,29 @@
                       }
                     },
                     "refId": "B",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "sum(xui_balancer_health{instance=\"${instance}\"} == bool 0)",
+                        "instant": true,
+                        "legendFormat": "DOWN",
+                        "range": false
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "prometheus-1",
+                        "grafana.app/export-datasource-name": "prometheus-infra"
+                      }
+                    },
+                    "refId": "C",
                     "hidden": false
                   }
                 }
@@ -3070,14 +3047,13 @@
                   {
                     "matcher": {
                       "id": "byName",
-                      "scope": "series",
-                      "options": "Primary"
+                      "options": "UP"
                     },
                     "properties": [
                       {
                         "id": "color",
                         "value": {
-                          "fixedColor": "blue",
+                          "fixedColor": "green",
                           "mode": "thresholds"
                         }
                       },
@@ -3102,68 +3078,7 @@
                   {
                     "matcher": {
                       "id": "byName",
-                      "scope": "series",
-                      "options": "No route"
-                    },
-                    "properties": [
-                      {
-                        "id": "color",
-                        "value": {
-                          "mode": "thresholds"
-                        }
-                      },
-                      {
-                        "id": "thresholds",
-                        "value": {
-                          "mode": "absolute",
-                          "steps": [
-                            {
-                              "color": "green",
-                              "value": 0
-                            },
-                            {
-                              "color": "red",
-                              "value": 1
-                            }
-                          ]
-                        }
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "Fallback"
-                    },
-                    "properties": [
-                      {
-                        "id": "color",
-                        "value": {
-                          "mode": "thresholds"
-                        }
-                      },
-                      {
-                        "id": "thresholds",
-                        "value": {
-                          "mode": "absolute",
-                          "steps": [
-                            {
-                              "color": "green",
-                              "value": 0
-                            },
-                            {
-                              "color": "#EAB839",
-                              "value": 1
-                            }
-                          ]
-                        }
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "Override"
+                      "options": "BLIND"
                     },
                     "properties": [
                       {
@@ -3190,6 +3105,36 @@
                         }
                       }
                     ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "DOWN"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "mode": "thresholds"
+                        }
+                      },
+                      {
+                        "id": "thresholds",
+                        "value": {
+                          "mode": "absolute",
+                          "steps": [
+                            {
+                              "color": "green",
+                              "value": 0
+                            },
+                            {
+                              "color": "red",
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    ]
                   }
                 ]
               }
@@ -3201,8 +3146,8 @@
         "kind": "Panel",
         "spec": {
           "id": 43,
-          "title": "Balancers routing and attention",
-          "description": "Timeline of balancer routing modes. Above zero: normal operation on primary targets. Below zero: modes requiring attention (yellow = fallback, red = no route).",
+          "title": "Balancers egress health history",
+          "description": "Timeline of balancer egress operational health. Above zero: verified egress (UP). Below zero: unmonitored egress (blue = blind) and dropped traffic (red = down).",
           "links": [
             {
               "title": "Identify balancer and selected role",
@@ -3223,9 +3168,9 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(xui_balancer_state{instance=\"${instance}\"} == bool 2)",
+                        "expr": "sum(xui_balancer_health{instance=\"${instance}\"} == bool 2)",
                         "instant": false,
-                        "legendFormat": "Primary",
+                        "legendFormat": "UP",
                         "range": true
                       },
                       "labels": {
@@ -3246,9 +3191,9 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(xui_balancer_state{instance=\"${instance}\"} == bool 0)",
+                        "expr": "sum(xui_balancer_health{instance=\"${instance}\"} == bool 1)",
                         "instant": false,
-                        "legendFormat": "No route",
+                        "legendFormat": "BLIND",
                         "range": true
                       },
                       "labels": {
@@ -3269,9 +3214,9 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(xui_balancer_state{instance=\"${instance}\"} == bool 1)",
+                        "expr": "sum(xui_balancer_health{instance=\"${instance}\"} == bool 0)",
                         "instant": false,
-                        "legendFormat": "Fallback active",
+                        "legendFormat": "DOWN",
                         "range": true
                       },
                       "labels": {
@@ -3403,7 +3348,7 @@
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "Available"
+                      "options": "UP"
                     },
                     "properties": [
                       {
@@ -3418,14 +3363,13 @@
                   {
                     "matcher": {
                       "id": "byName",
-                      "scope": "series",
-                      "options": "No route"
+                      "options": "BLIND"
                     },
                     "properties": [
                       {
                         "id": "color",
                         "value": {
-                          "fixedColor": "red",
+                          "fixedColor": "blue",
                           "mode": "fixed"
                         }
                       }
@@ -3434,13 +3378,13 @@
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "Fallback active"
+                      "options": "DOWN"
                     },
                     "properties": [
                       {
                         "id": "color",
                         "value": {
-                          "fixedColor": "yellow",
+                          "fixedColor": "red",
                           "mode": "fixed"
                         }
                       }
