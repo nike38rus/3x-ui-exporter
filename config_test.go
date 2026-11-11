@@ -112,3 +112,46 @@ func TestPanelHTTPError(t *testing.T) {
 		})
 	}
 }
+
+func TestBlackholeOutboundHealth(t *testing.T) {
+	cfg := &Config{
+		Outbounds: []OutboundConfig{
+			{Tag: "blocked", Protocol: "blackhole"},
+			{Tag: "direct", Protocol: "freedom"},
+		},
+	}
+	outbounds := map[string]bool{"blocked": true, "direct": true}
+
+	health, err := resolveOutboundHealth("blocked", cfg, nil, outbounds, nil, map[string]bool{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if health != 0 {
+		t.Fatalf("expected health 0 (DOWN) for blackhole outbound, got %d", health)
+	}
+
+	// Unmonitored outbound should resolve to 1 (BLIND)
+	directHealth, err := resolveOutboundHealth("direct", cfg, nil, outbounds, nil, map[string]bool{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if directHealth != 1 {
+		t.Fatalf("expected health 1 (BLIND) for unmonitored direct outbound, got %d", directHealth)
+	}
+}
+
+func TestBalancerFallbackToBlackholeHealth(t *testing.T) {
+	cfg := configuration(t, `{"routing":{"balancers":[{"tag":"lb","selector":["direct"],"fallbackTag":"blocked"}]},"outbounds":[{"tag":"blocked","protocol":"blackhole"},{"tag":"direct","protocol":"freedom"}]}`)
+	outbounds := map[string]bool{"blocked": true, "direct": true}
+	states := map[string]*BalancerState{
+		"lb": {Targets: map[string]bool{}},
+	}
+
+	health, err := resolveBalancerOperationalHealth("lb", cfg, states, outbounds, nil, map[string]bool{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if health != 0 {
+		t.Fatalf("expected health 0 (DOWN) for balancer falling back to blackhole, got %d", health)
+	}
+}

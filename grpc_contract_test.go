@@ -54,7 +54,7 @@ func TestGRPCResponseContracts(t *testing.T) {
 		{"nil", nil, true},
 		{"missing balancer", &rc.GetBalancerInfoResponse{}, true},
 		{"empty selection", &rc.GetBalancerInfoResponse{Balancer: &rc.BalancerMsg{}}, false},
-		{"empty target tag", &rc.GetBalancerInfoResponse{Balancer: &rc.BalancerMsg{PrincipleTarget: &rc.PrincipleTargetInfo{Tag: []string{""}}}}, true},
+		{"empty target tag", &rc.GetBalancerInfoResponse{Balancer: &rc.BalancerMsg{PrincipleTarget: &rc.PrincipleTargetInfo{Tag: []string{""}}}}, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			c := &GRPCCore{routing: contractRouting{response: tc.response}}

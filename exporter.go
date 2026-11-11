@@ -90,7 +90,7 @@ func (c *GRPCCore) Balancer(ctx context.Context, tag string) (*BalancerState, er
 	} else {
 		for _, t := range r.Balancer.GetPrincipleTarget().GetTag() {
 			if t == "" {
-				return nil, errors.New("empty balancer target tag")
+				continue
 			}
 			tags[t] = true
 		}

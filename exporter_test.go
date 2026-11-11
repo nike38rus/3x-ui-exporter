@@ -363,6 +363,66 @@ func TestRealGRPCBindings(t *testing.T) {
 		t.Fatal(v, e)
 	}
 }
+
+type emptyTargetRPCServer struct {
+	rpcServer
+}
+
+func (emptyTargetRPCServer) ListOutbounds(context.Context, *hc.ListOutboundsRequest) (*hc.ListOutboundsResponse, error) {
+	return &hc.ListOutboundsResponse{Outbounds: []*core.OutboundHandlerConfig{{Tag: "A"}, {Tag: "blocked"}}}, nil
+}
+
+func (emptyTargetRPCServer) GetBalancerInfo(context.Context, *rc.GetBalancerInfoRequest) (*rc.GetBalancerInfoResponse, error) {
+	return &rc.GetBalancerInfoResponse{Balancer: &rc.BalancerMsg{PrincipleTarget: &rc.PrincipleTargetInfo{Tag: []string{""}}}}, nil
+}
+
+func TestGRPCBalancerEmptyTargetFallback(t *testing.T) {
+	listener := bufconn.Listen(1 << 20)
+	server := grpc.NewServer()
+	svc := emptyTargetRPCServer{}
+	hc.RegisterHandlerServiceServer(server, svc)
+	rc.RegisterRoutingServiceServer(server, svc)
+	go func() { _ = server.Serve(listener) }()
+	defer server.Stop()
+	conn, err := grpc.NewClient("passthrough:///test", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) { return listener.Dial() }))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+	c := newCore(conn)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	state, err := c.Balancer(ctx, "lb")
+	if err != nil {
+		t.Fatalf("expected no error on empty principle target tag, got: %v", err)
+	}
+	if state == nil || len(state.Targets) != 0 || state.Override {
+		t.Fatalf("expected empty targets and override=false, got: %+v", state)
+	}
+
+	cfg := configuration(t, `{"routing":{"balancers":[{"tag":"lb","selector":["A"],"fallbackTag":"blocked","strategy":{"type":"leastPing"}}]},"outbounds":[{"tag":"A","protocol":"vless"},{"tag":"blocked","protocol":"blackhole"}]}`)
+	exporter := &Exporter{Core: c}
+	metrics, err := exporter.balancerMetrics(ctx, cfg)
+	if err != nil {
+		t.Fatalf("unexpected balancerMetrics error: %v", err)
+	}
+	stateVals := sampleValues(t, metrics, "xui_balancer_state")
+	if stateVals["balancer=lb;"] != 1 {
+		t.Fatalf("expected balancer_state 1 (fallback), got %v", stateVals["balancer=lb;"])
+	}
+	selectedVals := sampleValues(t, metrics, "xui_balancer_outbound_selected")
+	if selectedVals["balancer=lb;outbound=blocked;role=fallback;"] != 1 {
+		t.Fatalf("expected role=fallback selected for blocked, got %v", selectedVals)
+	}
+	if selectedVals["balancer=lb;outbound=A;role=primary;"] != 0 {
+		t.Fatalf("expected role=primary unselected for A, got %v", selectedVals)
+	}
+	healthVals := sampleValues(t, metrics, "xui_balancer_health")
+	if healthVals["balancer=lb;"] != 0 {
+		t.Fatalf("expected balancer_health 0 (DOWN) for blackhole fallback, got %v", healthVals["balancer=lb;"])
+	}
+}
 func TestHTTPTimeoutAndNoRedirect(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { <-r.Context().Done() }))
 	defer server.Close()
@@ -677,6 +737,17 @@ func TestBalancerOperationalHealth(t *testing.T) {
 			observations: map[string]bool{
 				"A":      false,
 				"backup": false,
+			},
+			expectedHealth: map[string]float64{"balancer=lb;": 0},
+			expectedState:  map[string]float64{"balancer=lb;": 1},
+		},
+		{
+			name:    "fallback to blackhole is down",
+			cfgJSON: `{"routing":{"balancers":[{"tag":"lb","selector":["A"],"fallbackTag":"blocked","strategy":{"type":"leastPing"}}]},"outbounds":[{"tag":"blocked","protocol":"blackhole"}]}`,
+			tags:    map[string]bool{"A": true, "blocked": true},
+			states:  map[string]*BalancerState{"lb": {Targets: map[string]bool{}}},
+			observations: map[string]bool{
+				"A": false,
 			},
 			expectedHealth: map[string]float64{"balancer=lb;": 0},
 			expectedState:  map[string]float64{"balancer=lb;": 1},

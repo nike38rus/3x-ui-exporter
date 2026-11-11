@@ -322,6 +322,9 @@ func resolveOutboundHealth(tag string, cfg *Config, states map[string]*BalancerS
 	defer delete(visiting, key)
 
 	for _, o := range cfg.Outbounds {
+		if o.Tag == tag && o.Protocol == "blackhole" {
+			return 0, nil
+		}
 		if o.Tag != tag || o.Protocol != "loopback" {
 			continue
 		}
