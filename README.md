@@ -231,7 +231,7 @@ To switch to a specific release version, downgrade, or install the rolling bleed
 
 ```sh
 # Pin specific version:
-curl -sSL https://raw.githubusercontent.com/nike38rus/3x-ui-exporter/main/install.sh | sudo bash -s update -v v1.6.0
+curl -sSL https://raw.githubusercontent.com/nike38rus/3x-ui-exporter/main/install.sh | sudo bash -s update -v v1.6.1
 
 # Install or update to edge build (latest commit on main):
 curl -sSL https://raw.githubusercontent.com/nike38rus/3x-ui-exporter/main/install.sh | sudo bash -s update -v edge
@@ -532,7 +532,7 @@ Derived from panel routing configuration, runtime Xray gRPC `RoutingService`, an
 
 | Metric | Type | Labels | Description |
 | --- | --- | --- | --- |
-| `xui_balancer_health` | Gauge | `balancer` | Current balancer egress operational health: `0` = down (no route or active target probe failed), `1` = blind (active target is unmonitored / unprobed), `2` = up (active target probe confirmed alive). |
+| `xui_balancer_health` | Gauge | `balancer` | Current balancer egress operational health: `0` = down (no route, blackhole, or active target probe failed), `1` = blind (active target is unmonitored / unprobed), `2` = up (active target probe confirmed alive). |
 | `xui_balancer_state` | Gauge | `balancer` | Current balancer operational routing state: `0` (unavailable), `1` (fallback), `2` (primary), `3` (override). |
 | `xui_balancer_outbound_selected` | Gauge | `balancer`, `outbound`, `role` (`primary`, `fallback`, `override`) | `1` if selected/active; `0` if inactive. |
 | `xui_balancer_outbound_available` | Gauge | `balancer` | `1` if balancer resolves to an available runtime outbound (structural check). |
@@ -727,7 +727,7 @@ make linux
 make licenses
 
 # Package release archives with checksums
-make release VERSION=v1.6.0
+make release VERSION=v1.6.1
 ```
 
 ---
