@@ -3330,7 +3330,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS-INFRA}"
       },
-      "description": "Combined outbound health and balancer selection state.\n\nActive: Outbound currently routing traffic (bold saturated colors: green = UP, yellow = DEGRADED, red = DOWN).\nStandby: Candidate outbounds in reserve (soft calm colors: light-green = Ready, light-yellow = Degraded, light-red = Down).\nSpecial: Active override (blue) and fallback (purple); gray when inactive.",
+      "description": "Combined outbound health and balancer selection state: UP (active & healthy), DEGRADED (active with probe loss), BLIND (active unmonitored route), DOWN (active route failed or blackhole), FAILED (standby candidate failing probes), Inactive (healthy standby candidate).",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -3372,9 +3372,14 @@
                   "index": 3,
                   "text": "BLIND"
                 },
+                "4": {
+                  "color": "super-light-red",
+                  "index": 4,
+                  "text": "FAILED"
+                },
                 "21": {
                   "color": "transparent",
-                  "index": 4,
+                  "index": 5,
                   "text": "Inactive"
                 }
               },
@@ -3426,7 +3431,7 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "(\n  (xui_balancer_outbound_selected{instance=\"${instance}\", balancer=~\"${balancer}\", role=\"primary\"} == 1)\n  * on (instance, outbound) group_left()\n  (\n    (xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0)))\n    or\n    (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)\n  )\n)\nor\n(\n  xui_balancer_outbound_selected{instance=\"${instance}\", balancer=~\"${balancer}\", role=\"primary\"} * 0 + 21\n)",
+          "expr": "# 1. Selected and healthy (UP = 2, DEGRADED = 1)\n(\n  (xui_balancer_outbound_selected{instance=\"${instance}\", balancer=~\"${balancer}\", role=\"primary\"} == 1)\n  * on (instance, outbound) group_left()\n  (\n    ((xui_observatory_outbound_alive{instance=\"${instance}\"} == 1) * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0)))\n    or\n    ((xui_observatory_outbound_alive{instance=\"${instance}\"} == 1) * 2)\n  )\n)\nor\n# 2. Selected but down (DOWN = 0)\n(\n  (xui_balancer_outbound_selected{instance=\"${instance}\", balancer=~\"${balancer}\", role=\"primary\"} == 1) * 0\n  + on (instance, outbound) group_left()\n  (xui_observatory_outbound_alive{instance=\"${instance}\"} == 0)\n)\nor\n# 3. In reserve and down (FAILED = 4)\n(\n  (xui_balancer_outbound_selected{instance=\"${instance}\", balancer=~\"${balancer}\", role=\"primary\"} == 0) * 0 + 4\n  + on (instance, outbound) group_left()\n  (xui_observatory_outbound_alive{instance=\"${instance}\"} == 0)\n)\nor\n# 4. In reserve and healthy (Inactive = 21)\n(\n  xui_balancer_outbound_selected{instance=\"${instance}\", balancer=~\"${balancer}\", role=\"primary\"} * 0 + 21\n)",
           "interval": "5s",
           "legendFormat": "{{outbound}}",
           "range": true,
@@ -6456,7 +6461,7 @@
           "query": "label_values(xui_exporter_build_info,instance)",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
-        "refresh": 1,
+        "refresh": 2,
         "regex": "",
         "regexApplyTo": "value",
         "sort": 1,
@@ -6530,6 +6535,6 @@
   "timezone": "browser",
   "title": "3x-ui",
   "uid": "3x-ui-exporter",
-  "version": 89,
+  "version": 91,
   "weekStart": ""
 }

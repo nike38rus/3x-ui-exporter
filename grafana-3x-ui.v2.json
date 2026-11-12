@@ -3,7 +3,7 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "3x-ui-exporter",
-    "generation": 89,
+    "generation": 91,
     "creationTimestamp": "2026-10-14T17:05:36Z",
     "labels": {},
     "annotations": {}
@@ -6745,7 +6745,7 @@
         "spec": {
           "id": 75,
           "title": "Outbound health & selection",
-          "description": "Combined outbound health and balancer selection state.\n\nActive: Outbound currently routing traffic (bold saturated colors: green = UP, yellow = DEGRADED, red = DOWN).\nStandby: Candidate outbounds in reserve (soft calm colors: light-green = Ready, light-yellow = Degraded, light-red = Down).\nSpecial: Active override (blue) and fallback (purple); gray when inactive.",
+          "description": "Combined outbound health and balancer selection state: UP (active & healthy), DEGRADED (active with probe loss), BLIND (active unmonitored route), DOWN (active route failed or blackhole), FAILED (standby candidate failing probes), Inactive (healthy standby candidate).",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -6760,7 +6760,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "(\n  (xui_balancer_outbound_selected{instance=\"${instance}\", balancer=~\"${balancer}\", role=\"primary\"} == 1)\n  * on (instance, outbound) group_left()\n  (\n    (xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0)))\n    or\n    (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)\n  )\n)\nor\n(\n  xui_balancer_outbound_selected{instance=\"${instance}\", balancer=~\"${balancer}\", role=\"primary\"} * 0 + 21\n)",
+                        "expr": "# 1. Selected and healthy (UP = 2, DEGRADED = 1)\n(\n  (xui_balancer_outbound_selected{instance=\"${instance}\", balancer=~\"${balancer}\", role=\"primary\"} == 1)\n  * on (instance, outbound) group_left()\n  (\n    ((xui_observatory_outbound_alive{instance=\"${instance}\"} == 1) * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0)))\n    or\n    ((xui_observatory_outbound_alive{instance=\"${instance}\"} == 1) * 2)\n  )\n)\nor\n# 2. Selected but down (DOWN = 0)\n(\n  (xui_balancer_outbound_selected{instance=\"${instance}\", balancer=~\"${balancer}\", role=\"primary\"} == 1) * 0\n  + on (instance, outbound) group_left()\n  (xui_observatory_outbound_alive{instance=\"${instance}\"} == 0)\n)\nor\n# 3. In reserve and down (FAILED = 4)\n(\n  (xui_balancer_outbound_selected{instance=\"${instance}\", balancer=~\"${balancer}\", role=\"primary\"} == 0) * 0 + 4\n  + on (instance, outbound) group_left()\n  (xui_observatory_outbound_alive{instance=\"${instance}\"} == 0)\n)\nor\n# 4. In reserve and healthy (Inactive = 21)\n(\n  xui_balancer_outbound_selected{instance=\"${instance}\", balancer=~\"${balancer}\", role=\"primary\"} * 0 + 21\n)",
                         "interval": "5s",
                         "legendFormat": "{{outbound}}",
                         "range": true
@@ -6863,10 +6863,15 @@
                           "color": "blue",
                           "index": 3
                         },
+                        "4": {
+                          "text": "FAILED",
+                          "color": "super-light-red",
+                          "index": 4
+                        },
                         "21": {
                           "text": "Inactive",
                           "color": "transparent",
-                          "index": 4
+                          "index": 5
                         }
                       }
                     }
@@ -8330,7 +8335,7 @@
           },
           "label": "Instance",
           "hide": "dontHide",
-          "refresh": "onDashboardLoad",
+          "refresh": "onTimeRangeChanged",
           "skipUrlSync": false,
           "query": {
             "kind": "DataQuery",
