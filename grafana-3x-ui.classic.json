@@ -943,12 +943,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "red",
-                      "value": 0
-                    },
-                    {
                       "color": "green",
-                      "value": 1
+                      "value": 0
                     }
                   ]
                 }
@@ -1068,7 +1064,7 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(xui_balancer_health{instance=\"${instance}\"} == bool 2)",
+          "expr": "sum(xui_balancer_health{instance=\"${instance}\"} == bool 2)\nor on() (0 * ((xui_exporter_scrape_success{instance=\"${instance}\",source=\"grpc\"} == 1) and on(instance) (xui_exporter_scrape_success{instance=\"${instance}\",source=\"api\"} == 1)))",
           "instant": true,
           "legendFormat": "UP",
           "range": false,
@@ -1080,7 +1076,7 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(xui_balancer_health{instance=\"${instance}\"} == bool 1)",
+          "expr": "sum(xui_balancer_health{instance=\"${instance}\"} == bool 1)\nor on() (0 * ((xui_exporter_scrape_success{instance=\"${instance}\",source=\"grpc\"} == 1) and on(instance) (xui_exporter_scrape_success{instance=\"${instance}\",source=\"api\"} == 1)))",
           "instant": true,
           "legendFormat": "BLIND",
           "range": false,
@@ -1092,7 +1088,7 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(xui_balancer_health{instance=\"${instance}\"} == bool 0)",
+          "expr": "sum(xui_balancer_health{instance=\"${instance}\"} == bool 0)\nor on() (0 * ((xui_exporter_scrape_success{instance=\"${instance}\",source=\"grpc\"} == 1) and on(instance) (xui_exporter_scrape_success{instance=\"${instance}\",source=\"api\"} == 1)))",
           "instant": true,
           "legendFormat": "DOWN",
           "range": false,
@@ -1283,7 +1279,7 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(xui_balancer_health{instance=\"${instance}\"} == bool 2)",
+          "expr": "sum(xui_balancer_health{instance=\"${instance}\"} == bool 2)\nor on() (0 * ((xui_exporter_scrape_success{instance=\"${instance}\",source=\"grpc\"} == 1) and on(instance) (xui_exporter_scrape_success{instance=\"${instance}\",source=\"api\"} == 1)))",
           "instant": false,
           "legendFormat": "UP",
           "range": true,
@@ -1295,7 +1291,7 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(xui_balancer_health{instance=\"${instance}\"} == bool 1)",
+          "expr": "sum(xui_balancer_health{instance=\"${instance}\"} == bool 1)\nor on() (0 * ((xui_exporter_scrape_success{instance=\"${instance}\",source=\"grpc\"} == 1) and on(instance) (xui_exporter_scrape_success{instance=\"${instance}\",source=\"api\"} == 1)))",
           "instant": false,
           "legendFormat": "BLIND",
           "range": true,
@@ -1307,7 +1303,7 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(xui_balancer_health{instance=\"${instance}\"} == bool 0)",
+          "expr": "sum(xui_balancer_health{instance=\"${instance}\"} == bool 0)\nor on() (0 * ((xui_exporter_scrape_success{instance=\"${instance}\",source=\"grpc\"} == 1) and on(instance) (xui_exporter_scrape_success{instance=\"${instance}\",source=\"api\"} == 1)))",
           "instant": false,
           "legendFormat": "DOWN",
           "range": true,
@@ -1363,12 +1359,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "red",
-                      "value": 0
-                    },
-                    {
                       "color": "green",
-                      "value": 1
+                      "value": 0
                     }
                   ]
                 }
@@ -1482,7 +1474,7 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 2)",
+          "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 2)\nor on() (0 * (xui_exporter_scrape_success{instance=\"${instance}\",source=\"expvars\"} == 1))",
           "instant": true,
           "legendFormat": "UP",
           "range": false,
@@ -1494,7 +1486,7 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 1)",
+          "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 1)\nor on() (0 * (xui_exporter_scrape_success{instance=\"${instance}\",source=\"expvars\"} == 1))",
           "instant": true,
           "legendFormat": "DEGRADED",
           "range": false,
@@ -1506,7 +1498,7 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 0)",
+          "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 0)\nor on() (0 * (xui_exporter_scrape_success{instance=\"${instance}\",source=\"expvars\"} == 1))",
           "instant": true,
           "legendFormat": "DOWN",
           "range": false,
@@ -1701,7 +1693,7 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 2)",
+          "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 2)\nor on() (0 * (xui_exporter_scrape_success{instance=\"${instance}\",source=\"expvars\"} == 1))",
           "instant": false,
           "legendFormat": "UP",
           "range": true,
@@ -1713,7 +1705,7 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 1)",
+          "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 1)\nor on() (0 * (xui_exporter_scrape_success{instance=\"${instance}\",source=\"expvars\"} == 1))",
           "instant": false,
           "legendFormat": "DEGRADED",
           "range": true,
@@ -1725,7 +1717,7 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 0)",
+          "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 0)\nor on() (0 * (xui_exporter_scrape_success{instance=\"${instance}\",source=\"expvars\"} == 1))",
           "instant": false,
           "legendFormat": "DOWN",
           "range": true,
@@ -2138,7 +2130,7 @@
             },
             "showUnfilled": true,
             "sizing": "auto",
-            "textMode": "auto",
+            "textMode": "value_and_name",
             "valueMode": "color"
           },
           "pluginVersion": "13.3.0",
@@ -2864,7 +2856,6 @@
                 },
                 "inspect": false
               },
-              "noValue": "> 7d ago",
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -3174,7 +3165,7 @@
             "showUnfilled": true,
             "sizing": "manual",
             "text": {},
-            "textMode": "auto",
+            "textMode": "value_and_name",
             "valueMode": "color"
           },
           "pluginVersion": "13.3.0",
@@ -3698,7 +3689,7 @@
         "text": {
           "valueSize": 16
         },
-        "textMode": "auto",
+        "textMode": "value_and_name",
         "valueMode": "color"
       },
       "pluginVersion": "13.3.0",
@@ -6059,7 +6050,7 @@
             },
             "showUnfilled": true,
             "sizing": "manual",
-            "textMode": "auto",
+            "textMode": "value_and_name",
             "valueMode": "color"
           },
           "pluginVersion": "13.3.0",

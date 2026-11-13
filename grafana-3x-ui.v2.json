@@ -146,7 +146,7 @@
                 "showUnfilled": true,
                 "sizing": "manual",
                 "text": {},
-                "textMode": "auto",
+                "textMode": "value_and_name",
                 "valueMode": "color"
               },
               "fieldConfig": {
@@ -638,7 +638,7 @@
                 "text": {
                   "valueSize": 16
                 },
-                "textMode": "auto",
+                "textMode": "value_and_name",
                 "valueMode": "color"
               },
               "fieldConfig": {
@@ -2799,7 +2799,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(xui_balancer_health{instance=\"${instance}\"} == bool 2)",
+                        "expr": "sum(xui_balancer_health{instance=\"${instance}\"} == bool 2)\nor on() (0 * ((xui_exporter_scrape_success{instance=\"${instance}\",source=\"grpc\"} == 1) and on(instance) (xui_exporter_scrape_success{instance=\"${instance}\",source=\"api\"} == 1)))",
                         "instant": true,
                         "legendFormat": "UP",
                         "range": false
@@ -2822,7 +2822,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(xui_balancer_health{instance=\"${instance}\"} == bool 1)",
+                        "expr": "sum(xui_balancer_health{instance=\"${instance}\"} == bool 1)\nor on() (0 * ((xui_exporter_scrape_success{instance=\"${instance}\",source=\"grpc\"} == 1) and on(instance) (xui_exporter_scrape_success{instance=\"${instance}\",source=\"api\"} == 1)))",
                         "instant": true,
                         "legendFormat": "BLIND",
                         "range": false
@@ -2845,7 +2845,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(xui_balancer_health{instance=\"${instance}\"} == bool 0)",
+                        "expr": "sum(xui_balancer_health{instance=\"${instance}\"} == bool 0)\nor on() (0 * ((xui_exporter_scrape_success{instance=\"${instance}\",source=\"grpc\"} == 1) and on(instance) (xui_exporter_scrape_success{instance=\"${instance}\",source=\"api\"} == 1)))",
                         "instant": true,
                         "legendFormat": "DOWN",
                         "range": false
@@ -2933,12 +2933,8 @@
                           "mode": "absolute",
                           "steps": [
                             {
-                              "color": "red",
-                              "value": 0
-                            },
-                            {
                               "color": "green",
-                              "value": 1
+                              "value": 0
                             }
                           ]
                         }
@@ -3038,7 +3034,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(xui_balancer_health{instance=\"${instance}\"} == bool 2)",
+                        "expr": "sum(xui_balancer_health{instance=\"${instance}\"} == bool 2)\nor on() (0 * ((xui_exporter_scrape_success{instance=\"${instance}\",source=\"grpc\"} == 1) and on(instance) (xui_exporter_scrape_success{instance=\"${instance}\",source=\"api\"} == 1)))",
                         "instant": false,
                         "legendFormat": "UP",
                         "range": true
@@ -3061,7 +3057,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(xui_balancer_health{instance=\"${instance}\"} == bool 1)",
+                        "expr": "sum(xui_balancer_health{instance=\"${instance}\"} == bool 1)\nor on() (0 * ((xui_exporter_scrape_success{instance=\"${instance}\",source=\"grpc\"} == 1) and on(instance) (xui_exporter_scrape_success{instance=\"${instance}\",source=\"api\"} == 1)))",
                         "instant": false,
                         "legendFormat": "BLIND",
                         "range": true
@@ -3084,7 +3080,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(xui_balancer_health{instance=\"${instance}\"} == bool 0)",
+                        "expr": "sum(xui_balancer_health{instance=\"${instance}\"} == bool 0)\nor on() (0 * ((xui_exporter_scrape_success{instance=\"${instance}\",source=\"grpc\"} == 1) and on(instance) (xui_exporter_scrape_success{instance=\"${instance}\",source=\"api\"} == 1)))",
                         "instant": false,
                         "legendFormat": "DOWN",
                         "range": true
@@ -3535,7 +3531,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 2)",
+                        "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 2)\nor on() (0 * (xui_exporter_scrape_success{instance=\"${instance}\",source=\"expvars\"} == 1))",
                         "instant": true,
                         "legendFormat": "UP",
                         "range": false
@@ -3558,7 +3554,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 1)",
+                        "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 1)\nor on() (0 * (xui_exporter_scrape_success{instance=\"${instance}\",source=\"expvars\"} == 1))",
                         "instant": true,
                         "legendFormat": "DEGRADED",
                         "range": false
@@ -3581,7 +3577,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 0)",
+                        "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 0)\nor on() (0 * (xui_exporter_scrape_success{instance=\"${instance}\",source=\"expvars\"} == 1))",
                         "instant": true,
                         "legendFormat": "DOWN",
                         "range": false
@@ -3669,12 +3665,8 @@
                           "mode": "absolute",
                           "steps": [
                             {
-                              "color": "red",
-                              "value": 0
-                            },
-                            {
                               "color": "green",
-                              "value": 1
+                              "value": 0
                             }
                           ]
                         }
@@ -3773,7 +3765,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 2)",
+                        "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 2)\nor on() (0 * (xui_exporter_scrape_success{instance=\"${instance}\",source=\"expvars\"} == 1))",
                         "instant": false,
                         "legendFormat": "UP",
                         "range": true
@@ -3796,7 +3788,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 1)",
+                        "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 1)\nor on() (0 * (xui_exporter_scrape_success{instance=\"${instance}\",source=\"expvars\"} == 1))",
                         "instant": false,
                         "legendFormat": "DEGRADED",
                         "range": true
@@ -3819,7 +3811,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 0)",
+                        "expr": "sum(((xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0))) or (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)) == bool 0)\nor on() (0 * (xui_exporter_scrape_success{instance=\"${instance}\",source=\"expvars\"} == 1))",
                         "instant": false,
                         "legendFormat": "DOWN",
                         "range": true
@@ -5906,7 +5898,7 @@
                 },
                 "showUnfilled": true,
                 "sizing": "manual",
-                "textMode": "auto",
+                "textMode": "value_and_name",
                 "valueMode": "color"
               },
               "fieldConfig": {
@@ -6027,7 +6019,7 @@
                 },
                 "showUnfilled": true,
                 "sizing": "auto",
-                "textMode": "auto",
+                "textMode": "value_and_name",
                 "valueMode": "color"
               },
               "fieldConfig": {
@@ -7091,7 +7083,6 @@
                   "color": {
                     "mode": "thresholds"
                   },
-                  "noValue": "> 7d ago",
                   "custom": {
                     "align": "auto",
                     "cellOptions": {
@@ -8220,6 +8211,23 @@
                           "mode": "variable",
                           "value": "balancer"
                         }
+                      }
+                    }
+                  ]
+                }
+              },
+              "conditionalRendering": {
+                "kind": "ConditionalRenderingGroup",
+                "spec": {
+                  "visibility": "show",
+                  "condition": "and",
+                  "items": [
+                    {
+                      "kind": "ConditionalRenderingVariable",
+                      "spec": {
+                        "variable": "balancer",
+                        "operator": "matches",
+                        "value": ".+"
                       }
                     }
                   ]
