@@ -212,6 +212,18 @@ Do not commit actual private infrastructure details or credentials.
 - Inspect the entire screenshot, including navigation bars, variables, legends, and tooltips.
 - Never print secrets merely to inspect configuration.
 
+### Markdown anchors and table of contents
+
+When verifying or updating markdown anchor links and Table of Contents (TOC):
+
+- Strictly adhere to GitHub Flavored Markdown (GFM) slug generation rules.
+- Punctuation characters (`/`, `&`, `(`, `)`, `:`, etc.) are stripped *before* spaces are converted to hyphens.
+- GitHub does NOT collapse consecutive spaces when punctuation between them is stripped. Each remaining space converts to a hyphen.
+  - Example: `Host / VM` -> strip `/` leaves two spaces `host  vm` -> converts to `host--vm` (double hyphen).
+  - Example: `Security & Remote Access` -> strip `&` leaves two spaces `security  remote access` -> converts to `security--remote-access`.
+- Never collapse multiple hyphens in GFM anchor slugs when they originate from stripped punctuation surrounded by spaces.
+- Always verify all TOC links against exact GFM anchor rules.
+
 ## 8. Verification and Publication
 
 Use checks appropriate to the change. Inspect the repository's current tooling before choosing commands.
