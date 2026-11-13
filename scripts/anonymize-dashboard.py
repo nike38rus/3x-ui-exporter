@@ -43,6 +43,7 @@ COUNTRY_NODE_MAP = [
     ("nl", "5"), ("fi", "6"), ("us", "7"), ("cz", "8"),
     ("lu", "9"), ("se", "10"), ("fr", "11"), ("gb", "12"),
     ("kz", "13"), ("tr", "14"), ("sg", "15"), ("jp", "16"),
+    ("pl", "17"),
 ]
 
 
@@ -64,17 +65,21 @@ def anonymize_inbound_query(expr: str) -> str:
     )
 
 
-def anonymize_outbound_query(expr: str, agg: str = "max", sort_desc_wrap: bool = False) -> str:
+def anonymize_outbound_query(
+    expr: str, agg: str = "max", sort_desc_wrap: bool = False, group_by: str = "outbound"
+) -> str:
     """
     Anonymizes outbound series using a collision-proof 4-step pipeline:
     1. Write anonymized name to a new label 'outbound_anon' (keeping original 'outbound' intact
        so labelsets remain 100% unique during all label_replace calls; includes catch-all default).
-    2. Aggregate with sum/max by (outbound_anon) to collapse any series sharing a bucket.
+    2. Aggregate with sum/max by (outbound_anon[, ...]) to collapse any series sharing a bucket.
     3. Copy 'outbound_anon' back to 'outbound' (safe because 'outbound_anon' is now unique).
-    4. Aggregate with sum/max by (outbound) to drop the temporary 'outbound_anon' label.
+    4. Aggregate with sum/max by (outbound[, ...]) to drop the temporary 'outbound_anon' label.
     """
     if "outbound_anon" in expr:
         return expr
+
+    anon_group_by = group_by.replace("outbound", "outbound_anon")
 
     # Step 1: catch-all default so no raw outbound tag can ever leak
     cur = (
@@ -93,9 +98,9 @@ def anonymize_outbound_query(expr: str, agg: str = "max", sort_desc_wrap: bool =
 
     # Steps 2-4: aggregate by outbound_anon -> copy to outbound -> aggregate by outbound
     pipeline = (
-        f"{agg} by (outbound) (\n"
+        f"{agg} by ({group_by}) (\n"
         "  label_replace(\n"
-        f"    {agg} by (outbound_anon) (\n"
+        f"    {agg} by ({anon_group_by}) (\n"
         f"      {cur}\n"
         "    ),\n"
         '    "outbound", "$1", "outbound_anon", "(.+)"\n'
@@ -109,23 +114,40 @@ def anonymize_outbound_query(expr: str, agg: str = "max", sort_desc_wrap: bool =
 
 def anonymize_node_query(expr: str) -> str:
     """Replaces node names with clean numbered identifiers node-1, node-2, etc. (no country codes)."""
-    if 'node", "node-1"' in expr or 'node", "node-2"' in expr:
+    if "node_anon" in expr or 'node", "node-1"' in expr:
         return expr
-    cur = f"({expr})"
+    # Step 1: catch-all default into node_anon so no raw node name can ever leak
+    cur = (
+        "label_replace(\n"
+        f"  ({expr}),\n"
+        '  "node_anon", "node-99", "node", ".*"\n'
+        ")"
+    )
     for code, num in COUNTRY_NODE_MAP:
         cur = (
             "label_replace(\n"
             f"  {cur},\n"
-            f'  "node", "node-{num}", "node", "(?i)(?:.*[-_])?{code}$"\n'
+            f'  "node_anon", "node-{num}", "node", "(?i)(?:.*[-_])?{code}$"\n'
             ")"
         )
     cur = (
         "label_replace(\n"
         f"  {cur},\n"
-        '  "node", "node-$1", "node", "^(?:.*[-_])?([0-9]+)$"\n'
+        '  "node_anon", "node-$1", "node", "^(?:.*[-_])?([0-9]+)$"\n'
         ")"
     )
-    return cur
+    copied = (
+        "label_replace(\n"
+        f"  {cur},\n"
+        '  "node", "$1", "node_anon", "(.+)"\n'
+        ")"
+    )
+    return (
+        "label_replace(\n"
+        f"  {copied},\n"
+        '  "node_anon", "", "node_anon", ".*"\n'
+        ")"
+    )
 
 
 def patch_dashboard(data: dict) -> dict:
@@ -242,6 +264,15 @@ def patch_dashboard(data: dict) -> dict:
                 ):
                     obj["expr"] = anonymize_outbound_query(expr, agg="max", sort_desc_wrap=True)
 
+                elif (
+                    "xui_balancer_outbound_selected" in expr
+                    and "role=~" in expr
+                    and legend == "{{outbound}} ({{role}})"
+                ):
+                    obj["expr"] = anonymize_outbound_query(
+                        expr, agg="max", sort_desc_wrap=True, group_by="outbound, role"
+                    )
+
                 # Outbound status summary table:
                 elif (
                     ("Status" in title or "Outbound status" in title)
@@ -251,10 +282,23 @@ def patch_dashboard(data: dict) -> dict:
 
                 # F. Outbound health & selection:
                 elif (
-                    "xui_balancer_outbound_selected" in expr
-                    and "xui_observatory_outbound" in expr
+                    "Outbound health & selection" in title
+                    and "xui_balancer_outbound_selected" in expr
                 ):
                     obj["expr"] = anonymize_outbound_query(expr, agg="max")
+
+                # Selection state changes:
+                elif (
+                    "Selection state changes" in title
+                    and "xui_balancer_outbound_selected" in expr
+                ):
+                    if "label_replace" not in expr:
+                        obj["expr"] = (
+                            "label_replace(\n"
+                            f"  {expr},\n"
+                            '  "balancer", "balancer-1", "balancer", ".*"\n'
+                            ")"
+                        )
 
                 # G. Outbound observatory metrics (Latency, Deviations, Probes):
                 elif (
