@@ -909,7 +909,7 @@ Commands:
   restart      Restart the systemd service
 
 Options:
-  -v, --version <tag>      Target release version (e.g. v1.7.0, edge, default: latest)
+  -v, --version <tag>      Target release version (e.g. v1.7.1, edge, default: latest)
   -t, --token <token>      3x-ui API Bearer Token (requires Administrator scope)
   -u, --url <url>          3x-ui Panel URL (default: http://127.0.0.1:2053)
   -l, --listen <addr>      Metrics listen address (default: :9108)
