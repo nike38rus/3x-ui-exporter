@@ -566,77 +566,89 @@ func (e *Exporter) balancerMetrics(ctx context.Context, cfg *Config) (samples, e
 
 func buildBalancerMetrics(cfg *Config, outbounds map[string]bool, states map[string]*BalancerState, observations map[string]bool) (samples, error) {
 	var result samples
+	var errs error
 	for _, b := range cfg.Routing.Balancers {
 		state, known := states[b.Tag]
 		if !known {
 			continue
 		}
-		available, err := resolveAvailable(b.Tag, cfg, states, outbounds, map[string]bool{})
+		s, err := buildSingleBalancerMetrics(b, state, cfg, outbounds, states, observations)
 		if err != nil {
-			return nil, err
-		}
-		gauge(&result, "xui_balancer_outbound_available", "Whether a selected target or fallback resolves to an existing runtime outbound; not a health guarantee.", number(available), []string{"balancer"}, b.Tag)
-		if state == nil {
+			errs = errors.Join(errs, fmt.Errorf("balancer %s: %w", b.Tag, err))
 			continue
 		}
-		var balancerState float64
-		switch {
-		case !available:
-			balancerState = 0
-		case state.Override:
-			balancerState = 3
-		case b.Fallback != "" && len(state.Targets) == 0:
-			balancerState = 1
-		default:
-			balancerState = 2
+		result = append(result, s...)
+	}
+	return result, errs
+}
+
+func buildSingleBalancerMetrics(b BalancerConfig, state *BalancerState, cfg *Config, outbounds map[string]bool, states map[string]*BalancerState, observations map[string]bool) (samples, error) {
+	available, err := resolveAvailable(b.Tag, cfg, states, outbounds, map[string]bool{})
+	if err != nil {
+		return nil, err
+	}
+	var result samples
+	gauge(&result, "xui_balancer_outbound_available", "Whether a selected target or fallback resolves to an existing runtime outbound; not a health guarantee.", number(available), []string{"balancer"}, b.Tag)
+	if state == nil {
+		return result, nil
+	}
+	var balancerState float64
+	switch {
+	case !available:
+		balancerState = 0
+	case state.Override:
+		balancerState = 3
+	case b.Fallback != "" && len(state.Targets) == 0:
+		balancerState = 1
+	default:
+		balancerState = 2
+	}
+	gauge(&result, "xui_balancer_state", "Current balancer operational state: 0=unavailable, 1=fallback, 2=primary, 3=override.", balancerState, []string{"balancer"}, b.Tag)
+	health, hErr := resolveBalancerOperationalHealth(b.Tag, cfg, states, outbounds, observations, map[string]bool{})
+	if hErr != nil {
+		return nil, hErr
+	}
+	gauge(&result, "xui_balancer_health", "Current balancer egress operational health: 0=down, 1=blind, 2=up.", float64(health), []string{"balancer"}, b.Tag)
+	labels := []string{"balancer", "outbound", "role"}
+	const help = "Current primary target membership, configured fallback selection, or override activity."
+	gauge(&result, "xui_balancer_outbound_selected", help, number(state.Override), labels, b.Tag, "", "override")
+	// Other strategies expose candidates, so their primary/fallback choice is unknown.
+	strategy := strings.ToLower(b.Strategy.Type)
+	knownSelection := strategy == "leastload" || strategy == "leastping"
+	if b.Fallback != "" && (knownSelection || state.Override) {
+		gauge(&result, "xui_balancer_outbound_selected", help, number(!state.Override && len(state.Targets) == 0), labels, b.Tag, b.Fallback, "fallback")
+	}
+	if !knownSelection && !state.Override {
+		return result, nil
+	}
+	var selectors []string
+	for _, prefix := range b.Selector {
+		sel := strings.TrimSpace(prefix)
+		if sel != "" {
+			selectors = append(selectors, sel)
 		}
-		gauge(&result, "xui_balancer_state", "Current balancer operational state: 0=unavailable, 1=fallback, 2=primary, 3=override.", balancerState, []string{"balancer"}, b.Tag)
-		health, hErr := resolveBalancerOperationalHealth(b.Tag, cfg, states, outbounds, observations, map[string]bool{})
-		if hErr != nil {
-			return nil, hErr
-		}
-		gauge(&result, "xui_balancer_health", "Current balancer egress operational health: 0=down, 1=blind, 2=up.", float64(health), []string{"balancer"}, b.Tag)
-		labels := []string{"balancer", "outbound", "role"}
-		const help = "Current primary target membership, configured fallback selection, or override activity."
-		gauge(&result, "xui_balancer_outbound_selected", help, number(state.Override), labels, b.Tag, "", "override")
-		// Other strategies expose candidates, so their primary/fallback choice is unknown.
-		strategy := strings.ToLower(b.Strategy.Type)
-		knownSelection := strategy == "leastload" || strategy == "leastping"
-		if b.Fallback != "" && (knownSelection || state.Override) {
-			gauge(&result, "xui_balancer_outbound_selected", help, number(!state.Override && len(state.Targets) == 0), labels, b.Tag, b.Fallback, "fallback")
-		}
-		if !knownSelection && !state.Override {
-			continue
-		}
-		var selectors []string
-		for _, prefix := range b.Selector {
-			sel := strings.TrimSpace(prefix)
-			if sel != "" {
-				selectors = append(selectors, sel)
-			}
-		}
-		tags := map[string]bool{}
-		for t := range outbounds {
-			for _, sel := range selectors {
-				if t == sel || strings.HasPrefix(t, sel) {
-					tags[t] = true
-					break
-				}
-			}
-		}
-		if !state.Override {
-			for t := range state.Targets {
+	}
+	tags := map[string]bool{}
+	for t := range outbounds {
+		for _, sel := range selectors {
+			if t == sel || strings.HasPrefix(t, sel) {
 				tags[t] = true
+				break
 			}
 		}
-		ordered := make([]string, 0, len(tags))
-		for t := range tags {
-			ordered = append(ordered, t)
+	}
+	if !state.Override {
+		for t := range state.Targets {
+			tags[t] = true
 		}
-		sort.Strings(ordered)
-		for _, t := range ordered {
-			gauge(&result, "xui_balancer_outbound_selected", help, number(!state.Override && state.Targets[t]), labels, b.Tag, t, "primary")
-		}
+	}
+	ordered := make([]string, 0, len(tags))
+	for t := range tags {
+		ordered = append(ordered, t)
+	}
+	sort.Strings(ordered)
+	for _, t := range ordered {
+		gauge(&result, "xui_balancer_outbound_selected", help, number(!state.Override && state.Targets[t]), labels, b.Tag, t, "primary")
 	}
 	return result, nil
 }

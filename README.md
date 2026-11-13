@@ -636,12 +636,13 @@ The score is computed as a **weighted geometric mean** of three components:
      - **25%+ packet loss** $\rightarrow$ **< 10** points
    - *Rationale:* A proxy route that drops connections is frustrating to use, no matter how fast its successful pings are.
 
-2. **RTT Stability ($S$, weight 30%): Does latency jump around?**
-   - Formula: $S = 100 \cdot e^{-2 \cdot (P_{95} - P_{50})}$
-   - **In plain terms:** Measures jitter and latency spikes by calculating the spread between worst-case tail latency (95th percentile, $P_{95}$) and typical median latency (50th percentile, $P_{50}$):
+2. **RTT Stability ($S$, weight 30%): Does window-mean latency jump around?**
+   - Formula: $S = 100 \cdot e^{-2 \cdot (P_{95} - P_{50})}$, where $P_{95}$ and $P_{50}$ are `quantile_over_time` of `xui_observatory_outbound_rtt_mean_seconds` over `$__range`.
+   - **Note on window semantics:** Because the query takes quantiles over *per-window mean RTT* snapshots rather than individual probes, $P_{95} - P_{50}$ measures cross-window stability (sustained latency shifts between observation windows); brief single-probe spikes inside a window may not significantly move the window mean. Intra-window RTT spread is shown separately via `xui_observatory_outbound_rtt_deviation_seconds` (the **Deviation** column/panel).
+   - **In plain terms:** Measures spread between tail (95th percentile, $P_{95}$) and typical median (50th percentile, $P_{50}$) window-mean RTT:
      - **Consistent latency** (e.g. median 100 ms, tail 130 ms, spread = 30 ms) $\rightarrow$ **~94** points.
-     - **Erratic spikes** (e.g. median 100 ms, tail 800 ms, spread = 700 ms) $\rightarrow$ drops to **~25** points.
-   - *Rationale:* High jitter causes stuttering in voice/video calls, game rubber-banding, and stalled web page loads.
+     - **Erratic window-to-window shifts** (e.g. median 100 ms, tail 800 ms, spread = 700 ms) $\rightarrow$ drops to **~25** points.
+   - *Rationale:* Sustained latency swings across windows degrade voice/video calls, interactive sessions, and web page loads.
 
 3. **Latency ($L$, weight 20%): How fast is it?**
    - Formula: $L = \text{clamp}(130 - 100 \cdot P_{50}, 0, 100)$

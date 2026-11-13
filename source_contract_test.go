@@ -175,6 +175,38 @@ func TestGRPCRequestAndDerivationFailures(t *testing.T) {
 	}
 }
 
+func TestBalancerDerivationErrorPreservesOtherBalancers(t *testing.T) {
+	cfg := configuration(t, `{
+		"routing":{
+			"balancers":[
+				{"tag":"bad","selector":["A"],"fallbackTag":"loop","strategy":{"type":"leastLoad"}},
+				{"tag":"good","selector":["A"],"strategy":{"type":"leastLoad"}}
+			],
+			"rules":[{"inboundTag":["loop-in"],"outboundTag":"A","port":"443"}]
+		},
+		"outbounds":[{"tag":"loop","protocol":"loopback","settings":{"inboundTag":"loop-in"}}]
+	}`)
+	outbounds := map[string]bool{"A": true, "loop": true}
+	states := map[string]*BalancerState{
+		"bad":  {},
+		"good": {Targets: map[string]bool{"A": true}},
+	}
+	m, err := buildBalancerMetrics(cfg, outbounds, states, map[string]bool{"A": true})
+	if err == nil {
+		t.Fatal("expected derivation error for bad balancer")
+	}
+	if !strings.Contains(err.Error(), "balancer bad:") {
+		t.Fatalf("expected balancer tag in error, got %v", err)
+	}
+	stateValues := sampleValues(t, m, "xui_balancer_state")
+	if _, ok := stateValues["balancer=bad;"]; ok {
+		t.Fatalf("unexpected metrics for failed balancer: %v", stateValues)
+	}
+	if got, ok := stateValues["balancer=good;"]; !ok || got != 2 {
+		t.Fatalf("missing or wrong state for healthy balancer: %v", stateValues)
+	}
+}
+
 type blockingConfigPanel struct{}
 
 func (blockingConfigPanel) Configuration(ctx context.Context) (*Config, error) {
