@@ -8,6 +8,8 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"testing/synctest"
+	"time"
 )
 
 func TestMetricsEndpoint(t *testing.T) {
@@ -171,4 +173,52 @@ func TestGRPCRequestAndDerivationFailures(t *testing.T) {
 			}
 		})
 	}
+}
+
+type blockingConfigPanel struct{}
+
+func (blockingConfigPanel) Configuration(ctx context.Context) (*Config, error) {
+	<-ctx.Done()
+	return nil, ctx.Err()
+}
+
+func (blockingConfigPanel) Status(context.Context) (*PanelStatus, error) {
+	return &PanelStatus{}, nil
+}
+
+type ctxAwareCore struct{ fakeCore }
+
+func (c *ctxAwareCore) Outbounds(ctx context.Context) (map[string]bool, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	time.Sleep(10 * time.Millisecond)
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	return c.fakeCore.Outbounds(ctx)
+}
+
+func TestAPITimeoutDoesNotFailGRPC(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+		defer cancel()
+		e := &Exporter{
+			Panel:   blockingConfigPanel{},
+			Core:    &ctxAwareCore{fakeCore{tags: map[string]bool{"A": true}}},
+			Expvars: staticExpvars{},
+		}
+		m := e.scrape(ctx)
+		ok := sampleValues(t, m, "xui_exporter_scrape_success")
+		if ok["source=api;"] != 0 {
+			t.Fatalf("api scrape_success=%v, want 0", ok["source=api;"])
+		}
+		if ok["source=grpc;"] != 1 {
+			t.Fatalf("grpc scrape_success=%v, want 1", ok["source=grpc;"])
+		}
+		dur := sampleValues(t, m, "xui_exporter_scrape_duration_seconds")
+		if dur["source=grpc;"] != 0.010 {
+			t.Fatalf("grpc duration=%v, want 0.01", dur["source=grpc;"])
+		}
+	})
 }

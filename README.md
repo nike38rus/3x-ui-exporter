@@ -626,7 +626,8 @@ $$\text{Quality} = 100 \cdot \left(\frac{R}{100}\right)^{0.50} \cdot \left(\frac
 The score is computed as a **weighted geometric mean** of three components:
 
 1. **Reliability ($R$, weight 50%): Can packets get through?**
-   - Formula: $R = 100 \cdot e^{-10 \cdot f}$, where $f = \frac{\sum \text{failed probes}}{\sum \text{total probes}}$ is the probe failure ratio.
+   - Formula: $R = 100 \cdot e^{-10 \cdot f}$, where $f = \frac{\sum \text{failed probes}}{\sum \text{total probes}}$ is computed using `sum_over_time` on `xui_observatory_outbound_probe_failed_samples` and `xui_observatory_outbound_probe_samples` over `$__range`.
+   - **Note on window semantics:** Because Xray's `burstObservatory` exports current sliding-window probe counts as gauges (not cumulative counters), `sum_over_time(failed) / sum_over_time(total)` weights each scraped window snapshot by its window sample count (`total`) as well as scrape frequency across overlapping windows over `$__range` (for both $f$ and the table's **Probe success** column), rather than measuring the exact fraction of distinct probes executed during the period.
    - **In plain terms:** Measures packet loss during health probes. Packet drops are penalized heavily on an exponential scale:
      - **0% packet loss** $\rightarrow$ **100** points (perfect)
      - **3% packet loss** $\rightarrow$ **~74** points

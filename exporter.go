@@ -191,267 +191,368 @@ func (e *Exporter) Handler() http.Handler {
 		promhttp.HandlerFor(registry, promhttp.HandlerOpts{}).ServeHTTP(w, r)
 	})
 }
+
+type configSignal struct {
+	done chan struct{}
+	cfg  *Config
+}
+
+type apiResult struct {
+	cfg         *Config
+	cfgErr      error
+	status      *PanelStatus
+	statusErr   error
+	onlines     []string
+	onlinesErr  error
+	hasOnlines  bool
+	inbounds    []*InboundStatus
+	inboundsErr error
+	hasInbounds bool
+	nodes       []*NodeStatus
+	nodesErr    error
+	hasNodes    bool
+	duration    time.Duration
+}
+
+func (r apiResult) ok() bool {
+	return r.cfgErr == nil && r.statusErr == nil && r.inboundsErr == nil && r.nodesErr == nil && r.onlinesErr == nil
+}
+
+type expvarsResult struct {
+	snapshot *ExpvarsSnapshot
+	err      error
+	duration time.Duration
+}
+
+type grpcResult struct {
+	outbounds map[string]bool
+	states    map[string]*BalancerState
+	err       error
+	duration  time.Duration
+}
+
 func (e *Exporter) scrape(ctx context.Context) samples {
-	threshold := e.slowThreshold()
-	apiStart := time.Now()
-	var status *PanelStatus
-	var statusErr error
-	var statusElapsed, onlinesElapsed, inboundsElapsed, nodesElapsed time.Duration
-	var wg sync.WaitGroup
-	wg.Add(1)
+	sig := &configSignal{done: make(chan struct{})}
+	var (
+		apiRes  apiResult
+		expRes  expvarsResult
+		grpcRes grpcResult
+		wg      sync.WaitGroup
+	)
+	wg.Add(3)
 	go func() {
 		defer wg.Done()
-		start := time.Now()
-		defer reportSlow(start, "api", "server/status", threshold)
-		status, statusErr = e.Panel.Status(ctx)
-		if statusErr == nil && status == nil {
-			statusErr = errors.New("missing panel status")
-		}
-		statusElapsed = time.Since(apiStart)
+		apiRes = e.collectAPI(ctx, sig)
 	}()
-	var onlines []string
-	var onlinesErr error
-	var hasOnlines bool
-	if onlinesSrc, ok := e.Panel.(OnlineSource); ok {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			start := time.Now()
-			defer reportSlow(start, "api", "clients/onlines", threshold)
-			onlines, onlinesErr = onlinesSrc.Onlines(ctx)
-			if onlinesErr == nil {
-				hasOnlines = true
-			}
-			onlinesElapsed = time.Since(apiStart)
-		}()
-	}
-	var inbounds []*InboundStatus
-	var inboundsErr error
-	var hasInbounds bool
-	if inbSrc, ok := e.Panel.(InboundSource); ok {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			start := time.Now()
-			defer reportSlow(start, "api", "inbounds/list", threshold)
-			inbounds, inboundsErr = inbSrc.Inbounds(ctx)
-			if inboundsErr == nil {
-				hasInbounds = true
-			}
-			inboundsElapsed = time.Since(apiStart)
-		}()
-	}
-	var nodes []*NodeStatus
-	var nodesErr error
-	var hasNodes bool
-	if nodeSrc, ok := e.Panel.(NodeSource); ok {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			start := time.Now()
-			defer reportSlow(start, "api", "nodes/list", threshold)
-			nodes, nodesErr = nodeSrc.Nodes(ctx)
-			if nodesErr == nil {
-				hasNodes = true
-			}
-			nodesElapsed = time.Since(apiStart)
-		}()
-	}
-	var data *ExpvarsSnapshot
-	var outbounds map[string]bool
-	var states map[string]*BalancerState
-	var expErr, grpcErr, balancerErr, trafficErr error
-	var expDuration, grpcDuration time.Duration
-	var balancer, traffic samples
-
-	hasExplicit := false
-	if exp, ok := e.Expvars.(explicitExpvars); ok && exp.hasExplicitURL() {
-		hasExplicit = true
-	}
-	if hasExplicit {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			start := time.Now()
-			defer reportSlow(start, "expvars", "debug/vars", threshold)
-			defer func() { expDuration = time.Since(start) }()
-			if e.Expvars == nil {
-				expErr = errors.New("missing expvars source")
-				return
-			}
-			data, expErr = e.Expvars.Snapshot(ctx, nil)
-			if expErr == nil && data == nil {
-				expErr = errors.New("missing expvars snapshot")
-			}
-			if data != nil {
-				expErr = errors.Join(expErr, data.Err)
-			}
-		}()
-	}
-
-	cfg, cfgErr := e.Panel.Configuration(ctx)
-	configElapsed := time.Since(apiStart)
-	reportSlow(apiStart, "api", "getXraySetting", threshold)
-	if cfgErr == nil && cfg == nil {
-		cfgErr = errors.New("missing panel configuration")
-	}
-	if cfgErr != nil {
-		cfg = nil
-	}
-	if !hasExplicit {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			start := time.Now()
-			defer reportSlow(start, "expvars", "debug/vars", threshold)
-			defer func() { expDuration = time.Since(start) }()
-			if e.Expvars == nil {
-				expErr = errors.New("missing expvars source")
-				return
-			}
-			data, expErr = e.Expvars.Snapshot(ctx, cfg)
-			if expErr == nil && data == nil {
-				expErr = errors.New("missing expvars snapshot")
-			}
-			if data != nil {
-				expErr = errors.Join(expErr, data.Err)
-			}
-		}()
-	}
-	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		start := time.Now()
-		defer func() { grpcDuration = time.Since(start) }()
-		outbounds, states, grpcErr = e.readGRPC(ctx, cfg)
+		expRes = e.collectExpvars(ctx, sig)
+	}()
+	go func() {
+		defer wg.Done()
+		grpcRes = e.collectGRPC(ctx, sig)
 	}()
 	wg.Wait()
+
 	var observations map[string]bool
-	if data != nil && expErr == nil {
-		observations = data.Observations
+	if expRes.snapshot != nil && expRes.snapshot.ObservationsPresent {
+		observations = expRes.snapshot.Observations
 	}
-	if outbounds != nil && cfg != nil {
-		balancer, balancerErr = buildBalancerMetrics(cfg, outbounds, states, observations)
+	var balancer, traffic samples
+	var balancerErr, trafficErr error
+	if grpcRes.outbounds != nil && apiRes.cfg != nil {
+		balancer, balancerErr = buildBalancerMetrics(apiRes.cfg, grpcRes.outbounds, grpcRes.states, observations)
 	}
-	apiDuration := max(configElapsed, statusElapsed, onlinesElapsed, inboundsElapsed, nodesElapsed).Seconds()
-	if data != nil {
-		traffic, trafficErr = trafficMetrics(data.Traffic)
-		expErr = errors.Join(expErr, trafficErr)
+	if expRes.snapshot != nil {
+		traffic, trafficErr = trafficMetrics(expRes.snapshot.Traffic)
+		expRes.err = errors.Join(expRes.err, trafficErr)
 	}
+
 	result := append(traffic, balancer...)
-	result = append(result, panelStatusMetrics(status)...)
-	if hasOnlines {
-		gauge(&result, "xui_client_online", "Current active client sessions across the cluster reported by panel.", float64(len(onlines)), nil)
+	result = append(result, panelStatusMetrics(apiRes.status)...)
+	if apiRes.hasOnlines {
+		gauge(&result, "xui_client_online", "Current active client sessions across the cluster reported by panel.", float64(len(apiRes.onlines)), nil)
 	}
 	nodesByID := make(map[int]string)
-	if hasNodes {
-		for _, n := range nodes {
+	if apiRes.hasNodes {
+		for _, n := range apiRes.nodes {
 			nodesByID[n.ID] = n.Name
 		}
 	}
-	if hasInbounds {
-		result = append(result, inboundStatusMetrics(inbounds, nodesByID)...)
-		result = append(result, clientCountMetrics(inbounds, time.Now().UnixMilli())...)
+	if apiRes.hasInbounds {
+		result = append(result, inboundStatusMetrics(apiRes.inbounds, nodesByID)...)
+		result = append(result, clientCountMetrics(apiRes.inbounds, time.Now().UnixMilli())...)
 	}
-	if hasNodes {
-		result = append(result, nodeMetrics(nodes)...)
+	if apiRes.hasNodes {
+		result = append(result, nodeMetrics(apiRes.nodes)...)
 	}
-	if hasInbounds && hasOnlines {
-		localEmails := make(map[string]bool)
-		for _, in := range inbounds {
-			if in.NodeID == nil || *in.NodeID == 0 {
-				for _, email := range in.ClientEmails {
-					localEmails[email] = true
-				}
-			}
-		}
-		onlineSet := make(map[string]bool, len(onlines))
-		for _, email := range onlines {
-			onlineSet[email] = true
-		}
-		localOnlineCount := 0
-		for email := range localEmails {
-			if onlineSet[email] {
-				localOnlineCount++
-			}
-		}
-		gauge(&result, "xui_node_online_clients", "Current active clients online connected to this node reported by panel.", float64(localOnlineCount), []string{"node"}, "local")
+	if apiRes.hasInbounds && apiRes.hasOnlines {
+		gauge(&result, "xui_node_online_clients", "Current active clients online connected to this node reported by panel.", float64(countLocalOnlineClients(apiRes.inbounds, apiRes.onlines)), []string{"node"}, "local")
 	}
-	if data != nil {
-		result = append(result, data.Memory...)
-		result = append(result, data.Observation...)
+	if expRes.snapshot != nil {
+		result = append(result, expRes.snapshot.Memory...)
+		result = append(result, expRes.snapshot.Observation...)
 	}
+
 	for _, item := range []struct {
 		name string
 		err  error
-	}{{"api_settings", cfgErr}, {"api_status", statusErr}, {"api_inbounds", inboundsErr}, {"api_nodes", nodesErr}, {"api_onlines", onlinesErr}, {"expvars", expErr}, {"traffic", trafficErr}, {"grpc", grpcErr}, {"balancer_metrics", balancerErr}} {
+	}{
+		{"api_settings", apiRes.cfgErr},
+		{"api_status", apiRes.statusErr},
+		{"api_inbounds", apiRes.inboundsErr},
+		{"api_nodes", apiRes.nodesErr},
+		{"api_onlines", apiRes.onlinesErr},
+		{"expvars", expRes.err},
+		{"traffic", trafficErr},
+		{"grpc", grpcRes.err},
+		{"balancer_metrics", balancerErr},
+	} {
 		if item.err != nil {
 			slog.Warn("collection failed", "operation", item.name, "error", item.err.Error(), "error_type", fmt.Sprintf("%T", item.err))
 		} else {
 			slog.Debug("collection succeeded", "operation", item.name)
 		}
 	}
-	gauge(&result, "xui_exporter_scrape_success", "Whether source requests succeeded and their responses satisfied the exporter contract.", number(cfgErr == nil && statusErr == nil && inboundsErr == nil && nodesErr == nil && onlinesErr == nil), []string{"source"}, "api")
-	gauge(&result, "xui_exporter_scrape_duration_seconds", "Elapsed source collection time in seconds.", apiDuration, []string{"source"}, "api")
-	gauge(&result, "xui_exporter_scrape_success", "Whether source requests succeeded and their responses satisfied the exporter contract.", number(expErr == nil), []string{"source"}, "expvars")
-	gauge(&result, "xui_exporter_scrape_duration_seconds", "Elapsed source collection time in seconds.", expDuration.Seconds(), []string{"source"}, "expvars")
-	gauge(&result, "xui_exporter_scrape_success", "Whether source requests succeeded and their responses satisfied the exporter contract.", number(grpcErr == nil), []string{"source"}, "grpc")
-	gauge(&result, "xui_exporter_scrape_duration_seconds", "Elapsed source collection time in seconds.", grpcDuration.Seconds(), []string{"source"}, "grpc")
+	gauge(&result, "xui_exporter_scrape_success", "Whether source requests succeeded and their responses satisfied the exporter contract.", number(apiRes.ok()), []string{"source"}, "api")
+	gauge(&result, "xui_exporter_scrape_duration_seconds", "Elapsed source collection time in seconds.", apiRes.duration.Seconds(), []string{"source"}, "api")
+	gauge(&result, "xui_exporter_scrape_success", "Whether source requests succeeded and their responses satisfied the exporter contract.", number(expRes.err == nil), []string{"source"}, "expvars")
+	gauge(&result, "xui_exporter_scrape_duration_seconds", "Elapsed source collection time in seconds.", expRes.duration.Seconds(), []string{"source"}, "expvars")
+	gauge(&result, "xui_exporter_scrape_success", "Whether source requests succeeded and their responses satisfied the exporter contract.", number(grpcRes.err == nil), []string{"source"}, "grpc")
+	gauge(&result, "xui_exporter_scrape_duration_seconds", "Elapsed source collection time in seconds.", grpcRes.duration.Seconds(), []string{"source"}, "grpc")
 	gauge(&result, "xui_exporter_build_info", "Exporter build version.", 1, []string{"version"}, e.Version)
 	return result
 }
 
-// readGRPC probes runtime access even when panel settings are unavailable.
-func (e *Exporter) readGRPC(ctx context.Context, cfg *Config) (map[string]bool, map[string]*BalancerState, error) {
-	core := e.Core
-	if core == nil {
-		return nil, nil, errors.New("missing gRPC source")
+func countLocalOnlineClients(inbounds []*InboundStatus, onlines []string) int {
+	localEmails := make(map[string]bool)
+	for _, in := range inbounds {
+		if in.NodeID == nil || *in.NodeID == 0 {
+			for _, email := range in.ClientEmails {
+				localEmails[email] = true
+			}
+		}
 	}
-	if c, ok := core.(*GRPCCore); ok && c.slowThreshold <= 0 {
+	onlineSet := make(map[string]bool, len(onlines))
+	for _, email := range onlines {
+		onlineSet[email] = true
+	}
+	count := 0
+	for email := range localEmails {
+		if onlineSet[email] {
+			count++
+		}
+	}
+	return count
+}
+
+func (e *Exporter) collectAPI(ctx context.Context, sig *configSignal) apiResult {
+	threshold := e.slowThreshold()
+	apiStart := time.Now()
+	var res apiResult
+	var configElapsed, statusElapsed, onlinesElapsed, inboundsElapsed, nodesElapsed time.Duration
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		start := time.Now()
+		defer reportSlow(start, "api", "getXraySetting", threshold)
+		cfg, err := e.Panel.Configuration(ctx)
+		if err == nil && cfg == nil {
+			err = errors.New("missing panel configuration")
+		}
+		if err != nil {
+			cfg = nil
+		}
+		res.cfg = cfg
+		res.cfgErr = err
+		sig.cfg = cfg
+		close(sig.done)
+		configElapsed = time.Since(apiStart)
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		start := time.Now()
+		defer reportSlow(start, "api", "server/status", threshold)
+		status, err := e.Panel.Status(ctx)
+		if err == nil && status == nil {
+			err = errors.New("missing panel status")
+		}
+		res.status = status
+		res.statusErr = err
+		statusElapsed = time.Since(apiStart)
+	}()
+
+	if onlinesSrc, ok := e.Panel.(OnlineSource); ok {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			start := time.Now()
+			defer reportSlow(start, "api", "clients/onlines", threshold)
+			onlines, err := onlinesSrc.Onlines(ctx)
+			res.onlines = onlines
+			res.onlinesErr = err
+			res.hasOnlines = err == nil
+			onlinesElapsed = time.Since(apiStart)
+		}()
+	}
+
+	if inbSrc, ok := e.Panel.(InboundSource); ok {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			start := time.Now()
+			defer reportSlow(start, "api", "inbounds/list", threshold)
+			inbounds, err := inbSrc.Inbounds(ctx)
+			res.inbounds = inbounds
+			res.inboundsErr = err
+			res.hasInbounds = err == nil
+			inboundsElapsed = time.Since(apiStart)
+		}()
+	}
+
+	if nodeSrc, ok := e.Panel.(NodeSource); ok {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			start := time.Now()
+			defer reportSlow(start, "api", "nodes/list", threshold)
+			nodes, err := nodeSrc.Nodes(ctx)
+			res.nodes = nodes
+			res.nodesErr = err
+			res.hasNodes = err == nil
+			nodesElapsed = time.Since(apiStart)
+		}()
+	}
+
+	wg.Wait()
+	res.duration = max(configElapsed, statusElapsed, onlinesElapsed, inboundsElapsed, nodesElapsed)
+	return res
+}
+
+func (e *Exporter) collectExpvars(ctx context.Context, sig *configSignal) (res expvarsResult) {
+	var cfg *Config
+	hasExplicit := false
+	if exp, ok := e.Expvars.(explicitExpvars); ok && exp.hasExplicitURL() {
+		hasExplicit = true
+	}
+	if !hasExplicit {
+		<-sig.done
+		cfg = sig.cfg
+	}
+	start := time.Now()
+	defer reportSlow(start, "expvars", "debug/vars", e.slowThreshold())
+	defer func() { res.duration = time.Since(start) }()
+	if e.Expvars == nil {
+		res.err = errors.New("missing expvars source")
+		return res
+	}
+	data, err := e.Expvars.Snapshot(ctx, cfg)
+	if err == nil && data == nil {
+		err = errors.New("missing expvars snapshot")
+	}
+	if data != nil {
+		err = errors.Join(err, data.Err)
+	}
+	res.snapshot = data
+	res.err = err
+	return res
+}
+
+func (e *Exporter) collectGRPC(ctx context.Context, sig *configSignal) grpcResult {
+	var res grpcResult
+	core, err := e.coreWithThreshold()
+	if err != nil {
+		res.err = err
+		return res
+	}
+	outStart := time.Now()
+	outbounds, err := core.Outbounds(ctx)
+	res.duration += time.Since(outStart)
+	if err != nil {
+		res.err = err
+		return res
+	}
+	res.outbounds = outbounds
+
+	<-sig.done
+	cfg := sig.cfg
+	if cfg == nil || len(cfg.Routing.Balancers) == 0 {
+		res.states = map[string]*BalancerState{}
+		return res
+	}
+	balStart := time.Now()
+	states, err := readBalancers(ctx, core, cfg.Routing.Balancers)
+	res.duration += time.Since(balStart)
+	res.states = states
+	res.err = err
+	return res
+}
+
+func (e *Exporter) coreWithThreshold() (Core, error) {
+	if e.Core == nil {
+		return nil, errors.New("missing gRPC source")
+	}
+	if c, ok := e.Core.(*GRPCCore); ok && c.slowThreshold <= 0 {
 		cp := *c
 		cp.slowThreshold = e.slowThreshold()
-		core = &cp
+		return &cp, nil
+	}
+	return e.Core, nil
+}
+
+func readBalancers(ctx context.Context, core Core, balancers []BalancerConfig) (map[string]*BalancerState, error) {
+	states := make(map[string]*BalancerState, len(balancers))
+	if len(balancers) == 1 {
+		b := balancers[0]
+		state, err := core.Balancer(ctx, b.Tag)
+		if err != nil {
+			return states, err
+		}
+		states[b.Tag] = state
+		return states, nil
+	}
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	var firstErr error
+	for _, b := range balancers {
+		wg.Add(1)
+		go func(tag string) {
+			defer wg.Done()
+			state, err := core.Balancer(ctx, tag)
+			mu.Lock()
+			defer mu.Unlock()
+			if err != nil {
+				if firstErr == nil {
+					firstErr = err
+				}
+				return
+			}
+			states[tag] = state
+		}(b.Tag)
+	}
+	wg.Wait()
+	return states, firstErr
+}
+
+// readGRPC probes runtime access even when panel settings are unavailable.
+func (e *Exporter) readGRPC(ctx context.Context, cfg *Config) (map[string]bool, map[string]*BalancerState, error) {
+	core, err := e.coreWithThreshold()
+	if err != nil {
+		return nil, nil, err
 	}
 	outbounds, err := core.Outbounds(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
-	states := map[string]*BalancerState{}
-	if cfg != nil && len(cfg.Routing.Balancers) > 0 {
-		if len(cfg.Routing.Balancers) == 1 {
-			b := cfg.Routing.Balancers[0]
-			state, err := core.Balancer(ctx, b.Tag)
-			if err != nil {
-				return outbounds, states, err
-			}
-			states[b.Tag] = state
-		} else {
-			var bWg sync.WaitGroup
-			var bMu sync.Mutex
-			var firstErr error
-			for _, b := range cfg.Routing.Balancers {
-				bWg.Add(1)
-				go func(tag string) {
-					defer bWg.Done()
-					state, err := core.Balancer(ctx, tag)
-					bMu.Lock()
-					defer bMu.Unlock()
-					if err != nil {
-						if firstErr == nil {
-							firstErr = err
-						}
-						return
-					}
-					states[tag] = state
-				}(b.Tag)
-			}
-			bWg.Wait()
-			if firstErr != nil {
-				return outbounds, states, firstErr
-			}
-		}
+	if cfg == nil || len(cfg.Routing.Balancers) == 0 {
+		return outbounds, map[string]*BalancerState{}, nil
 	}
-	return outbounds, states, nil
+	states, err := readBalancers(ctx, core, cfg.Routing.Balancers)
+	return outbounds, states, err
 }
 
 func (e *Exporter) balancerMetrics(ctx context.Context, cfg *Config) (samples, error) {

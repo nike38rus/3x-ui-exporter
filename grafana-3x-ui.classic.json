@@ -3835,7 +3835,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS-INFRA}"
       },
-      "description": "Consolidated runtime health, network latency, jitter, probe reliability, and overall quality score for outbounds in the selected balancer.",
+      "description": "Consolidated runtime health, network latency, jitter, probe reliability, and overall quality score for outbounds in the selected balancer. Probe success and Quality aggregate scraped burst-window snapshots over $__range (a window-sample- and scrape-weighted average across overlapping windows, not distinct probe counts).",
       "fieldConfig": {
         "defaults": {
           "color": {

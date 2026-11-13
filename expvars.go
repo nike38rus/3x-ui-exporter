@@ -22,6 +22,7 @@ type ExpvarsSnapshot struct {
 	TrafficPresent      bool
 	Memory, Observation samples
 	Observations        map[string]bool
+	ObservationsPresent bool
 	Err                 error
 }
 type Expvars struct {
@@ -87,6 +88,7 @@ func decodeExpvars(body []byte, collectClient bool) (*ExpvarsSnapshot, error) {
 	}
 	if configured(envelope["observatory"]) {
 		r.Observation, r.Observations, err = expvarsObservation(envelope["observatory"])
+		r.ObservationsPresent = err == nil
 		r.Err = errors.Join(r.Err, err)
 	}
 	return r, nil

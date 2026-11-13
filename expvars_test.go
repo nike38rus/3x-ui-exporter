@@ -150,3 +150,48 @@ func TestExpvarsHTTPError(t *testing.T) {
 		})
 	}
 }
+
+func TestObservatorySurvivesPartialExpvarsError(t *testing.T) {
+	cfg := configuration(t, `{"observatory":{},"metrics":{"listen":"127.0.0.1:11111"},"routing":{"balancers":[{"tag":"lb","selector":["A"],"strategy":{"type":"leastLoad"}}]}}`)
+	core := &fakeCore{
+		tags:   map[string]bool{"A": true},
+		states: map[string]*BalancerState{"lb": {Targets: map[string]bool{"A": true}}},
+	}
+	for _, tc := range []struct {
+		name       string
+		body       string
+		wantHealth float64
+	}{
+		{
+			name:       "valid observatory with broken stats",
+			body:       `{"stats":[],"memstats":{"Alloc":123},"observatory":{"A":{"alive":true,"delay":100,"outbound_tag":"A"}}}`,
+			wantHealth: 2,
+		},
+		{
+			name:       "broken observatory with valid stats",
+			body:       `{"stats":{"outbound":{"A":{"uplink":10}}},"observatory":{"A":null}}`,
+			wantHealth: 1,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				_, _ = w.Write([]byte(tc.body))
+			}))
+			defer server.Close()
+			e := &Exporter{
+				Panel:   fakePanel{cfg: cfg},
+				Core:    core,
+				Expvars: &Expvars{URL: server.URL, Client: server.Client()},
+			}
+			m := e.scrape(context.Background())
+			ok := sampleValues(t, m, "xui_exporter_scrape_success")
+			if ok["source=expvars;"] != 0 || ok["source=api;"] != 1 || ok["source=grpc;"] != 1 {
+				t.Fatalf("unexpected scrape_success: %v", ok)
+			}
+			health := sampleValues(t, m, "xui_balancer_health")
+			if got := health["balancer=lb;"]; got != tc.wantHealth {
+				t.Fatalf("xui_balancer_health=%v, want %v", got, tc.wantHealth)
+			}
+		})
+	}
+}

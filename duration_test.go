@@ -60,7 +60,7 @@ func TestSourceDurationsExcludeOtherSources(t *testing.T) {
 				e := &Exporter{Panel: delayedPanel{cfg: cfg, delay: tc.api, statusDelay: tc.status}, Core: core, Expvars: delayedObserver{tc.expvars}}
 				start := time.Now()
 				m := e.scrape(context.Background())
-				if got, want := time.Since(start), max(tc.status, tc.api+max(30*time.Millisecond, tc.expvars)); got != want {
+				if got, want := time.Since(start), max(tc.status, max(tc.api, 10*time.Millisecond)+20*time.Millisecond, tc.api+tc.expvars); got != want {
 					t.Fatalf("scrape duration %v, want %v", got, want)
 				}
 				values := sampleValues(t, m, "xui_exporter_scrape_duration_seconds")
@@ -92,8 +92,8 @@ func TestExplicitExpvarsRunsConcurrentlyWithAPI(t *testing.T) {
 		}
 		start := time.Now()
 		_ = e.scrape(context.Background())
-		// Explicit expvars runs concurrently with API: max(200ms api + 30ms grpc, 200ms expvars) = 230ms (instead of 200+200+30 = 430ms).
-		if got, want := time.Since(start), 230*time.Millisecond; got != want {
+		// Explicit expvars and ListOutbounds run concurrently with API: max(200ms api + 20ms balancer, 200ms expvars) = 220ms.
+		if got, want := time.Since(start), 220*time.Millisecond; got != want {
 			t.Fatalf("scrape duration %v, want %v", got, want)
 		}
 	})
