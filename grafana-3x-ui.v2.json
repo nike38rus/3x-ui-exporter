@@ -299,7 +299,7 @@
         "spec": {
           "id": 12,
           "title": "Throughput",
-          "description": "",
+          "description": "Top-N inbound client throughput (download above zero, upload below zero); remaining inbounds are grouped as others.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -803,7 +803,7 @@
         "spec": {
           "id": 23,
           "title": "Collection history",
-          "description": "",
+          "description": "Per-source scrape outcome (api, grpc, expvars): OK when all required requests succeeded and satisfied the response contract; FAILED otherwise.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -1388,7 +1388,7 @@
         "spec": {
           "id": 3,
           "title": "Outbound latency deviation",
-          "description": "",
+          "description": "RTT standard deviation reported by burstObservatory across successful samples in the observation window. Remains empty when using regular Observatory.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -4158,7 +4158,7 @@
         "spec": {
           "id": 59,
           "title": "Exporter CPU & Goroutines",
-          "description": "Process CPU utilization rate and active Go runtime goroutines.",
+          "description": "",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -4323,7 +4323,7 @@
         "spec": {
           "id": 60,
           "title": "Connection stats",
-          "description": "Current open network sockets reported by the panel environment",
+          "description": "",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -4470,7 +4470,7 @@
         "spec": {
           "id": 61,
           "title": "Online clients",
-          "description": "Current active client sessions reported by the panel",
+          "description": "",
           "links": [
             {
               "title": "Clients statuses",
@@ -4567,7 +4567,7 @@
         "spec": {
           "id": 62,
           "title": "Administrative state",
-          "description": "",
+          "description": "Configured enable/disable flag of each inbound in the 3x-ui database. Reflects panel configuration, not live port reachability.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -5175,7 +5175,7 @@
         "spec": {
           "id": 67,
           "title": "Inventory",
-          "description": "Inventory of remote cluster nodes: Xray core process state, system uptime, configured inbounds, and software versions.",
+          "description": "Remote cluster node metadata and runtime versions reported via master panel heartbeats.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -6064,7 +6064,7 @@
         "spec": {
           "id": 72,
           "title": "Sessions",
-          "description": "Concurrent active client sessions over time",
+          "description": "",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -6652,7 +6652,7 @@
         "spec": {
           "id": 74,
           "title": "Exporter version",
-          "description": "Running build version of 3x-ui-exporter.",
+          "description": "",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -6760,7 +6760,7 @@
                       "version": "v0",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "# 1. Selected and healthy (UP = 2, DEGRADED = 1)\n(\n  (xui_balancer_outbound_selected{instance=\"${instance}\", balancer=~\"${balancer}\", role=\"primary\"} == 1)\n  * on (instance, outbound) group_left()\n  (\n    ((xui_observatory_outbound_alive{instance=\"${instance}\"} == 1) * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0)))\n    or\n    ((xui_observatory_outbound_alive{instance=\"${instance}\"} == 1) * 2)\n  )\n)\nor\n# 2. Selected but down (DOWN = 0)\n(\n  (xui_balancer_outbound_selected{instance=\"${instance}\", balancer=~\"${balancer}\", role=\"primary\"} == 1) * 0\n  + on (instance, outbound) group_left()\n  (xui_observatory_outbound_alive{instance=\"${instance}\"} == 0)\n)\nor\n# 3. In reserve and down (FAILED = 4)\n(\n  (xui_balancer_outbound_selected{instance=\"${instance}\", balancer=~\"${balancer}\", role=\"primary\"} == 0) * 0 + 4\n  + on (instance, outbound) group_left()\n  (xui_observatory_outbound_alive{instance=\"${instance}\"} == 0)\n)\nor\n# 4. In reserve and healthy (Inactive = 21)\n(\n  xui_balancer_outbound_selected{instance=\"${instance}\", balancer=~\"${balancer}\", role=\"primary\"} * 0 + 21\n)",
+                        "expr": "# 1. Selected and healthy (UP = 2, DEGRADED = 1)\n(\n  (xui_balancer_outbound_selected{instance=\"${instance}\", balancer=~\"${balancer}\", role=\"primary\"} == 1)\n  * on (instance, outbound) group_left()\n  (\n    ((xui_observatory_outbound_alive{instance=\"${instance}\"} == 1) * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0)))\n    or\n    ((xui_observatory_outbound_alive{instance=\"${instance}\"} == 1) * 2)\n  )\n)\nor\n# 2. Selected but down (DOWN = 0)\n(\n  (xui_balancer_outbound_selected{instance=\"${instance}\", balancer=~\"${balancer}\", role=\"primary\"} == 1) * 0\n  + on (instance, outbound) group_left()\n  (xui_observatory_outbound_alive{instance=\"${instance}\"} == 0)\n)\nor\n# 3. Selected and unmonitored (BLIND = 3)\n(\n  (xui_balancer_outbound_selected{instance=\"${instance}\", balancer=~\"${balancer}\", role=\"primary\"} == 1) * 3\n  unless on (instance, outbound)\n  xui_observatory_outbound_alive{instance=\"${instance}\"}\n)\nor\n# 4. In reserve and down (FAILED = 4)\n(\n  (xui_balancer_outbound_selected{instance=\"${instance}\", balancer=~\"${balancer}\", role=\"primary\"} == 0) * 0 + 4\n  + on (instance, outbound) group_left()\n  (xui_observatory_outbound_alive{instance=\"${instance}\"} == 0)\n)\nor\n# 5. In reserve and healthy (Inactive = 21)\n(\n  xui_balancer_outbound_selected{instance=\"${instance}\", balancer=~\"${balancer}\", role=\"primary\"} * 0 + 21\n)",
                         "interval": "5s",
                         "legendFormat": "{{outbound}}",
                         "range": true
@@ -6913,7 +6913,7 @@
         "spec": {
           "id": 85,
           "title": "Status",
-          "description": "Operational status (UP/DOWN) of monitored outbounds and time elapsed since the last status change.",
+          "description": "Current operational status (UP/DEGRADED/DOWN), uptime percentage over the selected range, and time elapsed since the last state change for all monitored outbounds.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -6929,7 +6929,7 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "xui_observatory_outbound_alive{instance=\"${instance}\"}",
+                        "expr": "(\n  (xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0)))\n  or\n  (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)\n)",
                         "format": "table",
                         "instant": true,
                         "range": false
@@ -6956,6 +6956,26 @@
                       }
                     },
                     "refId": "B",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "exemplar": false,
+                        "expr": "avg_over_time(xui_observatory_outbound_alive{instance=\"${instance}\"}[$__range])",
+                        "format": "table",
+                        "instant": true,
+                        "range": false
+                      }
+                    },
+                    "refId": "C",
                     "hidden": false
                   }
                 }
@@ -6985,19 +7005,26 @@
                         "instance 1": true,
                         "job": true,
                         "job 1": true,
-                        "outbound 1": true
+                        "outbound 1": true,
+                        "Time 2": true,
+                        "__name__ 2": true,
+                        "instance 2": true,
+                        "job 2": true,
+                        "outbound 2": true
                       },
                       "includeByName": {},
                       "indexByName": {
+                        "outbound": 0,
                         "Value #A": 1,
-                        "Value #B": 2,
-                        "outbound": 0
+                        "Value #C": 2,
+                        "Value #B": 3
                       },
                       "orderByMode": "manual",
                       "renameByName": {
+                        "outbound": "Outbound",
                         "Value #A": "Status",
-                        "Value #B": "Since",
-                        "outbound": "Outbound"
+                        "Value #C": "Uptime",
+                        "Value #B": "Since"
                       }
                     }
                   }
@@ -7012,6 +7039,10 @@
                         {
                           "desc": false,
                           "field": "Status"
+                        },
+                        {
+                          "desc": false,
+                          "field": "Uptime"
                         }
                       ]
                     }
@@ -7097,8 +7128,13 @@
                                 "text": "DOWN"
                               },
                               "1": {
-                                "color": "green",
+                                "color": "yellow",
                                 "index": 1,
+                                "text": "DEGRADED"
+                              },
+                              "2": {
+                                "color": "green",
+                                "index": 2,
                                 "text": "UP"
                               }
                             },
@@ -7128,6 +7164,53 @@
                         "value": "center"
                       }
                     ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Uptime"
+                    },
+                    "properties": [
+                      {
+                        "id": "unit",
+                        "value": "percentunit"
+                      },
+                      {
+                        "id": "decimals",
+                        "value": 1
+                      },
+                      {
+                        "id": "custom.align",
+                        "value": "center"
+                      },
+                      {
+                        "id": "custom.cellOptions",
+                        "value": {
+                          "type": "color-text"
+                        }
+                      },
+                      {
+                        "id": "thresholds",
+                        "value": {
+                          "mode": "absolute",
+                          "steps": [
+                            {
+                              "color": "red",
+                              "value": null
+                            },
+                            {
+                              "color": "yellow",
+                              "value": 0.95
+                            },
+                            {
+                              "color": "green",
+                              "value": 0.99
+                            }
+                          ]
+                        }
+                      }
+                    ]
                   }
                 ]
               }
@@ -7140,7 +7223,7 @@
         "spec": {
           "id": 9,
           "title": "Outbound throughput",
-          "description": "",
+          "description": "Top-N outbound throughput (download above zero, upload below zero); remaining outbounds are grouped as others.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -7352,7 +7435,7 @@
         "spec": {
           "id": 95,
           "title": "Egress health and routing state",
-          "description": "Operational egress health for each balancer: UP (confirmed alive by Observatory probes), BLIND (unmonitored or direct route), DOWN (route probe failed or structurally unavailable).",
+          "description": "Egress health and active routing mode per balancer. Health: UP (probe-confirmed), BLIND (unmonitored/direct), DOWN (probe failed or blackhole). Route: Primary, Fallback, Override, or No route.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -7525,6 +7608,111 @@
                     ]
                   }
                 ]
+              }
+            }
+          }
+        }
+      },
+      "panel-105": {
+        "kind": "Panel",
+        "spec": {
+          "id": 105,
+          "title": "Outbound outages",
+          "description": "Outage timeline showing only DOWN intervals (alive = 0) for monitored outbounds within the selected range. Empty space means the outbound was not down.",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "xui_observatory_outbound_alive{instance=\"${instance}\"} == 0",
+                        "interval": "5s",
+                        "legendFormat": "{{outbound}}",
+                        "range": true
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {
+                "maxDataPoints": 5000,
+                "interval": "5s"
+              }
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "state-timeline",
+            "version": "13.3.0",
+            "spec": {
+              "options": {
+                "alignValue": "left",
+                "legend": {
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "mergeValues": true,
+                "rowHeight": 0.9,
+                "showValue": "never",
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "single",
+                  "sort": "none"
+                }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "mappings": [
+                    {
+                      "options": {
+                        "0": {
+                          "color": "red",
+                          "index": 0,
+                          "text": "DOWN"
+                        }
+                      },
+                      "type": "value"
+                    }
+                  ],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "fixed"
+                  },
+                  "custom": {
+                    "axisPlacement": "auto",
+                    "axisWidth": 140,
+                    "fillOpacity": 85,
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineWidth": 0,
+                    "spanNulls": false
+                  }
+                },
+                "overrides": []
               }
             }
           }
@@ -7851,7 +8039,20 @@
                       "spec": {
                         "x": 0,
                         "y": 8,
-                        "width": 8,
+                        "width": 24,
+                        "height": 8,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-105"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 0,
+                        "y": 16,
+                        "width": 10,
                         "height": 8,
                         "element": {
                           "kind": "ElementReference",
@@ -7862,9 +8063,9 @@
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 8,
-                        "y": 8,
-                        "width": 8,
+                        "x": 10,
+                        "y": 16,
+                        "width": 7,
                         "height": 8,
                         "element": {
                           "kind": "ElementReference",
@@ -7875,9 +8076,9 @@
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
-                        "x": 16,
-                        "y": 8,
-                        "width": 8,
+                        "x": 17,
+                        "y": 16,
+                        "width": 7,
                         "height": 8,
                         "element": {
                           "kind": "ElementReference",

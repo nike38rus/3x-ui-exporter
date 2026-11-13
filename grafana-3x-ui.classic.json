@@ -596,7 +596,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS-INFRA}"
       },
-      "description": "Current active client sessions reported by the panel",
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -827,7 +827,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS-INFRA}"
       },
-      "description": "Running build version of 3x-ui-exporter.",
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1740,7 +1740,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS-INFRA}"
       },
-      "description": "Current open network sockets reported by the panel environment",
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -2178,7 +2178,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
-          "description": "Concurrent active client sessions over time",
+          "description": "",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -2392,7 +2392,8 @@
             }
           ],
           "title": "Throughput",
-          "type": "timeseries"
+          "type": "timeseries",
+          "description": "Top-N inbound client throughput (download above zero, upload below zero); remaining inbounds are grouped as others."
         },
         {
           "datasource": {
@@ -2562,7 +2563,8 @@
             }
           ],
           "title": "Administrative state",
-          "type": "state-timeline"
+          "type": "state-timeline",
+          "description": "Configured enable/disable flag of each inbound in the 3x-ui database. Reflects panel configuration, not live port reachability."
         }
       ],
       "title": "Inbounds",
@@ -2747,14 +2749,106 @@
             }
           ],
           "title": "Outbound throughput",
-          "type": "timeseries"
+          "type": "timeseries",
+          "description": "Top-N outbound throughput (download above zero, upload below zero); remaining outbounds are grouped as others."
         },
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
-          "description": "Operational status (UP/DOWN) of monitored outbounds and time elapsed since the last status change.",
+          "description": "Outage timeline showing only DOWN intervals (alive = 0) for monitored outbounds within the selected range. Empty space means the outbound was not down.",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "fixed"
+              },
+              "custom": {
+                "axisPlacement": "auto",
+                "axisWidth": 140,
+                "fillOpacity": 85,
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineWidth": 0,
+                "spanNulls": false
+              },
+              "mappings": [
+                {
+                  "options": {
+                    "0": {
+                      "color": "red",
+                      "index": 0,
+                      "text": "DOWN"
+                    }
+                  },
+                  "type": "value"
+                }
+              ],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 31
+          },
+          "id": 105,
+          "interval": "5s",
+          "maxDataPoints": 5000,
+          "options": {
+            "alignValue": "left",
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "mergeValues": true,
+            "rowHeight": 0.9,
+            "showValue": "never",
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "13.3.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "expr": "xui_observatory_outbound_alive{instance=\"${instance}\"} == 0",
+              "interval": "5s",
+              "legendFormat": "{{outbound}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Outbound outages",
+          "type": "state-timeline"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS-INFRA}"
+          },
+          "description": "Current operational status (UP/DEGRADED/DOWN), uptime percentage over the selected range, and time elapsed since the last state change for all monitored outbounds.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -2806,8 +2900,13 @@
                             "text": "DOWN"
                           },
                           "1": {
-                            "color": "green",
+                            "color": "yellow",
                             "index": 1,
+                            "text": "DEGRADED"
+                          },
+                          "2": {
+                            "color": "green",
+                            "index": 2,
                             "text": "UP"
                           }
                         },
@@ -2837,14 +2936,60 @@
                     "value": "center"
                   }
                 ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Uptime"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "percentunit"
+                  },
+                  {
+                    "id": "decimals",
+                    "value": 1
+                  },
+                  {
+                    "id": "custom.align",
+                    "value": "center"
+                  },
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-text"
+                    }
+                  },
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "red",
+                          "value": null
+                        },
+                        {
+                          "color": "yellow",
+                          "value": 0.95
+                        },
+                        {
+                          "color": "green",
+                          "value": 0.99
+                        }
+                      ]
+                    }
+                  }
+                ]
               }
             ]
           },
           "gridPos": {
             "h": 8,
-            "w": 8,
+            "w": 10,
             "x": 0,
-            "y": 31
+            "y": 39
           },
           "id": 85,
           "options": {
@@ -2876,7 +3021,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "xui_observatory_outbound_alive{instance=\"${instance}\"}",
+              "expr": "(\n  (xui_observatory_outbound_alive{instance=\"${instance}\"} * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0)))\n  or\n  (xui_observatory_outbound_alive{instance=\"${instance}\"} * 2)\n)",
               "format": "table",
               "instant": true,
               "range": false,
@@ -2894,6 +3039,19 @@
               "instant": true,
               "range": false,
               "refId": "B"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS-INFRA}"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg_over_time(xui_observatory_outbound_alive{instance=\"${instance}\"}[$__range])",
+              "format": "table",
+              "instant": true,
+              "range": false,
+              "refId": "C"
             }
           ],
           "title": "Status",
@@ -2917,19 +3075,26 @@
                   "instance 1": true,
                   "job": true,
                   "job 1": true,
-                  "outbound 1": true
+                  "outbound 1": true,
+                  "Time 2": true,
+                  "__name__ 2": true,
+                  "instance 2": true,
+                  "job 2": true,
+                  "outbound 2": true
                 },
                 "includeByName": {},
                 "indexByName": {
+                  "outbound": 0,
                   "Value #A": 1,
-                  "Value #B": 2,
-                  "outbound": 0
+                  "Value #C": 2,
+                  "Value #B": 3
                 },
                 "orderByMode": "manual",
                 "renameByName": {
+                  "outbound": "Outbound",
                   "Value #A": "Status",
-                  "Value #B": "Since",
-                  "outbound": "Outbound"
+                  "Value #C": "Uptime",
+                  "Value #B": "Since"
                 }
               }
             },
@@ -2941,6 +3106,10 @@
                   {
                     "desc": false,
                     "field": "Status"
+                  },
+                  {
+                    "desc": false,
+                    "field": "Uptime"
                   }
                 ]
               }
@@ -2977,9 +3146,9 @@
           },
           "gridPos": {
             "h": 8,
-            "w": 8,
-            "x": 8,
-            "y": 31
+            "w": 7,
+            "x": 10,
+            "y": 39
           },
           "id": 10,
           "options": {
@@ -3077,9 +3246,9 @@
           },
           "gridPos": {
             "h": 8,
-            "w": 8,
-            "x": 16,
-            "y": 31
+            "w": 7,
+            "x": 17,
+            "y": 39
           },
           "id": 11,
           "options": {
@@ -3176,7 +3345,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS-INFRA}"
       },
-      "description": "Operational egress health for each balancer: UP (confirmed alive by Observatory probes), BLIND (unmonitored or direct route), DOWN (route probe failed or structurally unavailable).",
+      "description": "Egress health and active routing mode per balancer. Health: UP (probe-confirmed), BLIND (unmonitored/direct), DOWN (probe failed or blackhole). Route: Primary, Fallback, Override, or No route.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -3431,7 +3600,7 @@
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
           "editorMode": "code",
-          "expr": "# 1. Selected and healthy (UP = 2, DEGRADED = 1)\n(\n  (xui_balancer_outbound_selected{instance=\"${instance}\", balancer=~\"${balancer}\", role=\"primary\"} == 1)\n  * on (instance, outbound) group_left()\n  (\n    ((xui_observatory_outbound_alive{instance=\"${instance}\"} == 1) * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0)))\n    or\n    ((xui_observatory_outbound_alive{instance=\"${instance}\"} == 1) * 2)\n  )\n)\nor\n# 2. Selected but down (DOWN = 0)\n(\n  (xui_balancer_outbound_selected{instance=\"${instance}\", balancer=~\"${balancer}\", role=\"primary\"} == 1) * 0\n  + on (instance, outbound) group_left()\n  (xui_observatory_outbound_alive{instance=\"${instance}\"} == 0)\n)\nor\n# 3. In reserve and down (FAILED = 4)\n(\n  (xui_balancer_outbound_selected{instance=\"${instance}\", balancer=~\"${balancer}\", role=\"primary\"} == 0) * 0 + 4\n  + on (instance, outbound) group_left()\n  (xui_observatory_outbound_alive{instance=\"${instance}\"} == 0)\n)\nor\n# 4. In reserve and healthy (Inactive = 21)\n(\n  xui_balancer_outbound_selected{instance=\"${instance}\", balancer=~\"${balancer}\", role=\"primary\"} * 0 + 21\n)",
+          "expr": "# 1. Selected and healthy (UP = 2, DEGRADED = 1)\n(\n  (xui_balancer_outbound_selected{instance=\"${instance}\", balancer=~\"${balancer}\", role=\"primary\"} == 1)\n  * on (instance, outbound) group_left()\n  (\n    ((xui_observatory_outbound_alive{instance=\"${instance}\"} == 1) * (1 + (xui_observatory_outbound_probe_failed_samples{instance=\"${instance}\"} == bool 0)))\n    or\n    ((xui_observatory_outbound_alive{instance=\"${instance}\"} == 1) * 2)\n  )\n)\nor\n# 2. Selected but down (DOWN = 0)\n(\n  (xui_balancer_outbound_selected{instance=\"${instance}\", balancer=~\"${balancer}\", role=\"primary\"} == 1) * 0\n  + on (instance, outbound) group_left()\n  (xui_observatory_outbound_alive{instance=\"${instance}\"} == 0)\n)\nor\n# 3. Selected and unmonitored (BLIND = 3)\n(\n  (xui_balancer_outbound_selected{instance=\"${instance}\", balancer=~\"${balancer}\", role=\"primary\"} == 1) * 3\n  unless on (instance, outbound)\n  xui_observatory_outbound_alive{instance=\"${instance}\"}\n)\nor\n# 4. In reserve and down (FAILED = 4)\n(\n  (xui_balancer_outbound_selected{instance=\"${instance}\", balancer=~\"${balancer}\", role=\"primary\"} == 0) * 0 + 4\n  + on (instance, outbound) group_left()\n  (xui_observatory_outbound_alive{instance=\"${instance}\"} == 0)\n)\nor\n# 5. In reserve and healthy (Inactive = 21)\n(\n  xui_balancer_outbound_selected{instance=\"${instance}\", balancer=~\"${balancer}\", role=\"primary\"} * 0 + 21\n)",
           "interval": "5s",
           "legendFormat": "{{outbound}}",
           "range": true,
@@ -4288,7 +4457,8 @@
         }
       ],
       "title": "Outbound latency deviation",
-      "type": "timeseries"
+      "type": "timeseries",
+      "description": "RTT standard deviation reported by burstObservatory across successful samples in the observation window. Remains empty when using regular Observatory."
     },
     {
       "datasource": {
@@ -5280,7 +5450,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
-          "description": "Inventory of remote cluster nodes: Xray core process state, system uptime, configured inbounds, and software versions.",
+          "description": "Remote cluster node metadata and runtime versions reported via master panel heartbeats.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -6023,7 +6193,8 @@
             }
           ],
           "title": "Collection history",
-          "type": "state-timeline"
+          "type": "state-timeline",
+          "description": "Per-source scrape outcome (api, grpc, expvars): OK when all required requests succeeded and satisfied the response contract; FAILED otherwise."
         },
         {
           "datasource": {
@@ -6299,7 +6470,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS-INFRA}"
           },
-          "description": "Process CPU utilization rate and active Go runtime goroutines.",
+          "description": "",
           "fieldConfig": {
             "defaults": {
               "color": {
